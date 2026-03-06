@@ -88,14 +88,9 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
       intelligence: 1,
     );
 
-    await world.addAll([
-      level,
-      _player,
-      SpawnSystem(),
-      CollisionSystem(),
-      HudComponent(),
-    ]);
+    await world.addAll([level, _player, SpawnSystem(), CollisionSystem()]);
     world.bindPlayer(_player);
+    await camera.viewport.add(HudComponent());
 
     _cameraController = GameCameraController(
       camera: camera,
