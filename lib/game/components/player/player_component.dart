@@ -1,28 +1,41 @@
 import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
-  final String name;
-  final Color color;
-
-  PlayerComponent({required this.inputState, required Vector2 startPosition, required this.name, this.color = const Color(0xFF2A9D8F)})
-    : _startPosition = startPosition.clone(),
-      super(
-        position: startPosition.clone(),
-        radius: 48,
-        anchor: Anchor.topLeft,
-        priority: 10,
-        paint: Paint()..color = color,
-      );
+  PlayerComponent({
+    required this.inputState,
+    required this.profile,
+    required Vector2 startPosition,
+  }) : _startPosition = startPosition.clone(),
+       super(
+         position: startPosition.clone(),
+         radius: 48,
+         anchor: Anchor.topLeft,
+         priority: 10,
+         paint: Paint()..color = _parseColor(profile.colorHex),
+       );
 
   final InputState inputState;
+  final CharacterProfile profile;
   final Vector2 _startPosition;
 
-
   static const double _moveSpeed = 340;
+
+  static Color _parseColor(String hex) {
+    final String normalized = hex.replaceFirst('#', '').trim();
+    if (normalized.length != 6) {
+      return const Color(0xFF2A9D8F);
+    }
+    final int? rgb = int.tryParse(normalized, radix: 16);
+    if (rgb == null) {
+      return const Color(0xFF2A9D8F);
+    }
+    return Color(0xFF000000 | rgb);
+  }
 
   @override
   void update(double dt) {
@@ -31,15 +44,14 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
       return;
     }
 
-    // Create velocity vector from input axes
-    final Vector2 velocity = Vector2(inputState.moveAxisX, inputState.moveAxisY);
-    
-    
+    final Vector2 velocity = Vector2(
+      inputState.moveAxisX,
+      inputState.moveAxisY,
+    );
     position += velocity * _moveSpeed * dt;
 
     final double maxX = GameConfig.worldSize.x - size.x;
     position.x = position.x.clamp(0, maxX);
-
   }
 
   void reset() {

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "names": {
+    "adjectives": ["Brave", "Slimy", "Tiny", "Fierce", "Swift"],
+    "nouns": ["Tadpole", "Froglet", "Leaper", "Hopper", "Pondling"],
+    "batches": ["of the Pond", "Squad", "Mk I", "Prime", "Patrol"]
+  },
+  "colors": [
+    { "id": "pond_green", "hex": "#2A9D8F" },
+    { "id": "moss", "hex": "#6B8E23" },
+    { "id": "mud", "hex": "#8D6E63" },
+    { "id": "sunleaf", "hex": "#E9C46A" },
+    { "id": "reed", "hex": "#5C7C2F" }
+  ]
+}
