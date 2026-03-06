@@ -14,7 +14,7 @@ class SimpleTextComponent extends TextComponent {
           position: position,
           priority: priority,
           textRenderer: TextPaint(
-            style: (style ?? TextStyle()).copyWith(
+            style: (style ?? const TextStyle()).copyWith(
               color: color,
               fontSize: style?.fontSize ?? 14,
             ),

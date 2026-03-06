@@ -27,7 +27,7 @@ import 'package:game_jam/game/world/world_root.dart';
 
 enum GamePhase { menu, playing, paused, gameOver }
 
-class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
+class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
   MyGame({
     CharacterGenerator? characterGenerator,
     CharacterPoolsRepository? characterPoolsRepository,
@@ -59,6 +59,8 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
   final Random _random;
+
+  Random get random => _random;
 
   late final PlayerComponent _player;
   late final GameCameraController _cameraController;
@@ -165,9 +167,6 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
       profile: profile,
     );
   }
-
-  @override
-  bool get debugMode => false;
 
   @override
   KeyEventResult onKeyEvent(
