@@ -33,7 +33,7 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Build web
-        run: flutter build web --release
+        run: flutter build web --release --base-href /game-jam-flame-2026/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
