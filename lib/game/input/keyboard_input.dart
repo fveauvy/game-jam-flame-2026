@@ -13,7 +13,8 @@ class KeyboardInput {
       _held.remove(event.logicalKey);
     }
 
-    input.moveAxis = _horizontalAxis();
+    input.moveAxisX = _horizontalAxis();
+    input.moveAxisY = _verticalAxis();
     return KeyEventResult.handled;
   }
 
@@ -28,6 +29,24 @@ class KeyboardInput {
       input.queueAttack();
     }
   }
+
+  double _verticalAxis() {
+    final bool up =
+        _held.contains(LogicalKeyboardKey.arrowUp) ||
+        _held.contains(LogicalKeyboardKey.keyW);
+    final bool down =
+        _held.contains(LogicalKeyboardKey.arrowDown) ||
+        _held.contains(LogicalKeyboardKey.keyS);
+
+    if (up && !down) {
+      return -1;
+    }
+    if (down && !up) {
+      return 1;
+    }
+    return 0;
+  }
+
 
   double _horizontalAxis() {
     final bool left =
