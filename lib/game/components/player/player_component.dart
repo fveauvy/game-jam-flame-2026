@@ -8,9 +8,10 @@ import 'package:game_jam/game/my_game.dart';
 class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
   PlayerComponent({
     required this.inputState,
-    required this.profile,
+    required CharacterProfile profile,
     required Vector2 startPosition,
   }) : _startPosition = startPosition.clone(),
+       _profile = profile,
        super(
          position: startPosition.clone(),
          radius: 48,
@@ -20,8 +21,10 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
        );
 
   final InputState inputState;
-  final CharacterProfile profile;
+  CharacterProfile _profile;
   final Vector2 _startPosition;
+
+  CharacterProfile get profile => _profile;
 
   static const double _moveSpeed = 340;
 
@@ -35,6 +38,11 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
       return const Color(0xFF2A9D8F);
     }
     return Color(0xFF000000 | rgb);
+  }
+
+  void applyProfile(CharacterProfile profile) {
+    _profile = profile;
+    paint.color = _parseColor(profile.colorHex);
   }
 
   @override

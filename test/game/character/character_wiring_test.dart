@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game_jam/game/character/generator/character_generator.dart';
+import 'package:game_jam/game/character/infra/seed_code.dart';
 import 'package:game_jam/game/character/model/character_name.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -35,13 +36,32 @@ void main() {
       );
       final MyGame game = MyGame(
         characterGenerator: generator,
-        characterSeed: 42,
+        characterSeedCode: '4SFE6',
       );
 
-      final CharacterProfile generated = await game.generateCharacterProfile();
+      final CharacterProfile generated = await game.generateCharacterProfile(
+        seedCode: '4SFE6',
+      );
 
-      expect(generator.lastSeed, 42);
+      expect(generator.lastSeed, SeedCode.decode('4SFE6'));
       expect(generated, profile);
     },
   );
+
+  test('setCharacterSeedCode updates current debug state', () async {
+    final CharacterProfile profile = CharacterProfile(
+      name: const CharacterName(adjective: 'Tiny', noun: 'Froglet', batch: ''),
+      colorId: 'moss',
+      colorHex: '#6B8E23',
+    );
+    final _FakeCharacterGenerator generator = _FakeCharacterGenerator(profile);
+    final MyGame game = MyGame(characterGenerator: generator);
+
+    await game.setCharacterSeedCode('4SFE6');
+
+    expect(game.characterDebugState.value, isNotNull);
+    expect(game.characterDebugState.value!.seedCode, '4SFE6');
+    expect(game.characterDebugState.value!.seedInt, SeedCode.decode('4SFE6'));
+    expect(game.characterDebugState.value!.profile, profile);
+  });
 }

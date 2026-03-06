@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
@@ -9,6 +11,8 @@ import 'package:game_jam/core/utils/time_utils.dart';
 import 'package:game_jam/game/character/generator/character_generator.dart';
 import 'package:game_jam/game/character/generator/procedural_character_generator.dart';
 import 'package:game_jam/game/character/infra/json_character_pools_repository.dart';
+import 'package:game_jam/game/character/infra/seed_code.dart';
+import 'package:game_jam/game/character/model/character_debug_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/camera/camera_controller.dart';
@@ -27,11 +31,15 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
   MyGame({
     CharacterGenerator? characterGenerator,
     CharacterPoolsRepository? characterPoolsRepository,
-    int? characterSeed,
+    String? characterSeedCode,
+    Random? random,
   }) : _characterGenerator = characterGenerator,
        _characterPoolsRepository =
            characterPoolsRepository ?? JsonCharacterPoolsRepository(),
-       characterSeed = characterSeed ?? GameConfig.defaultCharacterSeed,
+       _characterSeedCode = SeedCode.normalize(
+         characterSeedCode ?? GameConfig.defaultCharacterSeedCode,
+       ),
+       _random = random ?? Random(),
        super(
          world: WorldRoot(),
          camera: CameraComponent.withFixedResolution(
@@ -45,24 +53,35 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
     GamePhase.menu,
   );
+  final ValueNotifier<CharacterDebugState?> characterDebugState =
+      ValueNotifier<CharacterDebugState?>(null);
+
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
-  final int characterSeed;
+  final Random _random;
 
   late final PlayerComponent _player;
   late final GameCameraController _cameraController;
-  CharacterProfile? generatedCharacterProfile;
+  int _profileRequestId = 0;
+  String _characterSeedCode;
+
+  String get characterSeedCode => _characterSeedCode;
+  CharacterProfile? get generatedCharacterProfile =>
+      characterDebugState.value?.profile;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    generatedCharacterProfile = await generateCharacterProfile();
+    final CharacterDebugState initialState = await _buildDebugState(
+      seedCode: _characterSeedCode,
+    );
+    characterDebugState.value = initialState;
 
     final Level1 level = Level1();
     _player = PlayerComponent(
       inputState: inputState,
-      profile: generatedCharacterProfile!,
+      profile: initialState.profile,
       startPosition: GameConfig.playerSpawn,
     );
 
@@ -86,16 +105,67 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
     overlays.add(AppOverlays.menu);
   }
 
-  Future<CharacterProfile> generateCharacterProfile() async {
+  Future<CharacterProfile> generateCharacterProfile({
+    required String seedCode,
+  }) async {
+    final int seed = SeedCode.decode(seedCode);
     final CharacterGenerator generator;
-    if (_characterGenerator != null) {
-      generator = _characterGenerator;
+    final CharacterGenerator? injectedGenerator = _characterGenerator;
+    if (injectedGenerator != null) {
+      generator = injectedGenerator;
     } else {
       final CharacterPools pools = await _characterPoolsRepository.loadPools();
       generator = ProceduralCharacterGenerator(pools: pools);
     }
+    return generator.generate(seed: seed);
+  }
 
-    return generator.generate(seed: characterSeed);
+  Future<void> setCharacterSeedCode(String seedCode) async {
+    final String normalizedCode = SeedCode.normalize(seedCode);
+    final int requestId = ++_profileRequestId;
+    final CharacterDebugState nextState = await _buildDebugState(
+      seedCode: normalizedCode,
+    );
+    if (requestId != _profileRequestId) {
+      return;
+    }
+
+    _characterSeedCode = normalizedCode;
+    characterDebugState.value = nextState;
+    if (isLoaded) {
+      _player.applyProfile(nextState.profile);
+    }
+  }
+
+  Future<void> rerollCharacter() async {
+    if (phase.value != GamePhase.menu) {
+      return;
+    }
+
+    String nextCode = _characterSeedCode;
+    for (int i = 0; i < 8; i++) {
+      final String candidate = SeedCode.randomCode(_random);
+      if (candidate != _characterSeedCode) {
+        nextCode = candidate;
+        break;
+      }
+    }
+    await setCharacterSeedCode(nextCode);
+  }
+
+  Future<CharacterDebugState> _buildDebugState({
+    required String seedCode,
+  }) async {
+    final String normalizedCode = SeedCode.normalize(seedCode);
+    final int seedInt = SeedCode.decode(normalizedCode);
+    final CharacterProfile profile = await generateCharacterProfile(
+      seedCode: normalizedCode,
+    );
+    return CharacterDebugState(
+      seedCode: normalizedCode,
+      seedInt: seedInt,
+      profile: profile,
+    );
   }
 
   @override

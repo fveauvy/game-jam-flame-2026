@@ -47,7 +47,6 @@ class KeyboardInput {
     return 0;
   }
 
-
   double _horizontalAxis() {
     final bool left =
         _held.contains(LogicalKeyboardKey.arrowLeft) ||
