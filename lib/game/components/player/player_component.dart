@@ -38,7 +38,7 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
   CharacterProfile _profile;
   late double _speedMultiplier;
   late double _sizeMultiplier;
-  double _intelligence;
+  final double _intelligence;
 
   static const double _moveSpeed = 340;
   static const double _rotationSpeed = 30;

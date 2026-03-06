@@ -22,12 +22,8 @@ void main() {
   test(
     'game uses injected character generator for character profile',
     () async {
-      final CharacterProfile profile = CharacterProfile(
-        name: const CharacterName(
-          adjective: 'Brave',
-          noun: 'Tadpole',
-          batch: 'Mk I',
-        ),
+      const CharacterProfile profile = CharacterProfile(
+        name: CharacterName(adjective: 'Brave', noun: 'Tadpole', batch: 'Mk I'),
         colorId: 'pond_green',
         colorHex: '#2A9D8F',
       );
@@ -49,8 +45,8 @@ void main() {
   );
 
   test('setCharacterSeedCode updates current debug state', () async {
-    final CharacterProfile profile = CharacterProfile(
-      name: const CharacterName(adjective: 'Tiny', noun: 'Froglet', batch: ''),
+    final CharacterProfile profile = const CharacterProfile(
+      name: CharacterName(adjective: 'Tiny', noun: 'Froglet', batch: ''),
       colorId: 'moss',
       colorHex: '#6B8E23',
     );

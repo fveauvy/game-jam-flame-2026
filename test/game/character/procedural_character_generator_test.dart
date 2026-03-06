@@ -4,13 +4,13 @@ import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 
 void main() {
-  final CharacterPools pools = CharacterPools(
-    namePool: const CharacterNamePool(
+  const CharacterPools pools = CharacterPools(
+    namePool: CharacterNamePool(
       adjectives: <String>['Brave', 'Tiny', 'Swift'],
       nouns: <String>['Tadpole', 'Froglet', 'Leaper'],
       batches: <String>['Mk I', 'Prime', 'Patrol'],
     ),
-    colors: const <CharacterColorPoolItem>[
+    colors: <CharacterColorPoolItem>[
       CharacterColorPoolItem(id: 'pond_green', hex: '#2A9D8F'),
       CharacterColorPoolItem(id: 'moss', hex: '#6B8E23'),
       CharacterColorPoolItem(id: 'mud', hex: '#8D6E63'),

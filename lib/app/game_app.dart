@@ -48,8 +48,8 @@ class _GameJamAppState extends State<GameJamApp> {
                 builder: (_, CharacterDebugState? debugState, _) {
                   return MenuScreen(
                     onStart: game.startGame,
-                    onReroll: () {
-                      game.rerollCharacter();
+                    onReroll: () async {
+                      await game.rerollCharacter();
                     },
                     debugState: debugState,
                   );
