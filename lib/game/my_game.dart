@@ -83,9 +83,12 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
       inputState: inputState,
       profile: initialState.profile,
       startPosition: GameConfig.playerSpawn,
+      speedMultiplier: initialState.profile.traits.speed ?? 1,
+      sizeMultiplier: initialState.profile.traits.size ?? 1,
+      intelligence: 1,
     );
 
-    world.addAll([
+    await world.addAll([
       level,
       _player,
       SpawnSystem(),
@@ -167,6 +170,9 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
       profile: profile,
     );
   }
+
+  @override
+  bool get debugMode => false;
 
   @override
   KeyEventResult onKeyEvent(
