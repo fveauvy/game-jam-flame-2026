@@ -73,6 +73,7 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
     );
   }
 
+  @override
   void update(double dt) {
     super.update(dt);
     if (game.phase.value != GamePhase.playing) {
