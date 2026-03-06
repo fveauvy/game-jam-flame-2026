@@ -45,6 +45,8 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
     _player = PlayerComponent(
       inputState: inputState,
       startPosition: GameConfig.playerSpawn,
+      name: 'Aaron',
+      color: const Color(0xFF2A9D8F),
     );
 
     world.addAll([
