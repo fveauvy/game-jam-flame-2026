@@ -31,10 +31,11 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
       return;
     }
 
-    position.x += inputState.moveAxisX * _moveSpeed * dt;
-    position.y += inputState.moveAxisY * _moveSpeed * dt;
-
+    // Create velocity vector from input axes
+    final Vector2 velocity = Vector2(inputState.moveAxisX, inputState.moveAxisY);
     
+    
+    position += velocity * _moveSpeed * dt;
 
     final double maxX = GameConfig.worldSize.x - size.x;
     position.x = position.x.clamp(0, maxX);
