@@ -17,26 +17,51 @@ class TouchInputOverlay extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                spacing: 12,
                 children: [
                   _HoldButton(
-                    icon: Icons.arrow_left,
-                    onPressStart: () => input.moveAxis = -1,
+                    icon: Icons.arrow_drop_up,
+                    onPressStart: () => input.moveAxisY = -1,
                     onPressEnd: () {
-                      if (input.moveAxis < 0) {
-                        input.moveAxis = 0;
+                      if (input.moveAxisY < 0) {
+                        input.moveAxisY = 0;
                       }
                     },
                   ),
-                  const SizedBox(width: 12),
-                  _HoldButton(
-                    icon: Icons.arrow_right,
-                    onPressStart: () => input.moveAxis = 1,
-                    onPressEnd: () {
-                      if (input.moveAxis > 0) {
-                        input.moveAxis = 0;
-                      }
-                    },
+                  Row(
+                    spacing: 12,
+                    children: [
+                      _HoldButton(
+                        icon: Icons.arrow_left,
+                        onPressStart: () => input.moveAxisX = -1,
+                        onPressEnd: () {
+                          if (input.moveAxisX < 0) {
+                            input.moveAxisX = 0;
+                          }
+                        },
+                      ),
+                      _HoldButton(
+                        icon: Icons.arrow_drop_down,
+                        onPressStart: () => input.moveAxisY = 1,
+                        onPressEnd: () {
+                          if (input.moveAxisY > 0) {
+                            input.moveAxisY = 0;
+                          }
+                        },
+                      ),
+                      _HoldButton(
+                        icon: Icons.arrow_right,
+                        onPressStart: () => input.moveAxisX = 1,
+                        onPressEnd: () {
+                          if (input.moveAxisX > 0) {
+                            input.moveAxisX = 0;
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
