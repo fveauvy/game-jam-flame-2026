@@ -37,7 +37,7 @@ flutter build web --release
 
 ## Play link
 
-- GitHub Pages URL: `https://<org-or-user>.github.io/<repo>/`
+- GitHub Pages URL: `https://fveauvy.github.io/game-jam-flame-2026/`
 
 ## Jam docs
 
