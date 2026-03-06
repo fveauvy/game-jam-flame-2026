@@ -1,5 +1,6 @@
 class InputState {
-  double moveAxis = 0;
+  double moveAxisX = 0;
+  double moveAxisY = 0;
   bool jumpPressed = false;
   bool attackPressed = false;
   bool pausePressed = false;
