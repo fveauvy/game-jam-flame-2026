@@ -47,9 +47,12 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
       startPosition: GameConfig.playerSpawn,
       name: 'Aaron',
       color: const Color(0xFF2A9D8F),
+      speedMultiplier: 1, 
+      sizeMultiplier: 1,
+      intelligence: 1,  
     );
 
-    world.addAll([
+    await world.addAll([
       level,
       _player,
       SpawnSystem(),
@@ -68,6 +71,9 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
 
     overlays.add(AppOverlays.menu);
   }
+
+  @override
+  bool get debugMode => false;
 
   @override
   KeyEventResult onKeyEvent(
