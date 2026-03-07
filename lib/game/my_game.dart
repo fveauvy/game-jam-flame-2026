@@ -22,16 +22,13 @@ import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/keyboard_input.dart';
 import 'package:game_jam/game/systems/collision_system.dart';
 import 'package:game_jam/game/systems/spawn_system.dart';
-import 'package:game_jam/game/world/level_1.dart';
+import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
 enum GamePhase { menu, playing, paused, gameOver }
 
 class MyGame extends FlameGame<WorldRoot>
     with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
-  @override
-  bool get debugMode => true;
-
   MyGame({
     CharacterGenerator? characterGenerator,
     CharacterPoolsRepository? characterPoolsRepository,
@@ -71,6 +68,8 @@ class MyGame extends FlameGame<WorldRoot>
   int _profileRequestId = 0;
   String _characterSeedCode;
 
+  late GeneratedLevel _level;
+
   String get characterSeedCode => _characterSeedCode;
   CharacterProfile? get generatedCharacterProfile =>
       characterDebugState.value?.profile;
@@ -88,7 +87,7 @@ class MyGame extends FlameGame<WorldRoot>
     );
     characterDebugState.value = initialState;
 
-    final Level1 level = Level1();
+    _level = GeneratedLevel();
     _player = PlayerComponent(
       inputState: inputState,
       profile: initialState.profile,
@@ -98,7 +97,7 @@ class MyGame extends FlameGame<WorldRoot>
       intelligence: 1,
     );
 
-    await world.addAll([level, _player, SpawnSystem(), CollisionSystem()]);
+    await world.addAll([_level, _player, SpawnSystem(), CollisionSystem()]);
     world.bindPlayer(_player);
     await camera.viewport.add(HudComponent());
 
@@ -142,6 +141,7 @@ class MyGame extends FlameGame<WorldRoot>
     characterDebugState.value = nextState;
     if (isLoaded) {
       _player.applyProfile(nextState.profile);
+      await _level.onUpdateSeed();
     }
   }
 
