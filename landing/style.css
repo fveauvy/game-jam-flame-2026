@@ -141,7 +141,7 @@ a {
 .hero {
   padding: clamp(2.4rem, 4vw, 3.9rem) 0 clamp(1.4rem, 2.5vw, 2.2rem);
   position: relative;
-  overflow: clip;
+  overflow: hidden;
 }
 
 .hero::before,
@@ -156,17 +156,22 @@ a {
   height: 420px;
   right: -140px;
   top: -170px;
-  background: radial-gradient(circle, rgba(31, 109, 133, 0.26) 0%, rgba(31, 109, 133, 0) 68%);
+  background: radial-gradient(circle, rgba(31, 109, 133, 0.2) 0%, rgba(31, 109, 133, 0) 68%);
   animation: drift 11s ease-in-out infinite;
 }
 
 .hero::after {
-  width: 360px;
-  height: 220px;
-  left: -110px;
-  bottom: 0;
-  background: radial-gradient(circle at 50% 100%, rgba(90, 154, 68, 0.26), transparent 72%);
-  animation: drift 9s ease-in-out infinite reverse;
+  left: 0;
+  right: 0;
+  height: 140px;
+  bottom: -1px;
+  background: linear-gradient(
+    to bottom,
+    rgba(215, 243, 236, 0) 0%,
+    rgba(215, 243, 236, 0.48) 62%,
+    rgba(204, 238, 241, 0.58) 100%
+  );
+  animation: none;
 }
 
 .hero-grid {
