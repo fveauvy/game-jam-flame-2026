@@ -3,7 +3,7 @@ import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
-import 'package:game_jam/game/enemies/simple_oponenet.dart';
+import 'package:game_jam/game/enemies/simple_opponenet.dart';
 
 class Level1 extends Component {
   @override
