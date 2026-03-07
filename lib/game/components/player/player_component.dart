@@ -54,6 +54,8 @@ class PlayerComponent extends CircleComponent
   static const double _rotationSpeed = 30;
 
   PlayerType get levelPosition => inputState.playerType;
+  double get moveSpeed => _moveSpeed;
+
   CharacterProfile get profile => _profile;
 
   late Paint _directionDotPaint;
