@@ -59,20 +59,17 @@ class _GameJamAppState extends State<GameJamApp> {
                   },
                 ),
                 if (phase == GamePhase.menu)
-                  Positioned.fromRelativeRect(
-                    rect: const RelativeRect.fromLTRB(200, 100, 200, 100),
-                    child: ValueListenableBuilder<CharacterDebugState?>(
-                      valueListenable: _game.characterDebugState,
-                      builder: (_, CharacterDebugState? debugState, _) {
-                        return MenuScreen(
-                          onStart: _game.startGame,
-                          onReroll: () async {
-                            await _game.rerollCharacter();
-                          },
-                          debugState: debugState,
-                        );
-                      },
-                    ),
+                  ValueListenableBuilder<CharacterDebugState?>(
+                    valueListenable: _game.characterDebugState,
+                    builder: (_, CharacterDebugState? debugState, _) {
+                      return MenuScreen(
+                        onStart: _game.startGame,
+                        onReroll: () async {
+                          await _game.rerollCharacter();
+                        },
+                        debugState: debugState,
+                      );
+                    },
                   ),
               ],
             );
