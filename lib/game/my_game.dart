@@ -222,6 +222,10 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   void startGame() {
+    if (phase.value != GamePhase.menu && phase.value != GamePhase.gameOver) {
+      return;
+    }
+
     world.reset();
     phase.value = GamePhase.playing;
     resumeEngine();

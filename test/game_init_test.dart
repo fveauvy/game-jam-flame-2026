@@ -6,4 +6,13 @@ void main() {
     final MyGame game = MyGame();
     expect(game.phase.value, GamePhase.menu);
   });
+
+  test('startGame is ignored while paused', () {
+    final MyGame game = MyGame();
+    game.phase.value = GamePhase.paused;
+
+    game.startGame();
+
+    expect(game.phase.value, GamePhase.paused);
+  });
 }
