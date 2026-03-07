@@ -54,6 +54,8 @@ class PlayerComponent extends CircleComponent
   static const double _moveSpeed = 340;
   static const double _rotationSpeed = 30;
 
+  double get moveSpeed => _moveSpeed;
+
   CharacterProfile get profile => _profile;
 
   late Paint _directionDotPaint;

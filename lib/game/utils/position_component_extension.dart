@@ -1,4 +1,7 @@
 import 'package:flame/components.dart';
+import 'package:game_jam/core/config/game_config.dart';
+
+const double _epsilon = 1e-3;
 
 extension PositionComponentExtension on PositionComponent {
     bool hasPixelOutOfComponent(PositionComponent otherComponent) {
@@ -15,5 +18,16 @@ extension PositionComponentExtension on PositionComponent {
           comonentBottomRight.x > otherBottomRight.x ||
           comonentTopLeft.y > otherTopLeft.y || 
           comonentTopRight.y > otherTopRight.y; 
+  }
+
+  void followComponent(double speed, double dt, PositionComponent target) {
+    final Vector2 direction = target.absoluteCenter - absoluteCenter;
+    if (direction.length < _epsilon) return;
+    direction.normalize();
+    position += direction * speed * dt;
+    final maxX = GameConfig.worldSize.x - size.x;
+    final maxY = GameConfig.worldSize.y - size.y;
+    position.x = position.x.clamp(0.0, maxX);
+    position.y = position.y.clamp(0.0, maxY);
   }
 }
