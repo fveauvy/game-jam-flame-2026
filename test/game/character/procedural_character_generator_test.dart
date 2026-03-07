@@ -26,6 +26,9 @@ void main() {
     final CharacterProfile b = await generator.generate(seed: 1337);
 
     expect(a, b);
+    expect(a.traits.speed, isNotNull);
+    expect(a.traits.size, isNotNull);
+    expect(a.traits.intelligence, isNotNull);
   });
 
   test('different seeds usually change profile', () async {
@@ -38,6 +41,25 @@ void main() {
 
     final bool sameName = a.name == b.name;
     final bool sameColor = a.colorHex == b.colorHex;
-    expect(sameName && sameColor, isFalse);
+    final bool sameSpeed = a.traits.speed == b.traits.speed;
+    final bool sameSize = a.traits.size == b.traits.size;
+    final bool sameIntelligence =
+        a.traits.intelligence == b.traits.intelligence;
+    expect(
+      sameName && sameColor && sameSpeed && sameSize && sameIntelligence,
+      isFalse,
+    );
+  });
+
+  test('traits stay within configured ranges', () async {
+    final ProceduralCharacterGenerator generator = ProceduralCharacterGenerator(
+      pools: pools,
+    );
+
+    final CharacterProfile profile = await generator.generate(seed: 2026);
+
+    expect(profile.traits.speed, inInclusiveRange(0.7, 1.5));
+    expect(profile.traits.size, inInclusiveRange(0.8, 1.25));
+    expect(profile.traits.intelligence, inInclusiveRange(0.5, 2.0));
   });
 }

@@ -29,7 +29,7 @@ class _GameJamAppState extends State<GameJamApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: GameConfig.title,
-      debugShowCheckedModeBanner: true,
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
