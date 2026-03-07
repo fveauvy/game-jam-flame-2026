@@ -27,7 +27,9 @@ migration:
     - platform: windows
       create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0
       base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0
-
+    - platform: android
+      create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0
+      base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0
   # User provided section
 
   # List of Local paths (relative to this file) that should be
