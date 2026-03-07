@@ -14,8 +14,8 @@ import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/game/utils/position_component_extension.dart';
 
-class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, CollisionCallbacks {
-
+class PlayerComponent extends CircleComponent
+    with HasGameReference<MyGame>, CollisionCallbacks {
   PlayerComponent({
     required this.inputState,
     required CharacterProfile profile,
@@ -99,6 +99,26 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
     return Color(0xFF000000 | rgb);
   }
 
+  static double _normalizeAngle(double value) {
+    final double twoPi = 2 * pi;
+    final double normalized = value % twoPi;
+    if (normalized < 0) {
+      return normalized + twoPi;
+    }
+    return normalized;
+  }
+
+  static double _shortestAngleDelta(double target, double current) {
+    final double twoPi = 2 * pi;
+    double delta = (target - current) % twoPi;
+    if (delta > pi) {
+      delta -= twoPi;
+    } else if (delta < -pi) {
+      delta += twoPi;
+    }
+    return delta;
+  }
+
   void applyProfile(CharacterProfile profile) {
     _profile = profile;
     paint.color = _parseColor(profile.colorHex);
@@ -131,13 +151,12 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
     position += velocity * _moveSpeed * _speedMultiplier * dt;
 
     final double targetAngle = velocity.screenAngle();
-    if (targetAngle != angle && (velocity.x != 0 || velocity.y != 0)) {
-      final double angleNeeded = targetAngle - angle;
-      final bool clockwise = angleNeeded > 0;
-      if (clockwise) {
-        angle += min(angleNeeded, _rotationSpeed * _speedMultiplier * dt);
-      } else {
-        angle -= min(-angleNeeded, _rotationSpeed * _speedMultiplier * dt);
+    if (velocity.x != 0 || velocity.y != 0) {
+      final double angleDelta = _shortestAngleDelta(targetAngle, angle);
+      if (angleDelta != 0) {
+        final double maxStep = _rotationSpeed * _speedMultiplier * dt;
+        final double step = angleDelta.clamp(-maxStep, maxStep).toDouble();
+        angle = _normalizeAngle(angle + step);
       }
     }
 
@@ -154,7 +173,7 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
   Future<void> onHitGround(GroundComponent ground) async {
     if (_isDamageTextVisible) return;
     Future.delayed(_damageTextDelay, () {
-        _isDamageTextVisible = false;
+      _isDamageTextVisible = false;
     });
     _isDamageTextVisible = true;
     final damageText = SimpleTextComponent(
@@ -165,7 +184,10 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
     );
     await damageText.add(
       MoveEffect.by(
-        Vector2(game.random.nextDouble() * size.x, game.random.nextDouble() *  size.y),
+        Vector2(
+          game.random.nextDouble() * size.x,
+          game.random.nextDouble() * size.y,
+        ),
         EffectController(duration: 1.0, curve: Curves.linear, repeatCount: 1),
       ),
     );
@@ -177,7 +199,10 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
   }
 
   @override
-  Future<void> onCollision(Set<Vector2> intersectionPoints, PositionComponent other) async {
+  Future<void> onCollision(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) async {
     if (other is GroundComponent && !_isInWater) await onHitGround(other);
     if (other is WaterComponent) {
       _isInWater = !hasPixelOutOfComponent(other);
@@ -187,19 +212,21 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
     }
     if (other is WaterLilyComponent) {
       if (intersectionPoints.length != 2) return;
-      final mid = (intersectionPoints.elementAt(0) +
-        intersectionPoints.elementAt(1)) / 2;
-        final collisionNormal = absoluteCenter - mid;
-        final separationDistance = (size.x / 2) - collisionNormal.length;
-        collisionNormal.normalize();
-        position += collisionNormal.scaled(separationDistance);
-      }
+      final mid =
+          (intersectionPoints.elementAt(0) + intersectionPoints.elementAt(1)) /
+          2;
+      final collisionNormal = absoluteCenter - mid;
+      final separationDistance = (size.x / 2) - collisionNormal.length;
+      collisionNormal.normalize();
+      position += collisionNormal.scaled(separationDistance);
+    }
     super.onCollision(intersectionPoints, other);
   }
 
   @override
   void onCollisionEnd(PositionComponent other) {
-    if (other is GroundComponent) removeAll(children.whereType<SimpleTextComponent>());
+    if (other is GroundComponent)
+      removeAll(children.whereType<SimpleTextComponent>());
     if (other is WaterComponent) {
       _isInWater = false;
     }
