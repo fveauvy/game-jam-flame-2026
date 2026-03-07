@@ -20,7 +20,10 @@ class KeyboardInput {
 
   void _queueActions(LogicalKeyboardKey key, InputState input) {
     if (key == LogicalKeyboardKey.space) {
-      input.queueJump();
+      input.goAbove();
+    } else if (key == LogicalKeyboardKey.shiftLeft ||
+        key == LogicalKeyboardKey.shiftRight) {
+      input.goBellow();
     } else if (key == LogicalKeyboardKey.escape) {
       input.queuePause();
     } else if (key == LogicalKeyboardKey.enter) {

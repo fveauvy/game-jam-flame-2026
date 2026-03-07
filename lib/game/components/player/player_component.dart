@@ -5,14 +5,13 @@ import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/entities/player_type.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
-import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
 import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
-import 'package:game_jam/game/utils/position_component_extension.dart';
 
 class PlayerComponent extends CircleComponent
     with HasGameReference<MyGame>, CollisionCallbacks {
@@ -54,6 +53,7 @@ class PlayerComponent extends CircleComponent
   static const double _moveSpeed = 340;
   static const double _rotationSpeed = 30;
 
+  PlayerType get levelPosition => inputState.playerType;
   double get moveSpeed => _moveSpeed;
 
   CharacterProfile get profile => _profile;
@@ -61,7 +61,8 @@ class PlayerComponent extends CircleComponent
   late Paint _directionDotPaint;
 
   bool _isDamageTextVisible = false;
-  bool _isInWater = false;
+  bool get _isInWater =>
+      levelPosition == PlayerType.middle || levelPosition == PlayerType.water;
 
   @override
   Future<void> onMount() async {
@@ -166,6 +167,23 @@ class PlayerComponent extends CircleComponent
     final double maxY = GameConfig.worldSize.y - size.y;
     position.y = position.y.clamp(0, maxY);
     position.x = position.x.clamp(0, maxX);
+
+    Color newColor = _parseColor(profile.colorHex);
+    switch (levelPosition) {
+      case PlayerType.land:
+        newColor = newColor.withValues(alpha: 1.0);
+        radius = 48 * _sizeMultiplier * 1.1;
+        break;
+      case PlayerType.middle:
+        newColor = newColor.withValues(alpha: 0.7);
+        radius = 48 * _sizeMultiplier;
+        break;
+      case PlayerType.water:
+        newColor = newColor.withValues(alpha: 0.4);
+        radius = 48 * _sizeMultiplier * 0.9;
+        break;
+    }
+    paint = Paint()..color = newColor;
   }
 
   void reset() {
@@ -206,13 +224,8 @@ class PlayerComponent extends CircleComponent
     PositionComponent other,
   ) async {
     if (other is GroundComponent && !_isInWater) await onHitGround(other);
-    if (other is WaterComponent) {
-      _isInWater = !hasPixelOutOfComponent(other);
-      if (_isInWater) {
-        removeAll(children.whereType<SimpleTextComponent>());
-      }
-    }
-    if (other is WaterLilyComponent) {
+
+    if (other is WaterLilyComponent && levelPosition == PlayerType.middle) {
       if (intersectionPoints.length != 2) return;
       final mid =
           (intersectionPoints.elementAt(0) + intersectionPoints.elementAt(1)) /
@@ -230,9 +243,7 @@ class PlayerComponent extends CircleComponent
     if (other is GroundComponent) {
       removeAll(children.whereType<SimpleTextComponent>());
     }
-    if (other is WaterComponent) {
-      _isInWater = false;
-    }
+
     super.onCollisionEnd(other);
   }
 }

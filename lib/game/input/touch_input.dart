@@ -27,7 +27,13 @@ class TouchInputOverlay extends StatelessWidget {
                   },
                 ),
               ),
-              _TapButton(icon: Icons.arrow_upward, onTap: input.queueJump),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _TapButton(icon: Icons.arrow_upward, onTap: input.goAbove),
+                  _TapButton(icon: Icons.arrow_downward, onTap: input.goBellow),
+                ],
+              ),
             ],
           ),
         ),
