@@ -12,7 +12,7 @@ Generic Flutter + Flame 2D starter for fast team game jam builds.
 
 ```bash
 flutter pub get
-flutter run -d chrome
+flutter run -d chrome --wasm
 ```
 
 ## Controls
@@ -25,7 +25,7 @@ flutter run -d chrome
 ## Build web
 
 ```bash
-flutter build web --release
+flutter build web --wasm --release
 ```
 
 ## Project layout
