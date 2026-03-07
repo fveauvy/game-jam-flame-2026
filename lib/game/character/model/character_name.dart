@@ -9,12 +9,21 @@ class CharacterName {
   final String noun;
   final String? batch;
 
+  static final RegExp _noCommaBatchStart = RegExp(
+    r'^(of|from|in|on|that|the|who|which)\b',
+    caseSensitive: false,
+  );
+
   String get display {
     final String trimmedBatch = (batch ?? '').trim();
     if (trimmedBatch.isEmpty) {
       return '$adjective $noun';
     }
-    return '$adjective $noun $trimmedBatch';
+
+    final String separator = _noCommaBatchStart.hasMatch(trimmedBatch)
+        ? ' '
+        : ', ';
+    return '$adjective $noun$separator$trimmedBatch';
   }
 
   @override

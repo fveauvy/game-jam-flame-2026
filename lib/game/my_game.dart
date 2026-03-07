@@ -22,12 +22,13 @@ import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/keyboard_input.dart';
 import 'package:game_jam/game/systems/collision_system.dart';
 import 'package:game_jam/game/systems/spawn_system.dart';
-import 'package:game_jam/game/world/level_1.dart';
+import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
 enum GamePhase { menu, playing, paused, gameOver }
 
-class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
+class MyGame extends FlameGame<WorldRoot>
+    with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
   MyGame({
     CharacterGenerator? characterGenerator,
     CharacterPoolsRepository? characterPoolsRepository,
@@ -67,6 +68,8 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<
   int _profileRequestId = 0;
   String _characterSeedCode;
 
+  late GeneratedLevel _level;
+
   String get characterSeedCode => _characterSeedCode;
   CharacterProfile? get generatedCharacterProfile =>
       characterDebugState.value?.profile;
@@ -76,13 +79,15 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<
     await super.onLoad();
 
     await images.load('plank.png');
+    await images.load('water_lily.png');
+    await images.load('water_lily_1.png');
 
     final CharacterDebugState initialState = await _buildDebugState(
       seedCode: _characterSeedCode,
     );
     characterDebugState.value = initialState;
 
-    final Level1 level = Level1();
+    _level = GeneratedLevel();
     _player = PlayerComponent(
       inputState: inputState,
       profile: initialState.profile,
@@ -92,7 +97,7 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<
       intelligence: 1,
     );
 
-    await world.addAll([level, _player, SpawnSystem(), CollisionSystem()]);
+    await world.addAll([_level, _player, SpawnSystem(), CollisionSystem()]);
     world.bindPlayer(_player);
     await camera.viewport.add(HudComponent());
 
@@ -136,6 +141,7 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<
     characterDebugState.value = nextState;
     if (isLoaded) {
       _player.applyProfile(nextState.profile);
+      await _level.onUpdateSeed();
     }
   }
 
