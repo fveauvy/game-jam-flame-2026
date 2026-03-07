@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
+import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/entities/player_type.dart';
@@ -14,7 +15,7 @@ import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class PlayerComponent extends CircleComponent
-    with HasGameReference<MyGame>, CollisionCallbacks {
+    with HasGameReference<MyGame>, CollisionCallbacks, TapCallbacks {
   PlayerComponent({
     required this.inputState,
     required CharacterProfile profile,
@@ -63,6 +64,12 @@ class PlayerComponent extends CircleComponent
   bool _isDamageTextVisible = false;
   bool get _isInWater =>
       levelPosition == PlayerType.middle || levelPosition == PlayerType.water;
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    game.startGame();
+    super.onTapDown(event);
+  }
 
   @override
   Future<void> onMount() async {

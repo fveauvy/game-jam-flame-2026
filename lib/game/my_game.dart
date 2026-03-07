@@ -108,8 +108,6 @@ class MyGame extends FlameGame<WorldRoot>
       viewportSize: Vector2(GameConfig.baseWidth, GameConfig.baseHeight),
     );
     _cameraController.attach();
-
-    overlays.add(AppOverlays.menu);
   }
 
   Future<CharacterProfile> generateCharacterProfile({
@@ -201,7 +199,6 @@ class MyGame extends FlameGame<WorldRoot>
     resumeEngine();
 
     overlays
-      ..remove(AppOverlays.menu)
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.pause)
       ..add(AppOverlays.touchControls);
