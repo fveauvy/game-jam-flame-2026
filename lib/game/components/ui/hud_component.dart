@@ -15,10 +15,12 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
       color: Color(0xFFFFFFFF),
       fontSize: 14,
     ),
+    this.fpsTextStyle = const TextStyle(color: Color(0xFFFFFFFF), fontSize: 12),
   }) : super(position: position ?? Vector2(16, 16), priority: 100);
 
   final TextStyle nameTextStyle;
   final TextStyle detailsTextStyle;
+  final TextStyle fpsTextStyle;
 
   late final TextComponent _nameText = TextComponent(
     text: '-',
@@ -28,14 +30,37 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     text: 'Seed: -\nColor: -',
     textRenderer: TextPaint(style: detailsTextStyle),
   );
+  late final TextComponent _fpsText = TextComponent(
+    text: 'FPS: -',
+    textRenderer: TextPaint(style: fpsTextStyle),
+  );
+
+  double _fpsElapsed = 0;
+  int _fpsFrames = 0;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await add(_nameText);
-    await add(_detailsText);
+    await addAll([_nameText, _detailsText, _fpsText]);
     game.characterDebugState.addListener(_syncDebugText);
     _syncDebugText();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (dt <= 0) {
+      return;
+    }
+    _fpsElapsed += dt;
+    _fpsFrames += 1;
+    if (_fpsElapsed < 0.25) {
+      return;
+    }
+    final double fps = _fpsFrames / _fpsElapsed;
+    _fpsText.text = 'FPS: ${fps.toStringAsFixed(0)}';
+    _fpsElapsed = 0;
+    _fpsFrames = 0;
   }
 
   @override
@@ -49,12 +74,17 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     if (debugState == null) {
       _nameText.text = '-';
       _detailsText.text = 'Seed: -\nColor: -';
-      _detailsText.position = Vector2(0, _nameText.size.y + 4);
+      _layoutText();
       return;
     }
     _nameText.text = debugState.profile.name.display;
     _detailsText.text =
         'Seed: ${debugState.seedCode}\nColor: ${debugState.profile.colorHex}';
+    _layoutText();
+  }
+
+  void _layoutText() {
     _detailsText.position = Vector2(0, _nameText.size.y + 4);
+    _fpsText.position = Vector2(0, _nameText.size.y + _detailsText.size.y + 8);
   }
 }

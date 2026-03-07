@@ -29,7 +29,7 @@ class _GameJamAppState extends State<GameJamApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: GameConfig.title,
-      debugShowCheckedModeBanner: true,
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
@@ -39,35 +39,46 @@ class _GameJamAppState extends State<GameJamApp> {
         useMaterial3: true,
       ),
       home: Scaffold(
-        body: GameWidget<MyGame>(
-          game: _game,
-          overlayBuilderMap: {
-            AppOverlays.menu: (_, MyGame game) {
-              return ValueListenableBuilder<CharacterDebugState?>(
-                valueListenable: game.characterDebugState,
-                builder: (_, CharacterDebugState? debugState, _) {
-                  return MenuScreen(
-                    onStart: game.startGame,
-                    onReroll: () async {
-                      await game.rerollCharacter();
+        body: ValueListenableBuilder<GamePhase>(
+          valueListenable: _game.phase,
+          builder: (_, GamePhase phase, _) {
+            return Stack(
+              children: [
+                GameWidget<MyGame>(
+                  game: _game,
+                  overlayBuilderMap: {
+                    AppOverlays.pause: (_, MyGame game) {
+                      return PauseOverlay(onResume: game.togglePause);
                     },
-                    debugState: debugState,
-                  );
-                },
-              );
-            },
-            AppOverlays.pause: (_, MyGame game) {
-              return PauseOverlay(onResume: game.togglePause);
-            },
-            AppOverlays.gameOver: (_, MyGame game) {
-              return GameOverOverlay(onRestart: game.startGame);
-            },
-            AppOverlays.touchControls: (_, MyGame game) {
-              return TouchInputOverlay(
-                input: game.inputState,
-                touchController: game.touchController,
-              );
-            },
+                    AppOverlays.gameOver: (_, MyGame game) {
+                      return GameOverOverlay(onRestart: game.startGame);
+                    },
+                    AppOverlays.touchControls: (_, MyGame game) {
+                      return TouchInputOverlay(
+                        input: game.inputState,
+                        touchController: game.touchController,
+                      );
+                    },
+                  },
+                ),
+                if (phase == GamePhase.menu)
+                  Positioned.fromRelativeRect(
+                    rect: const RelativeRect.fromLTRB(200, 100, 200, 100),
+                    child: ValueListenableBuilder<CharacterDebugState?>(
+                      valueListenable: _game.characterDebugState,
+                      builder: (_, CharacterDebugState? debugState, _) {
+                        return MenuScreen(
+                          onStart: _game.startGame,
+                          onReroll: () async {
+                            await _game.rerollCharacter();
+                          },
+                          debugState: debugState,
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            );
           },
         ),
       ),

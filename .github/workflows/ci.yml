@@ -27,7 +27,7 @@ jobs:
         run: flutter test
 
       - name: Build web
-        run: flutter build web --release --base-href /play/
+        run: flutter build web --wasm --release --base-href /play/
 
       - name: Upload web artifact
         uses: actions/upload-artifact@v4

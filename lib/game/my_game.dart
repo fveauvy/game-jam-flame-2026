@@ -16,6 +16,7 @@ import 'package:game_jam/game/character/infra/seed_code.dart';
 import 'package:game_jam/game/character/model/character_debug_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
+import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
 import 'package:game_jam/game/input/gamepad_input.dart';
@@ -24,7 +25,7 @@ import 'package:game_jam/game/input/keyboard_input.dart';
 import 'package:game_jam/game/input/touch_controller.dart';
 import 'package:game_jam/game/systems/collision_system.dart';
 import 'package:game_jam/game/systems/spawn_system.dart';
-import 'package:game_jam/game/world/level_1.dart';
+import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
 enum GamePhase { menu, playing, paused, gameOver }
@@ -72,6 +73,8 @@ class MyGame extends FlameGame<WorldRoot>
   int _profileRequestId = 0;
   String _characterSeedCode;
 
+  late GeneratedLevel _level;
+
   String get characterSeedCode => _characterSeedCode;
   CharacterProfile? get generatedCharacterProfile =>
       characterDebugState.value?.profile;
@@ -81,23 +84,43 @@ class MyGame extends FlameGame<WorldRoot>
     await super.onLoad();
 
     await images.load('plank.png');
+    await images.load('water_lily.png');
+    await images.load('water_lily_1.png');
+    await images.load('fly.png');
 
     final CharacterDebugState initialState = await _buildDebugState(
       seedCode: _characterSeedCode,
     );
     characterDebugState.value = initialState;
 
-    final Level1 level = Level1();
+    _level = GeneratedLevel();
     _player = PlayerComponent(
       inputState: inputState,
       profile: initialState.profile,
       startPosition: GameConfig.playerSpawn,
       speedMultiplier: initialState.profile.traits.speed ?? 1,
       sizeMultiplier: initialState.profile.traits.size ?? 1,
-      intelligence: 1,
+      intelligence: initialState.profile.traits.intelligence ?? 1,
     );
 
-    await world.addAll([level, _player, SpawnSystem(), CollisionSystem()]);
+    final flies = List.generate(
+      10,
+      (index) => FlyComponent(
+        position: Vector2(
+          game.random.nextDouble() * GameConfig.worldSize.x,
+          game.random.nextDouble() * GameConfig.worldSize.y,
+        ),
+        size: Vector2.all(32),
+      ),
+    );
+
+    await world.addAll([
+      _level,
+      _player,
+      SpawnSystem(),
+      CollisionSystem(),
+      ...flies,
+    ]);
     world.bindPlayer(_player);
     await camera.viewport.add(HudComponent());
     keyboardInput = KeyboardInput(inputState);
@@ -113,8 +136,6 @@ class MyGame extends FlameGame<WorldRoot>
       viewportSize: Vector2(GameConfig.baseWidth, GameConfig.baseHeight),
     );
     _cameraController.attach();
-
-    overlays.add(AppOverlays.menu);
   }
 
   Future<CharacterProfile> generateCharacterProfile({
@@ -146,6 +167,7 @@ class MyGame extends FlameGame<WorldRoot>
     characterDebugState.value = nextState;
     if (isLoaded) {
       _player.applyProfile(nextState.profile);
+      await _level.onUpdateSeed();
     }
   }
 
@@ -205,7 +227,6 @@ class MyGame extends FlameGame<WorldRoot>
     resumeEngine();
 
     overlays
-      ..remove(AppOverlays.menu)
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.pause)
       ..add(AppOverlays.touchControls);

@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   flame: ^1.36.0
   gamepads: ^0.1.9
+  collection: ^1.19.1
+  fast_noise: ^2.0.0
 
 dev_dependencies:
   flutter_test:

@@ -2,6 +2,7 @@ class CharacterTraits {
   const CharacterTraits({
     this.speed,
     this.size,
+    this.intelligence,
     this.sanity,
     this.range,
     this.arms,
@@ -12,6 +13,7 @@ class CharacterTraits {
 
   final double? speed;
   final double? size;
+  final double? intelligence;
   final double? sanity;
   final double? range;
   final int? arms;
@@ -29,6 +31,7 @@ class CharacterTraits {
     return other is CharacterTraits &&
         other.speed == speed &&
         other.size == size &&
+        other.intelligence == intelligence &&
         other.sanity == sanity &&
         other.range == range &&
         other.arms == arms &&
@@ -38,6 +41,15 @@ class CharacterTraits {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(speed, size, sanity, range, arms, legs, tongue, tongueRange);
+  int get hashCode => Object.hash(
+    speed,
+    size,
+    intelligence,
+    sanity,
+    range,
+    arms,
+    legs,
+    tongue,
+    tongueRange,
+  );
 }
