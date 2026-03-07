@@ -94,7 +94,7 @@ class MyGame extends FlameGame<WorldRoot>
       startPosition: GameConfig.playerSpawn,
       speedMultiplier: initialState.profile.traits.speed ?? 1,
       sizeMultiplier: initialState.profile.traits.size ?? 1,
-      intelligence: 1,
+      intelligence: initialState.profile.traits.intelligence ?? 1,
     );
 
     await world.addAll([_level, _player, SpawnSystem(), CollisionSystem()]);
