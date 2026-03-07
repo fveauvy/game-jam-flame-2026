@@ -33,7 +33,7 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Build web
-        run: flutter build web --release --base-href /game-jam-flame-2026/play/
+        run: flutter build web --release --base-href /play/
 
       - name: Move game under /play and add landing pages
         run: |
