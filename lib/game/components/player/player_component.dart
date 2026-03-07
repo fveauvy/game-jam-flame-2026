@@ -8,6 +8,7 @@ import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
+import 'package:game_jam/game/components/environment/water_lily_component.dart';
 import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -184,6 +185,15 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
         removeAll(children.whereType<SimpleTextComponent>());
       }
     }
+    if (other is WaterLilyComponent) {
+      if (intersectionPoints.length != 2) return;
+      final mid = (intersectionPoints.elementAt(0) +
+        intersectionPoints.elementAt(1)) / 2;
+        final collisionNormal = absoluteCenter - mid;
+        final separationDistance = (size.x / 2) - collisionNormal.length;
+        collisionNormal.normalize();
+        position += collisionNormal.scaled(separationDistance);
+      }
     super.onCollision(intersectionPoints, other);
   }
 
