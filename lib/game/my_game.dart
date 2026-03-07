@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
@@ -6,6 +8,13 @@ import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/utils/time_utils.dart';
+import 'package:game_jam/game/character/generator/character_generator.dart';
+import 'package:game_jam/game/character/generator/procedural_character_generator.dart';
+import 'package:game_jam/game/character/infra/json_character_pools_repository.dart';
+import 'package:game_jam/game/character/infra/seed_code.dart';
+import 'package:game_jam/game/character/model/character_debug_state.dart';
+import 'package:game_jam/game/character/model/character_profile.dart';
+import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/camera/camera_controller.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
@@ -19,47 +28,69 @@ import 'package:game_jam/game/world/world_root.dart';
 enum GamePhase { menu, playing, paused, gameOver }
 
 class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
-  MyGame()
-    : super(
-        world: WorldRoot(),
-        camera: CameraComponent.withFixedResolution(
-          width: GameConfig.baseWidth,
-          height: GameConfig.baseHeight,
-        ),
-      );
+  MyGame({
+    CharacterGenerator? characterGenerator,
+    CharacterPoolsRepository? characterPoolsRepository,
+    String? characterSeedCode,
+    Random? random,
+  }) : _characterGenerator = characterGenerator,
+       _characterPoolsRepository =
+           characterPoolsRepository ?? JsonCharacterPoolsRepository(),
+       _characterSeedCode = SeedCode.normalize(
+         characterSeedCode ?? GameConfig.defaultCharacterSeedCode,
+       ),
+       _random = random ?? Random(),
+       super(
+         world: WorldRoot(),
+         camera: CameraComponent.withFixedResolution(
+           width: GameConfig.baseWidth,
+           height: GameConfig.baseHeight,
+         ),
+       );
 
   final InputState inputState = InputState();
   final KeyboardInput keyboardInput = KeyboardInput();
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
     GamePhase.menu,
   );
+  final ValueNotifier<CharacterDebugState?> characterDebugState =
+      ValueNotifier<CharacterDebugState?>(null);
+
+  final CharacterGenerator? _characterGenerator;
+  final CharacterPoolsRepository _characterPoolsRepository;
+  final Random _random;
 
   late final PlayerComponent _player;
   late final GameCameraController _cameraController;
+  int _profileRequestId = 0;
+  String _characterSeedCode;
+
+  String get characterSeedCode => _characterSeedCode;
+  CharacterProfile? get generatedCharacterProfile =>
+      characterDebugState.value?.profile;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
+    final CharacterDebugState initialState = await _buildDebugState(
+      seedCode: _characterSeedCode,
+    );
+    characterDebugState.value = initialState;
+
     final Level1 level = Level1();
     _player = PlayerComponent(
       inputState: inputState,
+      profile: initialState.profile,
       startPosition: GameConfig.playerSpawn,
-      name: 'Aaron',
-      color: const Color(0xFF2A9D8F),
-      speedMultiplier: 1, 
-      sizeMultiplier: 1,
-      intelligence: 1,  
+      speedMultiplier: initialState.profile.traits.speed ?? 1,
+      sizeMultiplier: initialState.profile.traits.size ?? 1,
+      intelligence: 1,
     );
 
-    await world.addAll([
-      level,
-      _player,
-      SpawnSystem(),
-      CollisionSystem(),
-      HudComponent(),
-    ]);
+    await world.addAll([level, _player, SpawnSystem(), CollisionSystem()]);
     world.bindPlayer(_player);
+    await camera.viewport.add(HudComponent());
 
     _cameraController = GameCameraController(
       camera: camera,
@@ -70,6 +101,69 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents {
     _cameraController.attach();
 
     overlays.add(AppOverlays.menu);
+  }
+
+  Future<CharacterProfile> generateCharacterProfile({
+    required String seedCode,
+  }) async {
+    final int seed = SeedCode.decode(seedCode);
+    final CharacterGenerator generator;
+    final CharacterGenerator? injectedGenerator = _characterGenerator;
+    if (injectedGenerator != null) {
+      generator = injectedGenerator;
+    } else {
+      final CharacterPools pools = await _characterPoolsRepository.loadPools();
+      generator = ProceduralCharacterGenerator(pools: pools);
+    }
+    return generator.generate(seed: seed);
+  }
+
+  Future<void> setCharacterSeedCode(String seedCode) async {
+    final String normalizedCode = SeedCode.normalize(seedCode);
+    final int requestId = ++_profileRequestId;
+    final CharacterDebugState nextState = await _buildDebugState(
+      seedCode: normalizedCode,
+    );
+    if (requestId != _profileRequestId) {
+      return;
+    }
+
+    _characterSeedCode = normalizedCode;
+    characterDebugState.value = nextState;
+    if (isLoaded) {
+      _player.applyProfile(nextState.profile);
+    }
+  }
+
+  Future<void> rerollCharacter() async {
+    if (phase.value != GamePhase.menu) {
+      return;
+    }
+
+    String nextCode = _characterSeedCode;
+    for (int i = 0; i < 8; i++) {
+      final String candidate = SeedCode.randomCode(_random);
+      if (candidate != _characterSeedCode) {
+        nextCode = candidate;
+        break;
+      }
+    }
+    await setCharacterSeedCode(nextCode);
+  }
+
+  Future<CharacterDebugState> _buildDebugState({
+    required String seedCode,
+  }) async {
+    final String normalizedCode = SeedCode.normalize(seedCode);
+    final int seedInt = SeedCode.decode(normalizedCode);
+    final CharacterProfile profile = await generateCharacterProfile(
+      seedCode: normalizedCode,
+    );
+    return CharacterDebugState(
+      seedCode: normalizedCode,
+      seedInt: seedInt,
+      profile: profile,
+    );
   }
 
   @override
