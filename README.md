@@ -33,11 +33,12 @@ flutter build web --release
 - `lib/core`: config/constants/utils
 - `lib/game`: Flame runtime (`world`, `components`, `systems`, `input`, `camera`)
 - `lib/screens`: Flutter overlays (menu, pause, game over)
+- `assets`: game assets (`images`, `audio`, `fonts`, `data`)
 - `docs`: jam checklists and disclosure templates
 
 ## Play link
 
-- GitHub Pages URL: `https://fveauvy.github.io/game-jam-flame-2026/`
+- GitHub Pages URL: `https://gronouy.fr/`
 
 ## Jam docs
 
