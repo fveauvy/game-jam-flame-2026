@@ -1,6 +1,8 @@
 import 'package:flame/components.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
+import 'package:game_jam/game/components/environment/water_component.dart';
+import 'package:game_jam/game/components/environment/water_lily_component.dart';
 
 class Level1 extends Component {
   @override
@@ -11,6 +13,15 @@ class Level1 extends Component {
       position: Vector2(0, GameConfig.groundY + 48),
       size: Vector2(GameConfig.worldSize.x, GameConfig.worldSize.y),
     );
-    add(ground);
+    final WaterComponent water = WaterComponent(
+      position: Vector2(100, GameConfig.groundY + 48),
+      size: Vector2(100, 200),
+    );
+
+    final waterLily = WaterLilyComponent(position: Vector2(800, 800), radius: 40);
+
+    
+    
+    await addAll([ground, water, waterLily]);
   }
 }

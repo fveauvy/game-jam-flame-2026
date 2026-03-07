@@ -3,17 +3,15 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/game/my_game.dart';
 
-class GroundComponent extends RectangleComponent
-    with HasGameReference<MyGame>, CollisionCallbacks {
+class WaterComponent extends RectangleComponent
+    with HasGameReference<MyGame> {
 
-  int get damage => 1;
-
-  GroundComponent({required Vector2 position, required Vector2 size})
+  WaterComponent({required Vector2 position, required Vector2 size})
       : super(
           position: position,
           size: size,
           priority: 0,
-          paint: Paint()..color = Colors.brown,
+          paint: Paint()..color = Colors.blue,
         );
 
   @override

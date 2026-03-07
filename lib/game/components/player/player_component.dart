@@ -1,13 +1,21 @@
 import 'dart:math';
 
+import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
-import 'package:flutter/painting.dart';
+import 'package:flame/effects.dart';
+import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
+import 'package:game_jam/game/components/environment/ground_component.dart';
+import 'package:game_jam/game/components/environment/water_component.dart';
+import 'package:game_jam/game/components/environment/water_lily_component.dart';
+import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
+import 'package:game_jam/game/utils/position_component_extension.dart';
 
-class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
+class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, CollisionCallbacks {
+
   PlayerComponent({
     required this.inputState,
     required CharacterProfile profile,
@@ -30,6 +38,9 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
     _applyStatsFromProfile();
   }
 
+  static const Duration _damageTextDuration = Duration(seconds: 1);
+  static const Duration _damageTextDelay = Duration(milliseconds: 500);
+
   final InputState inputState;
   final Vector2 _startPosition;
   final double _baseSpeedMultiplier;
@@ -47,12 +58,17 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
 
   late Paint _directionDotPaint;
 
+  bool _isDamageTextVisible = false;
+  bool _isInWater = false;
+
   @override
-  void onMount() {
+  Future<void> onMount() async {
     super.onMount();
     _directionDotPaint = Paint()
       ..color = const Color(0xFFFFFFFF)
       ..style = PaintingStyle.fill;
+
+    await add(CircleHitbox(radius: radius));
   }
 
   @override
@@ -133,5 +149,60 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame> {
 
   void reset() {
     position.setFrom(_startPosition);
+  }
+
+  Future<void> onHitGround(GroundComponent ground) async {
+    if (_isDamageTextVisible) return;
+    Future.delayed(_damageTextDelay, () {
+        _isDamageTextVisible = false;
+    });
+    _isDamageTextVisible = true;
+    final damageText = SimpleTextComponent(
+      color: Colors.red,
+      text: '- ${ground.damage}',
+      position: Vector2(size.x, -24),
+      priority: 50,
+    );
+    await damageText.add(
+      MoveEffect.by(
+        Vector2(game.random.nextDouble() * size.x, game.random.nextDouble() *  size.y),
+        EffectController(duration: 1.0, curve: Curves.linear, repeatCount: 1),
+      ),
+    );
+    add(damageText);
+    Future.delayed(_damageTextDuration, () {
+      if (damageText.parent == null) return;
+      damageText.removeFromParent();
+    });
+  }
+
+  @override
+  Future<void> onCollision(Set<Vector2> intersectionPoints, PositionComponent other) async {
+    if (other is GroundComponent && !_isInWater) await onHitGround(other);
+    if (other is WaterComponent) {
+      _isInWater = !hasPixelOutOfComponent(other);
+      if (_isInWater) {
+        removeAll(children.whereType<SimpleTextComponent>());
+      }
+    }
+    if (other is WaterLilyComponent) {
+      if (intersectionPoints.length != 2) return;
+      final mid = (intersectionPoints.elementAt(0) +
+        intersectionPoints.elementAt(1)) / 2;
+        final collisionNormal = absoluteCenter - mid;
+        final separationDistance = (size.x / 2) - collisionNormal.length;
+        collisionNormal.normalize();
+        position += collisionNormal.scaled(separationDistance);
+      }
+    super.onCollision(intersectionPoints, other);
+  }
+
+  @override
+  void onCollisionEnd(PositionComponent other) {
+    if (other is GroundComponent) removeAll(children.whereType<SimpleTextComponent>());
+    if (other is WaterComponent) {
+      _isInWater = false;
+    }
+    super.onCollisionEnd(other);
   }
 }
