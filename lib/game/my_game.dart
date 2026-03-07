@@ -19,8 +19,10 @@ import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
+import 'package:game_jam/game/input/gamepad_input.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/keyboard_input.dart';
+import 'package:game_jam/game/input/touch_controller.dart';
 import 'package:game_jam/game/systems/collision_system.dart';
 import 'package:game_jam/game/systems/spawn_system.dart';
 import 'package:game_jam/game/world/generated_level.dart';
@@ -51,7 +53,9 @@ class MyGame extends FlameGame<WorldRoot>
        );
 
   final InputState inputState = InputState();
-  final KeyboardInput keyboardInput = KeyboardInput();
+  late final KeyboardInput keyboardInput;
+  late final TouchController touchController;
+  late final GamepadInput gamepadInput;
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
     GamePhase.menu,
   );
@@ -119,6 +123,11 @@ class MyGame extends FlameGame<WorldRoot>
     ]);
     world.bindPlayer(_player);
     await camera.viewport.add(HudComponent());
+    keyboardInput = KeyboardInput(inputState);
+    touchController = TouchController(inputState);
+    gamepadInput = GamepadInput(inputState);
+    // Initialize gamepad input
+    await gamepadInput.initialize();
 
     _cameraController = GameCameraController(
       camera: camera,
@@ -198,7 +207,7 @@ class MyGame extends FlameGame<WorldRoot>
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    return keyboardInput.handleEvent(event, inputState);
+    return keyboardInput.handleEvent(event);
   }
 
   @override
@@ -213,6 +222,10 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   void startGame() {
+    if (phase.value != GamePhase.menu && phase.value != GamePhase.gameOver) {
+      return;
+    }
+
     world.reset();
     phase.value = GamePhase.playing;
     resumeEngine();

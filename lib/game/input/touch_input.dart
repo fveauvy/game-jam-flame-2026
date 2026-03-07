@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:game_jam/game/input/input_state.dart';
+import 'package:game_jam/game/input/touch_controller.dart';
 import 'package:game_jam/game/input/visual_joystick.dart';
 
 class TouchInputOverlay extends StatelessWidget {
-  const TouchInputOverlay({super.key, required this.input});
+  const TouchInputOverlay({
+    super.key,
+    required this.input,
+    required this.touchController,
+  });
 
   final InputState input;
+  final TouchController touchController;
 
   @override
   Widget build(BuildContext context) {
@@ -22,16 +28,21 @@ class TouchInputOverlay extends StatelessWidget {
               Expanded(
                 child: VisualJoystick(
                   onVectorChanged: (vector) {
-                    input.moveAxisX = vector.x;
-                    input.moveAxisY = vector.y;
+                    touchController.updateJoystick(vector.x, vector.y);
                   },
                 ),
               ),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _TapButton(icon: Icons.arrow_upward, onTap: input.goAbove),
-                  _TapButton(icon: Icons.arrow_downward, onTap: input.goBellow),
+                  _TapButton(
+                    icon: Icons.arrow_upward,
+                    onTap: () => touchController.onUpLayerPressed(),
+                  ),
+                  _TapButton(
+                    icon: Icons.arrow_downward,
+                    onTap: () => touchController.onDownLayerPressed(),
+                  ),
                 ],
               ),
             ],

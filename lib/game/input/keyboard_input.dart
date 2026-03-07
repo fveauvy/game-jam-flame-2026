@@ -1,35 +1,36 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:game_jam/game/input/input_state.dart';
+import 'package:game_jam/game/input/controler.dart';
 
-class KeyboardInput {
+class KeyboardInput extends Controller {
+  KeyboardInput(super.state);
+
   final Set<LogicalKeyboardKey> _held = <LogicalKeyboardKey>{};
 
-  KeyEventResult handleEvent(KeyEvent event, InputState input) {
+  KeyEventResult handleEvent(KeyEvent event) {
     if (event is KeyDownEvent) {
       _held.add(event.logicalKey);
-      _queueActions(event.logicalKey, input);
+      _queueActions(event.logicalKey);
     } else if (event is KeyUpEvent) {
       _held.remove(event.logicalKey);
     }
 
-    input.moveAxisX = _horizontalAxis();
-    input.moveAxisY = _verticalAxis();
+    setMoveAxis(_horizontalAxis(), _verticalAxis());
     return KeyEventResult.handled;
   }
 
-  void _queueActions(LogicalKeyboardKey key, InputState input) {
+  void _queueActions(LogicalKeyboardKey key) {
     if (key == LogicalKeyboardKey.space) {
-      input.goAbove();
+      moveUpLayer();
     } else if (key == LogicalKeyboardKey.shiftLeft ||
         key == LogicalKeyboardKey.shiftRight) {
-      input.goBellow();
+      moveDownLayer();
     } else if (key == LogicalKeyboardKey.escape) {
-      input.queuePause();
+      pause();
     } else if (key == LogicalKeyboardKey.enter) {
-      input.queueConfirm();
+      confirm();
     } else if (key == LogicalKeyboardKey.keyJ) {
-      input.queueAttack();
+      attack();
     }
   }
 
