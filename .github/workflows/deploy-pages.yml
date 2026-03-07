@@ -33,7 +33,26 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Build web
-        run: flutter build web --release --base-href /game-jam-flame-2026/
+        run: flutter build web --release --base-href /game-jam-flame-2026/play/
+
+      - name: Move game to /play/ subdirectory and copy landing page
+        run: |
+          # Create a temp directory to hold the game files
+          mkdir -p /tmp/game_files
+          mv build/web/* /tmp/game_files/
+          
+          # Create the play directory
+          mkdir -p build/web/play
+          
+          # Move all game files to play/ subdirectory
+          mv /tmp/game_files/* build/web/play/
+          
+          # Copy landing page files to root
+          cp -r landing/* build/web/
+          
+          echo "Structure after setup:"
+          ls -la build/web/
+          ls -la build/web/play/ | head -20
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gronouy: Tadpole's Big Frother - Flame Game Jam 2026</title>
+  <meta name="description" content="Un jeu de survie et d'évolution roguelite où vous incarnez le grand frère protecteur d'une fratrie de batraciens">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <div class="badges">
+        <span class="badge event">Flame Game Jam 2026</span>
+        <span class="badge theme">Big Brother</span>
+        <span class="badge constraint">Procedural Generation</span>
+      </div>
+      <h1>🐸 Gronouy: Tadpole's Big Frother</h1>
+      <p class="tagline">Le grand frère protecteur de la mare</p>
+      <a href="play/" class="cta-button">Jouer au jeu</a>
+    </div>
+    <div class="pond-decoration"></div>
+  </header>
+
+  <main class="container">
+    <section id="pitch" class="section">
+      <h2>Le Pitch</h2>
+      <p>Nous allons créer un <strong>jeu de survie et d'évolution</strong> en vue de dessus, avec des mécaniques roguelite. Le joueur incarne le grand frère d'une immense portée de batraciens.</p>
+      <p>Son but est d'<strong>explorer une mare dangereuse</strong> pour retrouver et sauver ses petits frères et sœurs dispersés, tout en survivant assez longtemps pour <strong>évoluer vers l'âge adulte</strong>. Si le grand frère meurt, la nature reprend ses droits et un nouveau grand frère prend la relève pour une nouvelle tentative.</p>
+    </section>
+
+    <section id="interpretation" class="section">
+      <h2>Interprétation du thème et contraintes</h2>
+      <div class="cards">
+        <div class="card">
+          <h3>🎯 Thème: Big Brother</h3>
+          <p>Pour le thème Big Brother, on l'a pris au sens <strong>littéral</strong> : on joue le grand frère protecteur d'une fratrie.</p>
+        </div>
+        <div class="card">
+          <h3>🎲 Contrainte: Procedural Generation</h3>
+          <p>Chaque grenouille incarné est <strong>unique</strong>. À chaque run, le jeu génère un nouveau personnage avec un <strong>nom aléatoire, une forme spécifique et des traits qui lui sont propres</strong>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="gameplay" class="section">
+      <h2>La boucle de gameplay</h2>
+      <div class="steps">
+        <div class="step">
+          <span class="step-number">1</span>
+          <h3>Génération</h3>
+          <p>Une nouvelle grenouille est générée avec son nom, ses stats et son apparence unique.</p>
+        </div>
+        <div class="step">
+          <span class="step-number">2</span>
+          <h3>Exploration</h3>
+          <p>Progressez dans la mare dans tous les sens de l'écran en évitant les obstacles et les prédateurs.</p>
+        </div>
+        <div class="step">
+          <span class="step-number">3</span>
+          <h3>Sauvetage</h3>
+          <p>Collectez et sauvez vos frères et sœurs dispersés sur le chemin.</p>
+        </div>
+        <div class="step">
+          <span class="step-number">4</span>
+          <h3>Évolution</h3>
+          <p>En survivant, passez des caps d'évolution qui débloquent de nouvelles compétences.</p>
+        </div>
+        <div class="step">
+          <span class="step-number">5</span>
+          <h3>Permadeath</h3>
+          <p>Au moindre échec fatal, vous mourez et recommencez depuis le début avec un nouveau grand frère.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="environment" class="section">
+      <h2>Environnement et dangers</h2>
+      <p>L'action se déroule en <strong>vue de dessus</strong> avec une exploration sur le plan. Le décor représente une <strong>mare vivante</strong> où l'on trouve :</p>
+      <ul class="environment-list">
+        <li>🌸 Nénuphars</li>
+        <li>🍃 Feuilles flottantes</li>
+        <li>🪵 Branches</li>
+        <li>💧 Bords de l'eau</li>
+      </ul>
+      
+      <h3>Prédateurs et dangers</h3>
+      <div class="enemies-grid">
+        <div class="enemy">
+          <span class="enemy-icon">🐦</span>
+          <h4>Oiseaux</h4>
+          <p>Survolent régulièrement l'écran. Certains patrouillent en boucle, d'autres plongent soudainement.</p>
+        </div>
+        <div class="enemy">
+          <span class="enemy-icon">🐟</span>
+          <h4>Poissons</h4>
+          <p>Un gros poisson vous suit ! Montez sur un nénuphar pour l'esquiver. Attention aux bulles qui signalent un poisson en embuscade.</p>
+        </div>
+        <div class="enemy">
+          <span class="enemy-icon">🐝</span>
+          <h4>Guêpes</h4>
+          <p>Vole de façon aléatoire. Quand votre grenouille passe sur la terre, elles foncent pour la dévorer.</p>
+        </div>
+        <div class="enemy">
+          <span class="enemy-icon">🦟</span>
+          <h4>Insectes d'eau</h4>
+          <p>Gros insectes aquatiques à éviter dans la mare.</p>
+        </div>
+      </div>
+      
+      <h3>Dangers environnementaux</h3>
+      <ul>
+        <li>🌊 Courants dangereux</li>
+        <li>☠️ Zones toxiques</li>
+        <li>🪨 Divers obstacles physiques</li>
+      </ul>
+    </section>
+
+    <section id="art" class="section">
+      <h2>Direction artistique</h2>
+      <div class="art-direction">
+        <div class="art-principle">
+          <h3>🎨 Simplicité et lisibilité</h3>
+          <p>Des <strong>aplats de couleurs</strong> avec des textures très simples. Cette approche nous permet de produire rapidement une grande variété de "morceaux" de têtards et de grenouilles pour nourrir l'algorithme de génération procédurale.</p>
+        </div>
+        <div class="art-principle">
+          <h3>🌑 Profondeur</h3>
+          <p>On joue sur les <strong>ombres</strong> pour donner l'impression de profondeur dans la mare.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="character" class="section">
+      <h2>Personnage et évolution</h2>
+      
+      <h3>Caractéristiques procédurales</h3>
+      <div class="stats-grid">
+        <div class="stat">
+          <span class="stat-icon">⚡</span>
+          <span class="stat-name">Vitesse</span>
+        </div>
+        <div class="stat">
+          <span class="stat-icon">📏</span>
+          <span class="stat-name">Taille</span>
+        </div>
+        <div class="stat">
+          <span class="stat-icon">🧠</span>
+          <span class="stat-name">Intelligence</span>
+          <span class="stat-detail">Plus bête = plus gros yeux. Max d'intelligence = lunettes !</span>
+        </div>
+        <div class="stat">
+          <span class="stat-icon">🎨</span>
+          <span class="stat-name">Couleur</span>
+        </div>
+        <div class="stat">
+          <span class="stat-icon">📛</span>
+          <span class="stat-name">Nom</span>
+          <span class="stat-detail">Généré aléatoirement à chaque run</span>
+        </div>
+      </div>
+      
+      <div class="evolution-note">
+        <p>💡 <strong>Plus vous sauvez vos frères et sœurs, plus vous évoluez rapidement !</strong></p>
+      </div>
+    </section>
+
+    <section id="play" class="section play-section">
+      <div class="play-cta">
+        <h2>Prêt à sauter ?</h2>
+        <p>Chaque grenouille est unique. Chaque run est une nouvelle aventure.</p>
+        <a href="play/" class="cta-button large">🎮 Jouer maintenant</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>🐸 Gronouy: Tadpole's Big Frother</p>
+      <p>Flame Game Jam 2026 — Thème: Big Brother — Contrainte: Procedural Generation</p>
+      <p class="credits">Développé avec <a href="https://flame-engine.org/" target="_blank" rel="noopener">Flame Engine</a></p>
+    </div>
+  </footer>
+</body>
+</html>
