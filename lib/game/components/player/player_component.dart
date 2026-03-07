@@ -225,8 +225,9 @@ class PlayerComponent extends CircleComponent
 
   @override
   void onCollisionEnd(PositionComponent other) {
-    if (other is GroundComponent)
+    if (other is GroundComponent) {
       removeAll(children.whereType<SimpleTextComponent>());
+    }
     if (other is WaterComponent) {
       _isInWater = false;
     }
