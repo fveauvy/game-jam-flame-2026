@@ -26,7 +26,7 @@ class PlayerComponent extends CircleComponent
        _profile = profile,
        _baseSpeedMultiplier = speedMultiplier,
        _baseSizeMultiplier = sizeMultiplier,
-       _intelligence = intelligence,
+       _baseIntelligence = intelligence,
        super(
          position: startPosition.clone(),
          radius: 48,
@@ -44,11 +44,14 @@ class PlayerComponent extends CircleComponent
   final Vector2 _startPosition;
   final double _baseSpeedMultiplier;
   final double _baseSizeMultiplier;
+  final double _baseIntelligence;
 
   CharacterProfile _profile;
   late double _speedMultiplier;
   late double _sizeMultiplier;
-  final double _intelligence;
+  late double _intelligence;
+  late double _eyeScale;
+  late bool _showGlasses;
 
   static const double _moveSpeed = 340;
   static const double _rotationSpeed = 30;
@@ -59,6 +62,7 @@ class PlayerComponent extends CircleComponent
   CharacterProfile get profile => _profile;
 
   late Paint _directionDotPaint;
+  late Paint _glassesPaint;
 
   bool _isDamageTextVisible = false;
   bool get _isInWater =>
@@ -70,6 +74,11 @@ class PlayerComponent extends CircleComponent
     _directionDotPaint = Paint()
       ..color = const Color(0xFFFFFFFF)
       ..style = PaintingStyle.fill;
+    _glassesPaint = Paint()
+      ..color = const Color(0xFF1E1E1E)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..isAntiAlias = false;
 
     await add(CircleHitbox(radius: radius));
   }
@@ -78,16 +87,25 @@ class PlayerComponent extends CircleComponent
   void render(Canvas canvas) {
     super.render(canvas);
 
-    final double dotRadius = radius * 0.15 * _intelligence;
+    final double dotRadius = radius * 0.15 * _eyeScale;
     final double dotOffset = radius * 0.5;
     final double topY = dotRadius;
+    final Offset leftEyeCenter = Offset(dotOffset, topY);
+    final Offset rightEyeCenter = Offset(dotOffset + radius, topY);
 
-    canvas.drawCircle(Offset(dotOffset, topY), dotRadius, _directionDotPaint);
-    canvas.drawCircle(
-      Offset(dotOffset + radius, topY),
-      dotRadius,
-      _directionDotPaint,
-    );
+    canvas.drawCircle(leftEyeCenter, dotRadius, _directionDotPaint);
+    canvas.drawCircle(rightEyeCenter, dotRadius, _directionDotPaint);
+
+    if (_showGlasses) {
+      final double frameRadius = dotRadius * 1.3;
+      canvas.drawCircle(leftEyeCenter, frameRadius, _glassesPaint);
+      canvas.drawCircle(rightEyeCenter, frameRadius, _glassesPaint);
+      canvas.drawLine(
+        Offset(leftEyeCenter.dx + frameRadius, leftEyeCenter.dy),
+        Offset(rightEyeCenter.dx - frameRadius, rightEyeCenter.dy),
+        _glassesPaint,
+      );
+    }
   }
 
   static Color _parseColor(String hex) {
@@ -137,7 +155,25 @@ class PlayerComponent extends CircleComponent
       0.3,
       3.0,
     );
+    _intelligence = (_profile.traits.intelligence ?? _baseIntelligence).clamp(
+      0.5,
+      2.0,
+    );
+    _eyeScale = (2.2 - _intelligence).clamp(0.7, 2.0).toDouble();
+    _showGlasses = shouldRenderGlasses(_intelligence);
     radius = 48 * _sizeMultiplier;
+  }
+
+  static Vector2 normalizeMoveAxis(double axisX, double axisY) {
+    final Vector2 velocity = Vector2(axisX, axisY);
+    if (velocity.length2 > 1) {
+      velocity.normalize();
+    }
+    return velocity;
+  }
+
+  static bool shouldRenderGlasses(double intelligence) {
+    return intelligence >= 1.7;
   }
 
   @override
@@ -147,7 +183,7 @@ class PlayerComponent extends CircleComponent
       return;
     }
 
-    final Vector2 velocity = Vector2(
+    final Vector2 velocity = normalizeMoveAxis(
       inputState.moveAxisX,
       inputState.moveAxisY,
     );
@@ -183,7 +219,7 @@ class PlayerComponent extends CircleComponent
         radius = 48 * _sizeMultiplier * 0.9;
         break;
     }
-    paint = Paint()..color = newColor;
+    paint.color = newColor;
   }
 
   void reset() {
