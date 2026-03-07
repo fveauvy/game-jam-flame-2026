@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:game_jam/game/input/input_state.dart';
+import 'package:game_jam/game/input/visual_joystick.dart';
 
 class TouchInputOverlay extends StatelessWidget {
   const TouchInputOverlay({super.key, required this.input});
@@ -16,54 +17,15 @@ class TouchInputOverlay extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                spacing: 12,
-                children: [
-                  _HoldButton(
-                    icon: Icons.arrow_drop_up,
-                    onPressStart: () => input.moveAxisY = -1,
-                    onPressEnd: () {
-                      if (input.moveAxisY < 0) {
-                        input.moveAxisY = 0;
-                      }
-                    },
-                  ),
-                  Row(
-                    spacing: 12,
-                    children: [
-                      _HoldButton(
-                        icon: Icons.arrow_left,
-                        onPressStart: () => input.moveAxisX = -1,
-                        onPressEnd: () {
-                          if (input.moveAxisX < 0) {
-                            input.moveAxisX = 0;
-                          }
-                        },
-                      ),
-                      _HoldButton(
-                        icon: Icons.arrow_drop_down,
-                        onPressStart: () => input.moveAxisY = 1,
-                        onPressEnd: () {
-                          if (input.moveAxisY > 0) {
-                            input.moveAxisY = 0;
-                          }
-                        },
-                      ),
-                      _HoldButton(
-                        icon: Icons.arrow_right,
-                        onPressStart: () => input.moveAxisX = 1,
-                        onPressEnd: () {
-                          if (input.moveAxisX > 0) {
-                            input.moveAxisX = 0;
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+              Expanded(
+                child: VisualJoystick(
+                  onVectorChanged: (vector) {
+                    input.moveAxisX = vector.x;
+                    input.moveAxisY = vector.y;
+                  },
+                ),
               ),
               _TapButton(icon: Icons.arrow_upward, onTap: input.queueJump),
             ],
