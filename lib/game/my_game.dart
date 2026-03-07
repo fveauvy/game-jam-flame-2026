@@ -27,7 +27,11 @@ import 'package:game_jam/game/world/world_root.dart';
 
 enum GamePhase { menu, playing, paused, gameOver }
 
-class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
+class MyGame extends FlameGame<WorldRoot>
+    with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
+  @override
+  bool get debugMode => true;
+
   MyGame({
     CharacterGenerator? characterGenerator,
     CharacterPoolsRepository? characterPoolsRepository,
@@ -76,6 +80,8 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<
     await super.onLoad();
 
     await images.load('plank.png');
+    await images.load('water_lily.png');
+    await images.load('water_lily_1.png');
 
     final CharacterDebugState initialState = await _buildDebugState(
       seedCode: _characterSeedCode,
