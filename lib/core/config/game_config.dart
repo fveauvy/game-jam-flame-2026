@@ -1,7 +1,7 @@
 import 'package:flame/components.dart';
 
 abstract final class GameConfig {
-  static const String title = 'Flame Jam Template';
+  static const String title = "Gronouy: Tadpole's Big Frother";
   static const int defaultCharacterSeed = 1337;
   static const String defaultCharacterSeedCode = '4SFE6';
   static const double baseWidth = 960;
