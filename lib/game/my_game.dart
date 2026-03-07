@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/utils/time_utils.dart';
+import 'package:game_jam/game/camera/camera_controller.dart';
 import 'package:game_jam/game/character/generator/character_generator.dart';
 import 'package:game_jam/game/character/generator/procedural_character_generator.dart';
 import 'package:game_jam/game/character/infra/json_character_pools_repository.dart';
@@ -15,7 +16,6 @@ import 'package:game_jam/game/character/infra/seed_code.dart';
 import 'package:game_jam/game/character/model/character_debug_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
-import 'package:game_jam/game/camera/camera_controller.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
@@ -74,6 +74,8 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+
+    await images.load('plank.png');
 
     final CharacterDebugState initialState = await _buildDebugState(
       seedCode: _characterSeedCode,

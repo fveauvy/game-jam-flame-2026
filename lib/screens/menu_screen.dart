@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Make sure this is imported at the top
 import 'package:game_jam/game/character/model/character_debug_state.dart';
-
 class MenuScreen extends StatelessWidget {
   const MenuScreen({
     super.key,
@@ -15,43 +15,107 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String seed = debugState?.seedCode ?? '-';
+    final controller = TextEditingController(text: seed);
+
     return ColoredBox(
       color: Colors.black.withValues(alpha: 0.65),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0xFF14213D),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFFCA311), width: 2),
-            ),
+            decoration: const BoxDecoration(color: Color(0xFF14213D)),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Flame Jam Template',
+                    'GRONOUŸ',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Web-first 2D starter with layered structure.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70),
+
+                  // Seed input
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 170,
+                        height: 50,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage('assets/images/plank.png'),
+                            fit: BoxFit
+                                .fill, // Ensures the plank stretches to fill the container
+                          ),
+                        ),
+                        child: TextField(
+                          maxLength: 5,
+                          textCapitalization: TextCapitalization.characters,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z0-9]'),
+                            ),
+                            UpperCaseTextFormatter(),
+                          ],
+                          buildCounter:
+                              (
+                                ctx, {
+                                required int currentLength,
+                                required bool isFocused,
+                                maxLength,
+                              }) => null,
+                          controller: controller,
+                          onChanged: (value) => {
+                            if (value.length == 5)
+                              {
+                                debugPrint(
+                                  'Seed submitted: ${controller.text}',
+                                ),
+                                seed = controller.text,
+                              },
+                          },
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 6,
+                          ),
+                          decoration: const InputDecoration(
+                            border: InputBorder
+                                .none, // Remove default TextField border
+                            isDense: true, // Reduce height of the TextField
+                            contentPadding:
+                                EdgeInsets.zero, // Remove default padding
+                            hintStyle: TextStyle(letterSpacing: 1.5),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: Colors.white70),
+                        iconSize: 20,
+                        splashColor:
+                            Colors.transparent, // Keeps it clean looking
+                        highlightColor: Colors.transparent,
+                        onPressed: () {
+                          controller.clear(); // Clears the text field visually
+                          debugPrint('Seed reset');
+                          onReroll();
+                          // If you need to trigger a game event, do it here!
+                        },
+                      ),
+                    ],
                   ),
+
                   const SizedBox(height: 20),
                   _CharacterDebugPanel(debugState: debugState),
                   const SizedBox(height: 12),
-                  FilledButton.tonal(
-                    onPressed: onReroll,
-                    child: const Text('Reroll Seed'),
-                  ),
+
                   const SizedBox(height: 12),
                   FilledButton(
                     onPressed: onStart,
@@ -81,7 +145,6 @@ class _CharacterDebugPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final CharacterDebugState? state = debugState;
-    final String seed = state?.seedCode ?? '-';
     final String name = state?.profile.name.display ?? '-';
     final String color = state == null
         ? '-'
@@ -96,11 +159,9 @@ class _CharacterDebugPanel extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
+          spacing: 6,
           children: [
-            _DebugRow(label: 'Seed', value: seed),
-            const SizedBox(height: 6),
             _DebugRow(label: 'Name', value: name),
-            const SizedBox(height: 6),
             _DebugRow(label: 'Color', value: color),
           ],
         ),
@@ -134,6 +195,20 @@ class _DebugRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection, // Keeps the cursor in the correct position
     );
   }
 }
