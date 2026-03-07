@@ -63,7 +63,10 @@ class _GameJamAppState extends State<GameJamApp> {
               return GameOverOverlay(onRestart: game.startGame);
             },
             AppOverlays.touchControls: (_, MyGame game) {
-              return TouchInputOverlay(input: game.inputState);
+              return TouchInputOverlay(
+                input: game.inputState,
+                touchController: game.touchController,
+              );
             },
           },
         ),

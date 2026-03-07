@@ -18,8 +18,10 @@ import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
+import 'package:game_jam/game/input/gamepad_input.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/keyboard_input.dart';
+import 'package:game_jam/game/input/touch_controller.dart';
 import 'package:game_jam/game/systems/collision_system.dart';
 import 'package:game_jam/game/systems/spawn_system.dart';
 import 'package:game_jam/game/world/level_1.dart';
@@ -27,7 +29,8 @@ import 'package:game_jam/game/world/world_root.dart';
 
 enum GamePhase { menu, playing, paused, gameOver }
 
-class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
+class MyGame extends FlameGame<WorldRoot>
+    with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
   MyGame({
     CharacterGenerator? characterGenerator,
     CharacterPoolsRepository? characterPoolsRepository,
@@ -49,7 +52,9 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<
        );
 
   final InputState inputState = InputState();
-  final KeyboardInput keyboardInput = KeyboardInput();
+  late final KeyboardInput keyboardInput;
+  late final TouchController touchController;
+  late final GamepadInput gamepadInput;
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
     GamePhase.menu,
   );
@@ -95,6 +100,11 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<
     await world.addAll([level, _player, SpawnSystem(), CollisionSystem()]);
     world.bindPlayer(_player);
     await camera.viewport.add(HudComponent());
+    keyboardInput = KeyboardInput(inputState);
+    touchController = TouchController(inputState);
+    gamepadInput = GamepadInput(inputState);
+    // Initialize gamepad input
+    await gamepadInput.initialize();
 
     _cameraController = GameCameraController(
       camera: camera,
@@ -175,7 +185,7 @@ class MyGame extends FlameGame<WorldRoot> with KeyboardEvents, HasGameReference<
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    return keyboardInput.handleEvent(event, inputState);
+    return keyboardInput.handleEvent(event);
   }
 
   @override
