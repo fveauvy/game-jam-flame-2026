@@ -9,7 +9,9 @@ import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/entities/player_type.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
+import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
+import 'package:game_jam/game/components/player/water_ripple_component.dart';
 import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -71,8 +73,12 @@ class PlayerComponent extends CircleComponent
   late Paint _glassesPaint;
 
   bool _isDamageTextVisible = false;
-  bool get _isInWater =>
-      levelPosition == PlayerType.middle || levelPosition == PlayerType.water;
+  bool isInWater = false;
+
+  late WaterRippleComponent _waterRipple;
+
+  Vector2 get velocity =>
+      normalizeMoveAxis(inputState.moveAxisX, inputState.moveAxisY);
 
   @override
   void onTapDown(TapDownEvent event) {
@@ -93,6 +99,9 @@ class PlayerComponent extends CircleComponent
       ..isAntiAlias = false;
 
     await add(CircleHitbox(radius: radius));
+
+    _waterRipple = WaterRippleComponent(player: this);
+    await add(_waterRipple);
   }
 
   @override
@@ -205,10 +214,6 @@ class PlayerComponent extends CircleComponent
       return;
     }
 
-    final Vector2 velocity = normalizeMoveAxis(
-      inputState.moveAxisX,
-      inputState.moveAxisY,
-    );
     position += velocity * _moveSpeed * _speedMultiplier * dt;
 
     final double targetAngle = velocity.screenAngle();
@@ -286,8 +291,14 @@ class PlayerComponent extends CircleComponent
     Set<Vector2> intersectionPoints,
     PositionComponent other,
   ) async {
-    if (other is GroundComponent && !_isInWater) await onHitGround(other);
-
+    if (other is GroundComponent) {
+      await onHitGround(other);
+    } else if (other is WaterComponent) {
+      isInWater = true;
+      if (isInWater) {
+        removeAll(children.whereType<SimpleTextComponent>());
+      }
+    }
     if (other is WaterLilyComponent && levelPosition == PlayerType.middle) {
       if (intersectionPoints.length != 2) return;
       final mid =
@@ -305,6 +316,9 @@ class PlayerComponent extends CircleComponent
   void onCollisionEnd(PositionComponent other) {
     if (other is GroundComponent) {
       removeAll(children.whereType<SimpleTextComponent>());
+    }
+    if (other is WaterComponent) {
+      isInWater = false;
     }
 
     super.onCollisionEnd(other);
