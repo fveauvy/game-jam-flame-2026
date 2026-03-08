@@ -62,6 +62,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/gronouy/
     - assets/images/ui/
     - assets/audio/
     - assets/audio/sound_effects/

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
-import 'package:game_jam/game/character/model/character_debug_state.dart';
+import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/input/touch_input.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/screens/game_over_overlay.dart';
@@ -76,17 +76,18 @@ class _GameJamAppState extends State<GameJamApp> {
                 if (phase == GamePhase.menu)
                   Positioned.fromRelativeRect(
                     rect: const RelativeRect.fromLTRB(200, 100, 200, 100),
-                    child: ValueListenableBuilder<CharacterDebugState?>(
-                      valueListenable: _game.characterDebugState,
-                      builder: (_, CharacterDebugState? debugState, _) {
-                        return MenuScreen(
-                          onStart: _game.startGame,
-                          onReroll: () async {
-                            await _game.rerollCharacter();
+                    child: ValueListenableBuilder<CharacterGenerationState?>(
+                      valueListenable: _game.characterGenerationState,
+                      builder:
+                          (_, CharacterGenerationState? generationState, _) {
+                            return MenuScreen(
+                              onStart: _game.startGame,
+                              onReroll: () async {
+                                await _game.rerollCharacter();
+                              },
+                              generationState: generationState,
+                            );
                           },
-                          debugState: debugState,
-                        );
-                      },
                     ),
                   ),
               ],

@@ -14,7 +14,7 @@ import 'package:game_jam/game/character/generator/character_generator.dart';
 import 'package:game_jam/game/character/generator/procedural_character_generator.dart';
 import 'package:game_jam/game/character/infra/json_character_pools_repository.dart';
 import 'package:game_jam/game/character/infra/seed_code.dart';
-import 'package:game_jam/game/character/model/character_debug_state.dart';
+import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/allies/tadpole.dart';
@@ -65,14 +65,15 @@ class MyGame extends FlameGame<WorldRoot>
   );
   final ValueNotifier<CharacterProfile?> characterState =
       ValueNotifier<CharacterProfile?>(null);
-  final ValueNotifier<CharacterDebugState?> characterDebugState =
-      ValueNotifier<CharacterDebugState?>(null);
+  final ValueNotifier<CharacterGenerationState?> characterGenerationState =
+      ValueNotifier<CharacterGenerationState?>(null);
 
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
-  final Random _random;
+  late final Random _random;
+  late Random _randomSeeded;
 
-  Random get random => _random;
+  Random get random => _randomSeeded;
 
   late final PlayerComponent _player;
   late final WaterRippleComponent _waterRipple;
@@ -97,16 +98,19 @@ class MyGame extends FlameGame<WorldRoot>
 
     await FlameAudio.audioCache.loadAll(['sound_effects/whawhawhawhoua.wav']);
 
+    for (int i = 1; i <= 30; i++) {
+      await images.load('gronouy/frog-$i.png');
+    }
+    _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
     await images.load('plank.png');
     await images.load('water_lily.png');
     await images.load('water_lily_1.png');
     await images.load('fly.png');
     await images.load('eggs.png');
 
-    final CharacterDebugState initialState = await _buildDebugState(
-      seedCode: _characterSeedCode,
-    );
-    characterDebugState.value = initialState;
+    final CharacterGenerationState initialState =
+        await _buildCharacterGenerationState(seedCode: _characterSeedCode);
+    characterGenerationState.value = initialState;
     characterState.value = initialState.profile;
 
     _level = GeneratedLevel();
@@ -116,7 +120,6 @@ class MyGame extends FlameGame<WorldRoot>
       startPosition: GameConfig.playerSpawn,
       speedMultiplier: initialState.profile.traits.speed ?? 1,
       sizeMultiplier: initialState.profile.traits.size ?? 1,
-      intelligence: initialState.profile.traits.intelligence ?? 1,
     );
     _isPlayerReady = true;
 
@@ -190,15 +193,15 @@ class MyGame extends FlameGame<WorldRoot>
   Future<void> setCharacterSeedCode(String seedCode) async {
     final String normalizedCode = SeedCode.normalize(seedCode);
     final int requestId = ++_profileRequestId;
-    final CharacterDebugState nextState = await _buildDebugState(
-      seedCode: normalizedCode,
-    );
+    final CharacterGenerationState nextState =
+        await _buildCharacterGenerationState(seedCode: normalizedCode);
     if (requestId != _profileRequestId) {
       return;
     }
 
     _characterSeedCode = normalizedCode;
-    characterDebugState.value = nextState;
+    _randomSeeded = Random(SeedCode.decode(normalizedCode));
+    characterGenerationState.value = nextState;
     characterState.value = nextState.profile;
     if (isLoaded) {
       _player.applyProfile(nextState.profile);
@@ -222,7 +225,7 @@ class MyGame extends FlameGame<WorldRoot>
     await setCharacterSeedCode(nextCode);
   }
 
-  Future<CharacterDebugState> _buildDebugState({
+  Future<CharacterGenerationState> _buildCharacterGenerationState({
     required String seedCode,
   }) async {
     final String normalizedCode = SeedCode.normalize(seedCode);
@@ -230,7 +233,7 @@ class MyGame extends FlameGame<WorldRoot>
     final CharacterProfile profile = await generateCharacterProfile(
       seedCode: normalizedCode,
     );
-    return CharacterDebugState(
+    return CharacterGenerationState(
       seedCode: normalizedCode,
       seedInt: seedInt,
       profile: profile,
