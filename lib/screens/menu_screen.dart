@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:game_jam/core/constants/asset_paths.dart';
 import 'package:game_jam/game/character/model/character_generation_state.dart';
 
 class MenuScreen extends StatelessWidget {
@@ -47,7 +48,7 @@ class MenuScreen extends StatelessWidget {
                       alignment: Alignment.center,
                       decoration: const BoxDecoration(
                         image: DecorationImage(
-                          image: AssetImage('assets/images/plank.png'),
+                          image: AssetImage(AssetPaths.plank),
                           fit: BoxFit
                               .fill, // Ensures the plank stretches to fill the container
                         ),
