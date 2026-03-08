@@ -186,7 +186,7 @@ class MyGame extends FlameGame<WorldRoot>
 
     _menu = MenuComponent(
       onStart: () async {
-        camera.viewport.remove(_menu);
+        startGame();
       },
       onReroll: () async {
         await rerollCharacter();
@@ -287,6 +287,9 @@ class MyGame extends FlameGame<WorldRoot>
     if (phase.value != GamePhase.menu && phase.value != GamePhase.gameOver) {
       return;
     }
+
+    // Hide the menu when the game starts (for example, when tapping the frog).
+    camera.viewport.remove(_menu);
 
     world.reset();
     phase.value = GamePhase.playing;
