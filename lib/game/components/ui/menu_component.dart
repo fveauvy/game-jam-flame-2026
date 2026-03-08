@@ -61,12 +61,11 @@ class MenuComponent extends PositionComponent
             ],
           ),
 
-          // Seed
           SeedPanelComponent(
             size: Vector2(menuSize.x * 0.8, menuSize.y * 0.4),
             onReroll: onReroll,
             onStart: onStart,
-            position: Vector2(menuSize.x / 2, menuSize.y / 2),
+            position: Vector2(menuSize.x / 2, menuSize.y / 1.5),
           ),
         ],
       ),
