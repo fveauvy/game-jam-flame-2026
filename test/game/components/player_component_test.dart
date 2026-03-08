@@ -29,8 +29,8 @@ void main() {
   test('resolveMaxHealth uses trait when available', () {
     const CharacterProfile profile = CharacterProfile(
       name: CharacterName(adjective: 'Brave', noun: 'Tadpole'),
-      colorId: 'pond_green',
-      colorHex: '#2A9D8F',
+      spriteId: 'frog-1',
+      spriteAssetPath: 'assets/images/gronouy/frog-1.png',
       traits: CharacterTraits(health: 123),
     );
 
@@ -40,8 +40,8 @@ void main() {
   test('resolveMaxHealth falls back to default value', () {
     const CharacterProfile profile = CharacterProfile(
       name: CharacterName(adjective: 'Brave', noun: 'Tadpole'),
-      colorId: 'pond_green',
-      colorHex: '#2A9D8F',
+      spriteId: 'frog-1',
+      spriteAssetPath: 'assets/images/gronouy/frog-1.png',
       traits: CharacterTraits.empty,
     );
 
