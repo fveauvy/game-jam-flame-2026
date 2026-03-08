@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/app/startup/startup_asset_loader.dart';
 import 'package:game_jam/core/config/game_config.dart';
-import 'package:game_jam/core/constants/ui_timing.dart';
+import 'package:game_jam/core/config/ui_config.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/input/touch_input.dart';
@@ -121,7 +121,12 @@ class _GameJamAppState extends State<GameJamApp> {
             ),
             if (phase == GamePhase.menu)
               Positioned.fromRelativeRect(
-                rect: const RelativeRect.fromLTRB(200, 100, 200, 100),
+                rect: const RelativeRect.fromLTRB(
+                  MenuUi.overlayInsetHorizontal,
+                  MenuUi.overlayInsetVertical,
+                  MenuUi.overlayInsetHorizontal,
+                  MenuUi.overlayInsetVertical,
+                ),
                 child: ValueListenableBuilder<CharacterGenerationState?>(
                   valueListenable: game.characterGenerationState,
                   builder: (_, CharacterGenerationState? generationState, _) {
@@ -130,6 +135,7 @@ class _GameJamAppState extends State<GameJamApp> {
                       onReroll: () async {
                         await game.rerollCharacter();
                       },
+                      onPointCandidate: game.pointCharacterCandidate,
                       generationState: generationState,
                     );
                   },

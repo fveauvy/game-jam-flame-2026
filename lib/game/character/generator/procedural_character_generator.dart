@@ -4,8 +4,8 @@ import 'package:game_jam/game/character/model/character_name.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/model/character_traits.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
-import 'package:game_jam/core/constants/asset_paths.dart';
-import 'package:game_jam/core/constants/gameplay_tuning.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 
 class ProceduralCharacterGenerator implements CharacterGenerator {
   ProceduralCharacterGenerator({required CharacterPools pools})

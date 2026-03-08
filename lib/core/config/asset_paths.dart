@@ -1,6 +1,7 @@
-import 'package:game_jam/core/constants/gameplay_tuning.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 
 abstract final class AssetPaths {
+  // World and menu sprites.
   static const String splashScreen = 'assets/images/splash_screen.png';
   static const String plank = 'assets/images/plank.png';
   static const String waterLily = 'assets/images/water_lily.png';
@@ -8,22 +9,24 @@ abstract final class AssetPaths {
   static const String fly = 'assets/images/fly.png';
   static const String eggs = 'assets/images/eggs.png';
 
+  // HUD and overlay art.
   static const String uiTooltip = 'assets/images/ui/tooltip.png';
   static const String uiHeartLogo = 'assets/images/ui/health_logo.png';
   static const String uiIntelligenceLogo =
       'assets/images/ui/intelligence_logo.png';
   static const String uiSpeedLogo = 'assets/images/ui/speed_logo.png';
 
+  // Data and audio assets.
   static const String characterPools = 'assets/data/character_pools.json';
+  static const String splashAudioEffect = 'sound_effects/whawhawhawhoua.wav';
 
+  // Flame image cache keys.
   static const String splashScreenCacheKey = 'splash_screen.png';
   static const String plankCacheKey = 'plank.png';
   static const String waterLilyCacheKey = 'water_lily.png';
   static const String waterLilyAltCacheKey = 'water_lily_1.png';
   static const String flyCacheKey = 'fly.png';
   static const String eggsCacheKey = 'eggs.png';
-
-  static const String splashAudioEffect = 'sound_effects/whawhawhawhoua.wav';
 
   static String frogSpriteAssetPath(int number) {
     return 'assets/images/gronouy/frog-$number.png';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:game_jam/core/constants/asset_paths.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 
 class PauseOverlay extends StatelessWidget {

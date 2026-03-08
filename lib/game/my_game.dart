@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
-import 'package:game_jam/core/constants/gameplay_tuning.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/utils/time_utils.dart';
 import 'package:game_jam/game/camera/camera_controller.dart';
 import 'package:game_jam/game/character/generator/character_generator.dart';
@@ -83,6 +83,8 @@ class MyGame extends FlameGame<WorldRoot>
 
   int _profileRequestId = 0;
   String _characterSeedCode;
+  int _menuNavDirection = 0;
+  double _menuNavRepeatTimer = 0;
 
   late GeneratedLevel _level;
 
@@ -220,14 +222,110 @@ class MyGame extends FlameGame<WorldRoot>
   }) async {
     final String normalizedCode = SeedCode.normalize(seedCode);
     final int seedInt = SeedCode.decode(normalizedCode);
-    final CharacterProfile profile = await generateCharacterProfile(
-      seedCode: normalizedCode,
-    );
+    final List<String> candidateSeedCodes = <String>[];
+    final List<CharacterProfile> candidateProfiles = <CharacterProfile>[];
+    final Set<String> usedSpriteIds = <String>{};
+
+    int index = 0;
+    while (index < GameplayTuning.menuCharacterCandidateUniqueAttempts &&
+        candidateProfiles.length < GameplayTuning.menuCharacterCandidateCount) {
+      final String code = _candidateSeedCode(seedInt: seedInt, index: index);
+      final CharacterProfile profile = await generateCharacterProfile(
+        seedCode: code,
+      );
+      if (usedSpriteIds.add(profile.spriteId)) {
+        candidateSeedCodes.add(code);
+        candidateProfiles.add(profile);
+      }
+      index++;
+    }
+
+    while (candidateProfiles.length <
+        GameplayTuning.menuCharacterCandidateCount) {
+      final String code = _candidateSeedCode(seedInt: seedInt, index: index);
+      final CharacterProfile profile = await generateCharacterProfile(
+        seedCode: code,
+      );
+      candidateSeedCodes.add(code);
+      candidateProfiles.add(profile);
+      index++;
+    }
+
     return CharacterGenerationState(
       seedCode: normalizedCode,
       seedInt: seedInt,
-      profile: profile,
+      candidateSeedCodes: candidateSeedCodes,
+      candidateProfiles: candidateProfiles,
+      selectedIndex: 0,
     );
+  }
+
+  String _candidateSeedCode({required int seedInt, required int index}) {
+    final int candidateSeed =
+        (seedInt + (index * GameplayTuning.menuCharacterCandidateSeedStep)) %
+        SeedCode.maxValueExclusive;
+    return SeedCode.encode(candidateSeed);
+  }
+
+  void pointCharacterCandidate(int index) {
+    final CharacterGenerationState? state = characterGenerationState.value;
+    if (state == null || index < 0 || index >= state.candidateProfiles.length) {
+      return;
+    }
+    if (index == state.selectedIndex) {
+      return;
+    }
+    final CharacterGenerationState nextState = state.copyWith(
+      selectedIndex: index,
+    );
+    characterGenerationState.value = nextState;
+    characterState.value = nextState.profile;
+    if (isLoaded) {
+      _player.applyProfile(nextState.profile);
+    }
+  }
+
+  void _stepMenuCandidate(int delta) {
+    final CharacterGenerationState? state = characterGenerationState.value;
+    if (state == null || state.candidateProfiles.isEmpty) {
+      return;
+    }
+    final int count = state.candidateProfiles.length;
+    final int next = (state.selectedIndex + delta) % count;
+    pointCharacterCandidate(next < 0 ? next + count : next);
+  }
+
+  void _updateMenuNavigation(double dt) {
+    final double x = inputState.moveAxisX;
+    final double y = inputState.moveAxisY;
+    int direction = 0;
+    if (x >= GameplayTuning.menuNavigationAxisThreshold ||
+        y <= -GameplayTuning.menuNavigationAxisThreshold) {
+      direction = 1;
+    } else if (x <= -GameplayTuning.menuNavigationAxisThreshold ||
+        y >= GameplayTuning.menuNavigationAxisThreshold) {
+      direction = -1;
+    }
+
+    if (direction == 0) {
+      _menuNavDirection = 0;
+      _menuNavRepeatTimer = 0;
+      return;
+    }
+
+    if (direction != _menuNavDirection) {
+      _menuNavDirection = direction;
+      _menuNavRepeatTimer = 0;
+      _stepMenuCandidate(direction);
+      return;
+    }
+
+    _menuNavRepeatTimer += dt;
+    if (_menuNavRepeatTimer >=
+        GameplayTuning.menuNavigationRepeatIntervalSeconds) {
+      _menuNavRepeatTimer = 0;
+      _stepMenuCandidate(direction);
+    }
   }
 
   @override
@@ -242,6 +340,13 @@ class MyGame extends FlameGame<WorldRoot>
   void update(double dt) {
     super.update(clampDeltaTime(dt, GameConfig.maxDeltaTime));
 
+    if (phase.value == GamePhase.menu) {
+      _updateMenuNavigation(dt);
+      if (inputState.confirmPressed) {
+        startGame();
+      }
+    }
+
     if (inputState.pausePressed) {
       togglePause();
     }
@@ -252,6 +357,16 @@ class MyGame extends FlameGame<WorldRoot>
   void startGame() {
     if (phase.value != GamePhase.menu && phase.value != GamePhase.gameOver) {
       return;
+    }
+
+    final CharacterGenerationState? state = characterGenerationState.value;
+    if (state != null) {
+      _characterSeedCode = state.selectedSeedCode;
+      _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
+      characterState.value = state.profile;
+      if (isLoaded) {
+        _player.applyProfile(state.profile);
+      }
     }
 
     world.reset();

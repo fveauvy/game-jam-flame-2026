@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
-import 'package:game_jam/core/constants/asset_paths.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 
 typedef AssetStringLoader = Future<String> Function(String assetPath);
