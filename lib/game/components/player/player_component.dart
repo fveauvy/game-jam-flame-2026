@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/entities/player_type.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
+import 'package:game_jam/game/components/allies/tadpole.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
@@ -302,6 +303,11 @@ class PlayerComponent extends CircleComponent
       final separationDistance = (size.x / 2) - collisionNormal.length;
       collisionNormal.normalize();
       position += collisionNormal.scaled(separationDistance);
+    }
+
+    if (other is Egg) {
+      debugPrint('Collected an egg!');
+      other.collect();
     }
     super.onCollision(intersectionPoints, other);
   }
