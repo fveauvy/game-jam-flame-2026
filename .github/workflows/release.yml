@@ -131,7 +131,7 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
 
   build_ios:
-    runs-on: macos-latest
+    runs-on: macos-26
     needs: prepare
     steps:
       - name: Checkout
@@ -145,6 +145,15 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      - name: Create iOS scaffold if missing
+        run: |
+          if [[ ! -f ios/Runner.xcodeproj/project.pbxproj ]]; then
+            flutter create --platforms=ios .
+          fi
+
+      - name: Install iOS pods
+        run: pod install --project-directory=ios
+
       - name: Build iOS (no codesign)
         run: |
           flutter build ios --release --no-codesign \
@@ -153,6 +162,10 @@ jobs:
 
       - name: Package iOS artifact
         run: |
+          if [[ ! -d build/ios/iphoneos/Runner.app ]]; then
+            echo "Missing iOS app bundle at build/ios/iphoneos/Runner.app"
+            exit 1
+          fi
           ditto -c -k --sequesterRsrc --keepParent \
             build/ios/iphoneos/Runner.app \
             game-jam-ios-runner.app.zip
@@ -193,7 +206,7 @@ jobs:
           path: game-jam-windows-release.zip
 
   build_macos:
-    runs-on: macos-latest
+    runs-on: macos-26
     needs: prepare
     steps:
       - name: Checkout
@@ -207,6 +220,9 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      - name: Install macOS pods
+        run: pod install --project-directory=macos
+
       - name: Build macOS
         run: |
           flutter build macos --release \
@@ -215,6 +231,10 @@ jobs:
 
       - name: Package macOS artifact
         run: |
+          if [[ ! -d build/macos/Build/Products/Release/Runner.app ]]; then
+            echo "Missing macOS app bundle at build/macos/Build/Products/Release/Runner.app"
+            exit 1
+          fi
           ditto -c -k --sequesterRsrc --keepParent \
             build/macos/Build/Products/Release/Runner.app \
             game-jam-macos-runner.app.zip
