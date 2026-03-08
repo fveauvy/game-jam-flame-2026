@@ -24,8 +24,8 @@ void main() {
     () async {
       const CharacterProfile profile = CharacterProfile(
         name: CharacterName(adjective: 'Brave', noun: 'Tadpole', batch: 'Mk I'),
-        colorId: 'pond_green',
-        colorHex: '#2A9D8F',
+        spriteId: 'frog-1',
+        spriteAssetPath: 'assets/images/gronouy/frog-1.png',
       );
       final _FakeCharacterGenerator generator = _FakeCharacterGenerator(
         profile,
@@ -44,20 +44,23 @@ void main() {
     },
   );
 
-  test('setCharacterSeedCode updates current debug state', () async {
+  test('setCharacterSeedCode updates current generation state', () async {
     final CharacterProfile profile = const CharacterProfile(
       name: CharacterName(adjective: 'Tiny', noun: 'Froglet', batch: ''),
-      colorId: 'moss',
-      colorHex: '#6B8E23',
+      spriteId: 'frog-2',
+      spriteAssetPath: 'assets/images/gronouy/frog-2.png',
     );
     final _FakeCharacterGenerator generator = _FakeCharacterGenerator(profile);
     final MyGame game = MyGame(characterGenerator: generator);
 
     await game.setCharacterSeedCode('4SFE6');
 
-    expect(game.characterDebugState.value, isNotNull);
-    expect(game.characterDebugState.value!.seedCode, '4SFE6');
-    expect(game.characterDebugState.value!.seedInt, SeedCode.decode('4SFE6'));
-    expect(game.characterDebugState.value!.profile, profile);
+    expect(game.characterGenerationState.value, isNotNull);
+    expect(game.characterGenerationState.value!.seedCode, '4SFE6');
+    expect(
+      game.characterGenerationState.value!.seedInt,
+      SeedCode.decode('4SFE6'),
+    );
+    expect(game.characterGenerationState.value!.profile, profile);
   });
 }

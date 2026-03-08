@@ -13,7 +13,8 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   Random get random => game.random;
 
   static const double _cellSize = 100;
-  static const double _spawnMargin = 180;
+
+  static const double _spawnZoneHalfSize = 300;
   static const double _noiseFrequency = 0.05;
   static const double _minLilyRadius = 25;
   static const double _maxLilyRadius = 45;
@@ -72,15 +73,18 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           cellOrigin.x + _cellSize * 0.5,
           cellOrigin.y + _cellSize * 0.5,
         );
-        final inSpawnMargin = cellCenter.distanceTo(spawn) < _spawnMargin;
+        final inSpawnZone =
+            cellCenter.x >= spawn.x - _spawnZoneHalfSize &&
+            cellCenter.x <= spawn.x + _spawnZoneHalfSize &&
+            cellCenter.y >= spawn.y - _spawnZoneHalfSize &&
+            cellCenter.y <= spawn.y + _spawnZoneHalfSize;
 
         final h = humidityNorm[i][j];
         final v = vegetationNorm[i][j];
 
+        // Spawn area is always water so the player fits; elsewhere use humidity.
         final isWaterCell =
-            !inSpawnMargin &&
-            h >= biome.humidity.min &&
-            h <= biome.humidity.max;
+            inSpawnZone || (h >= biome.humidity.min && h <= biome.humidity.max);
 
         if (isWaterCell) {
           await add(
@@ -98,22 +102,32 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           );
         }
 
-        if (!inSpawnMargin &&
+        if (isWaterCell &&
+            !inSpawnZone &&
             v >= biome.vegetation.min &&
             v <= biome.vegetation.max) {
-          final lilyPos = Vector2(
-            cellOrigin.x + _cellSize * (0.2 + random.nextDouble() * 0.6),
-            cellOrigin.y + _cellSize * (0.2 + random.nextDouble() * 0.6),
-          );
-          final tooClose = lilyPositions.any(
-            (p) => p.distanceTo(lilyPos) < _minLilySpacing,
-          );
-          if (!tooClose) {
-            lilyPositions.add(lilyPos.clone());
-            final radius =
-                _minLilyRadius +
-                random.nextDouble() * (_maxLilyRadius - _minLilyRadius);
-            add(WaterLilyComponent(position: lilyPos, radius: radius));
+          final radius =
+              _minLilyRadius +
+              random.nextDouble() * (_maxLilyRadius - _minLilyRadius);
+          const buffer = 2.0;
+          final maxOffset = _cellSize - 2 * radius - buffer;
+          if (maxOffset > buffer) {
+            final lilyPos = Vector2(
+              cellOrigin.x +
+                  buffer +
+                  random.nextDouble() * (maxOffset - buffer),
+              cellOrigin.y +
+                  buffer +
+                  random.nextDouble() * (maxOffset - buffer),
+            );
+            final lilyCenter = Vector2(lilyPos.x + radius, lilyPos.y + radius);
+            final tooClose = lilyPositions.any(
+              (p) => p.distanceTo(lilyCenter) < _minLilySpacing,
+            );
+            if (!tooClose) {
+              lilyPositions.add(lilyCenter.clone());
+              add(WaterLilyComponent(position: lilyPos, radius: radius));
+            }
           }
         }
       }

@@ -1,7 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Make sure this is imported at the top
-import 'package:game_jam/game/character/model/character_debug_state.dart';
+import 'package:flutter/services.dart';
+import 'package:game_jam/game/character/model/character_generation_state.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({
@@ -9,14 +9,14 @@ class MenuScreen extends StatelessWidget {
     required this.inputController,
     required this.onInputChange,
     required this.viewPortSize,
-    required this.debugState,
+    required this.generationState,
     required this.onReroll,
     required this.onStart,
   });
 
   final TextEditingController inputController;
   final void Function(String)? onInputChange;
-  final CharacterDebugState? debugState;
+  final CharacterGenerationState? generationState;
   final VoidCallback onReroll;
   final VoidCallback onStart;
   final Vector2 viewPortSize;
@@ -119,18 +119,16 @@ class MenuScreen extends StatelessWidget {
   }
 }
 
-class _CharacterDebugPanel extends StatelessWidget {
-  const _CharacterDebugPanel({required this.debugState});
+class _CharacterDetailsPanel extends StatelessWidget {
+  const _CharacterDetailsPanel({required this.generationState});
 
-  final CharacterDebugState? debugState;
+  final CharacterGenerationState? generationState;
 
   @override
   Widget build(BuildContext context) {
-    final CharacterDebugState? state = debugState;
+    final CharacterGenerationState? state = generationState;
     final String name = state?.profile.name.display ?? '-';
-    final String color = state == null
-        ? '-'
-        : '${state.profile.colorId} ${state.profile.colorHex}';
+    final String sprite = state?.profile.spriteId ?? '-';
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -143,8 +141,8 @@ class _CharacterDebugPanel extends StatelessWidget {
         child: Column(
           spacing: 6,
           children: [
-            _DebugRow(label: 'Name', value: name),
-            _DebugRow(label: 'Color', value: color),
+            _DetailRow(label: 'Name', value: name),
+            _DetailRow(label: 'Sprite', value: sprite),
           ],
         ),
       ),
@@ -152,8 +150,8 @@ class _CharacterDebugPanel extends StatelessWidget {
   }
 }
 
-class _DebugRow extends StatelessWidget {
-  const _DebugRow({required this.label, required this.value});
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
 
   final String label;
   final String value;

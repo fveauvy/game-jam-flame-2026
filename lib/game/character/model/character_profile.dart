@@ -4,14 +4,14 @@ import 'package:game_jam/game/character/model/character_traits.dart';
 class CharacterProfile {
   const CharacterProfile({
     required this.name,
-    required this.colorId,
-    required this.colorHex,
+    required this.spriteId,
+    required this.spriteAssetPath,
     this.traits = CharacterTraits.empty,
   });
 
   final CharacterName name;
-  final String colorId;
-  final String colorHex;
+  final String spriteId;
+  final String spriteAssetPath;
   final CharacterTraits traits;
 
   @override
@@ -21,11 +21,11 @@ class CharacterProfile {
     }
     return other is CharacterProfile &&
         other.name == name &&
-        other.colorId == colorId &&
-        other.colorHex == colorHex &&
+        other.spriteId == spriteId &&
+        other.spriteAssetPath == spriteAssetPath &&
         other.traits == traits;
   }
 
   @override
-  int get hashCode => Object.hash(name, colorId, colorHex, traits);
+  int get hashCode => Object.hash(name, spriteId, spriteAssetPath, traits);
 }

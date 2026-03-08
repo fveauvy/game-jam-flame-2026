@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
@@ -13,13 +14,16 @@ import 'package:game_jam/game/character/generator/character_generator.dart';
 import 'package:game_jam/game/character/generator/procedural_character_generator.dart';
 import 'package:game_jam/game/character/infra/json_character_pools_repository.dart';
 import 'package:game_jam/game/character/infra/seed_code.dart';
-import 'package:game_jam/game/character/model/character_debug_state.dart';
+import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
+import 'package:game_jam/game/components/allies/tadpole.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
+import 'package:game_jam/game/components/player/water_ripple_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
 import 'package:game_jam/game/components/ui/menu_component.dart';
+import 'package:game_jam/game/game_state.dart';
 import 'package:game_jam/game/input/gamepad_input.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/keyboard_input.dart';
@@ -60,21 +64,24 @@ class MyGame extends FlameGame<WorldRoot>
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
     GamePhase.loading,
   );
-  final ValueNotifier<CharacterDebugState?> characterDebugState =
-      ValueNotifier<CharacterDebugState?>(null);
-  final ValueNotifier<Vector2> viewportSize = ValueNotifier<Vector2>(
-    Vector2.zero(),
-  );
-  final ValueNotifier<bool> menuVisible = ValueNotifier<bool>(false);
+  final ValueNotifier<CharacterProfile?> characterState =
+      ValueNotifier<CharacterProfile?>(null);
+  final ValueNotifier<CharacterGenerationState?> characterGenerationState =
+      ValueNotifier<CharacterGenerationState?>(null);
 
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
-  final Random _random;
+  late final Random _random;
+  late Random _randomSeeded;
 
-  Random get random => _random;
+  Random get random => _randomSeeded;
 
   late final PlayerComponent _player;
+  late final WaterRippleComponent _waterRipple;
+  bool _isPlayerReady = false;
   late final GameCameraController _cameraController;
+  late final GameState gameState;
+
   int _profileRequestId = 0;
   String _characterSeedCode;
 
@@ -83,34 +90,46 @@ class MyGame extends FlameGame<WorldRoot>
   late final MenuComponent _menu;
 
   String get characterSeedCode => _characterSeedCode;
-  CharacterProfile? get generatedCharacterProfile =>
-      characterDebugState.value?.profile;
+  CharacterProfile? get generatedCharacterProfile => characterState.value;
+  int? get playerRemainingHealth =>
+      _isPlayerReady ? _player.remainingHealth : null;
+  int? get playerMaxHealth => _isPlayerReady ? _player.maxHealth : null;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    await images.load('refresh_logo.png');
+    await FlameAudio.audioCache.loadAll(['sound_effects/whawhawhawhoua.wav']);
+
+    for (int i = 1; i <= 30; i++) {
+      await images.load('gronouy/frog-$i.png');
+    }
+    _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
     await images.load('water_lily_1.png');
+    await images.load('refresh_logo.png');
+    await images.load('water_lily.png');
     await images.load('water_lily.png');
     await images.load('plank.png');
+    await images.load('plank.png');
+    await images.load('eggs.png');
     await images.load('fly.png');
 
-    final CharacterDebugState initialState = await _buildDebugState(
-      seedCode: _characterSeedCode,
-    );
-
-    characterDebugState.value = initialState;
+    final CharacterGenerationState initialState =
+        await _buildCharacterGenerationState(seedCode: _characterSeedCode);
+    characterGenerationState.value = initialState;
+    characterState.value = initialState.profile;
 
     _level = GeneratedLevel();
     _player = PlayerComponent(
-      intelligence: initialState.profile.traits.intelligence ?? 1,
       speedMultiplier: initialState.profile.traits.speed ?? 1,
       sizeMultiplier: initialState.profile.traits.size ?? 1,
       startPosition: GameConfig.playerSpawn,
       profile: initialState.profile,
       inputState: inputState,
     );
+    _isPlayerReady = true;
+
+    _waterRipple = WaterRippleComponent(player: _player);
 
     final flies = List.generate(
       10,
@@ -123,12 +142,25 @@ class MyGame extends FlameGame<WorldRoot>
       ),
     );
 
+    final eggs = List.generate(
+      20,
+      (index) => Egg(
+        position: Vector2(
+          game.random.nextDouble() * GameConfig.worldSize.x,
+          game.random.nextDouble() * GameConfig.worldSize.y,
+        ),
+        size: Vector2.all(32),
+      ),
+    );
+
     await world.addAll([
       _level,
+      _waterRipple,
       _player,
       SpawnSystem(),
       CollisionSystem(),
       ...flies,
+      ...eggs,
     ]);
 
     world.bindPlayer(_player);
@@ -161,12 +193,8 @@ class MyGame extends FlameGame<WorldRoot>
     await camera.viewport.add(_menu);
 
     phase.value = GamePhase.menu;
-  }
 
-  @override
-  void onGameResize(Vector2 size) {
-    super.onGameResize(size);
-    viewportSize.value = size;
+    gameState = GameState();
   }
 
   Future<CharacterProfile> generateCharacterProfile({
@@ -187,15 +215,16 @@ class MyGame extends FlameGame<WorldRoot>
   Future<void> setCharacterSeedCode(String seedCode) async {
     final String normalizedCode = SeedCode.normalize(seedCode);
     final int requestId = ++_profileRequestId;
-    final CharacterDebugState nextState = await _buildDebugState(
-      seedCode: normalizedCode,
-    );
+    final CharacterGenerationState nextState =
+        await _buildCharacterGenerationState(seedCode: normalizedCode);
     if (requestId != _profileRequestId) {
       return;
     }
 
     _characterSeedCode = normalizedCode;
-    characterDebugState.value = nextState;
+    _randomSeeded = Random(SeedCode.decode(normalizedCode));
+    characterGenerationState.value = nextState;
+    characterState.value = nextState.profile;
     if (isLoaded) {
       _player.applyProfile(nextState.profile);
       await _level.onUpdateSeed();
@@ -218,7 +247,7 @@ class MyGame extends FlameGame<WorldRoot>
     await setCharacterSeedCode(nextCode);
   }
 
-  Future<CharacterDebugState> _buildDebugState({
+  Future<CharacterGenerationState> _buildCharacterGenerationState({
     required String seedCode,
   }) async {
     final String normalizedCode = SeedCode.normalize(seedCode);
@@ -226,7 +255,7 @@ class MyGame extends FlameGame<WorldRoot>
     final CharacterProfile profile = await generateCharacterProfile(
       seedCode: normalizedCode,
     );
-    return CharacterDebugState(
+    return CharacterGenerationState(
       seedCode: normalizedCode,
       seedInt: seedInt,
       profile: profile,
@@ -282,6 +311,7 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     phase.value = GamePhase.playing;
+    inputState.clearPausePressed();
     resumeEngine();
     overlays
       ..remove(AppOverlays.pause)

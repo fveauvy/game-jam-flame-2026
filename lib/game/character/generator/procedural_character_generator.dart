@@ -10,6 +10,9 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
     : _pools = pools;
 
   static const int _traitPrecision = 1000;
+  static const int _minHealth = 60;
+  static const int _maxHealth = 150;
+  static const int _spriteCount = 30;
 
   final CharacterPools _pools;
 
@@ -23,22 +26,32 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
     final String? batch = namePool.batches.isEmpty
         ? null
         : rng.pick(namePool.batches);
-    final CharacterColorPoolItem color = rng.pick(_pools.colors);
+    final int spriteNumber = _resolveSpriteNumber(seed);
 
     final double speedMultiplier = _rollTrait(rng: rng, min: 0.7, max: 1.5);
     final double sizeMultiplier = _rollTrait(rng: rng, min: 0.8, max: 1.25);
     final double intelligence = _rollTrait(rng: rng, min: 0.5, max: 2.0);
+    final int health = _rollHealth(rng);
 
     return CharacterProfile(
       name: CharacterName(adjective: adjective, noun: noun, batch: batch),
-      colorId: color.id,
-      colorHex: color.hex,
+      spriteId: 'frog-$spriteNumber',
+      spriteAssetPath: 'assets/images/gronouy/frog-$spriteNumber.png',
       traits: CharacterTraits(
         speed: speedMultiplier,
         size: sizeMultiplier,
         intelligence: intelligence,
+        health: health,
       ),
     );
+  }
+
+  int _rollHealth(SeededRng rng) {
+    return _minHealth + rng.nextInt(_maxHealth - _minHealth + 1);
+  }
+
+  int _resolveSpriteNumber(int seed) {
+    return (seed % _spriteCount) + 1;
   }
 
   double _rollTrait({

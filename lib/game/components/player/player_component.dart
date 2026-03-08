@@ -6,9 +6,11 @@ import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
-import 'package:game_jam/core/entities/player_type.dart';
+import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
+import 'package:game_jam/game/components/allies/tadpole.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
+import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
 import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
@@ -22,52 +24,66 @@ class PlayerComponent extends CircleComponent
     required Vector2 startPosition,
     double speedMultiplier = 1.0,
     double sizeMultiplier = 1.0,
-    double intelligence = 1.0,
   }) : _startPosition = startPosition.clone(),
        _profile = profile,
        _baseSpeedMultiplier = speedMultiplier,
        _baseSizeMultiplier = sizeMultiplier,
-       _baseIntelligence = intelligence,
        super(
          position: startPosition.clone(),
          radius: 48,
          anchor: Anchor.center,
          priority: 10,
-         paint: Paint()..color = _parseColor(profile.colorHex),
+         paint: Paint()..color = Colors.transparent,
        ) {
     _applyStatsFromProfile();
   }
 
   static const Duration _damageTextDuration = Duration(seconds: 1);
   static const Duration _damageTextDelay = Duration(milliseconds: 500);
+  static const int _defaultHealth = 100;
 
   final InputState inputState;
   final Vector2 _startPosition;
   final double _baseSpeedMultiplier;
   final double _baseSizeMultiplier;
-  final double _baseIntelligence;
 
   CharacterProfile _profile;
+  Sprite? _frogSprite;
+  late String _spriteCacheKey;
+  late final Paint _spritePaint;
+  double _spriteOpacity = 1.0;
+  CircleHitbox? _hitbox;
   late double _speedMultiplier;
   late double _sizeMultiplier;
-  late double _intelligence;
-  late double _eyeScale;
-  late bool _showGlasses;
+  late int _maxHealth;
+  late int _remainingHealth;
 
   static const double _moveSpeed = 340;
   static const double _rotationSpeed = 30;
+  static const double _jumpDuration = 0.24;
+  static const double _jumpForwardSpeed = 420;
 
-  PlayerType get levelPosition => inputState.playerType;
+  PlayerVerticalPosition get levelPosition => inputState.playerVerticalPosition;
   double get moveSpeed => _moveSpeed;
 
   CharacterProfile get profile => _profile;
-
-  late Paint _directionDotPaint;
-  late Paint _glassesPaint;
+  int get maxHealth => _maxHealth;
+  int get remainingHealth => _remainingHealth;
 
   bool _isDamageTextVisible = false;
-  bool get _isInWater =>
-      levelPosition == PlayerType.middle || levelPosition == PlayerType.water;
+  bool isInWater = false;
+  int _waterContacts = 0;
+  int _groundContacts = 0;
+  int _lilyContacts = 0;
+  bool _jumpActive = false;
+  double _jumpElapsed = 0;
+  Vector2 _jumpDirection = Vector2.zero();
+
+  bool get _isTouchingGround => _groundContacts > 0;
+  bool get _isTouchingLily => _lilyContacts > 0;
+
+  Vector2 get velocity =>
+      normalizeMoveAxis(inputState.moveAxisX, inputState.moveAxisY);
 
   @override
   void onTapDown(TapDownEvent event) {
@@ -78,53 +94,19 @@ class PlayerComponent extends CircleComponent
   @override
   Future<void> onMount() async {
     super.onMount();
-    _directionDotPaint = Paint()
-      ..color = const Color(0xFFFFFFFF)
-      ..style = PaintingStyle.fill;
-    _glassesPaint = Paint()
-      ..color = const Color(0xFF1E1E1E)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..isAntiAlias = false;
-
-    await add(CircleHitbox(radius: radius));
+    _spritePaint = Paint();
+    _refreshSprite();
+    _hitbox = CircleHitbox(radius: radius);
+    await add(_hitbox!);
   }
 
   @override
   void render(Canvas canvas) {
-    super.render(canvas);
-
-    final double dotRadius = radius * 0.15 * _eyeScale;
-    final double dotOffset = radius * 0.5;
-    final double topY = dotRadius;
-    final Offset leftEyeCenter = Offset(dotOffset, topY);
-    final Offset rightEyeCenter = Offset(dotOffset + radius, topY);
-
-    canvas.drawCircle(leftEyeCenter, dotRadius, _directionDotPaint);
-    canvas.drawCircle(rightEyeCenter, dotRadius, _directionDotPaint);
-
-    if (_showGlasses) {
-      final double frameRadius = dotRadius * 1.3;
-      canvas.drawCircle(leftEyeCenter, frameRadius, _glassesPaint);
-      canvas.drawCircle(rightEyeCenter, frameRadius, _glassesPaint);
-      canvas.drawLine(
-        Offset(leftEyeCenter.dx + frameRadius, leftEyeCenter.dy),
-        Offset(rightEyeCenter.dx - frameRadius, rightEyeCenter.dy),
-        _glassesPaint,
-      );
+    if (_frogSprite == null) {
+      super.render(canvas);
+      return;
     }
-  }
-
-  static Color _parseColor(String hex) {
-    final String normalized = hex.replaceFirst('#', '').trim();
-    if (normalized.length != 6) {
-      return const Color(0xFF2A9D8F);
-    }
-    final int? rgb = int.tryParse(normalized, radix: 16);
-    if (rgb == null) {
-      return const Color(0xFF2A9D8F);
-    }
-    return Color(0xFF000000 | rgb);
+    _frogSprite!.render(canvas, size: size, overridePaint: _spritePaint);
   }
 
   static double _normalizeAngle(double value) {
@@ -149,7 +131,7 @@ class PlayerComponent extends CircleComponent
 
   void applyProfile(CharacterProfile profile) {
     _profile = profile;
-    paint.color = _parseColor(profile.colorHex);
+    _refreshSprite();
     _applyStatsFromProfile();
   }
 
@@ -162,13 +144,43 @@ class PlayerComponent extends CircleComponent
       0.3,
       3.0,
     );
-    _intelligence = (_profile.traits.intelligence ?? _baseIntelligence).clamp(
-      0.5,
-      2.0,
-    );
-    _eyeScale = (2.2 - _intelligence).clamp(0.7, 2.0).toDouble();
-    _showGlasses = shouldRenderGlasses(_intelligence);
+    _maxHealth = resolveMaxHealth(_profile);
+    _remainingHealth = _maxHealth;
     radius = 48 * _sizeMultiplier;
+    _syncHitbox();
+  }
+
+  void _refreshSprite() {
+    _spriteCacheKey = _cacheKeyFromAssetPath(_profile.spriteAssetPath);
+    if (!game.images.containsKey(_spriteCacheKey)) {
+      _frogSprite = null;
+      return;
+    }
+    _frogSprite = Sprite(game.images.fromCache(_spriteCacheKey));
+  }
+
+  String _cacheKeyFromAssetPath(String path) {
+    const String prefix = 'assets/images/';
+    if (path.startsWith(prefix)) {
+      return path.substring(prefix.length);
+    }
+    return path;
+  }
+
+  void _syncHitbox() {
+    final CircleHitbox? hitbox = _hitbox;
+    if (hitbox == null) {
+      return;
+    }
+    hitbox.radius = radius;
+  }
+
+  static int resolveMaxHealth(CharacterProfile profile) {
+    final int? health = profile.traits.health;
+    if (health == null) {
+      return _defaultHealth;
+    }
+    return health.clamp(1, 9999);
   }
 
   static Vector2 normalizeMoveAxis(double axisX, double axisY) {
@@ -183,6 +195,75 @@ class PlayerComponent extends CircleComponent
     return intelligence >= 1.7;
   }
 
+  static PlayerVerticalPosition resolveVerticalPosition({
+    required PlayerVerticalPosition current,
+    required bool isInWater,
+    required bool jumpPressed,
+    required bool divePressed,
+    required bool canStayOnLand,
+    required bool jumpActive,
+  }) {
+    if (jumpActive) {
+      return PlayerVerticalPosition.land;
+    }
+
+    if (current == PlayerVerticalPosition.land) {
+      if (isInWater && !canStayOnLand) {
+        return PlayerVerticalPosition.waterLevel;
+      }
+      return PlayerVerticalPosition.land;
+    }
+
+    if (current == PlayerVerticalPosition.waterLevel) {
+      if (divePressed && isInWater) {
+        return PlayerVerticalPosition.underwater;
+      }
+      return PlayerVerticalPosition.waterLevel;
+    }
+
+    if (!isInWater) {
+      return PlayerVerticalPosition.waterLevel;
+    }
+
+    if (jumpPressed) {
+      return PlayerVerticalPosition.waterLevel;
+    }
+    return PlayerVerticalPosition.underwater;
+  }
+
+  void _startJump() {
+    if (_jumpActive) {
+      return;
+    }
+    _jumpActive = true;
+    _jumpElapsed = 0;
+    _jumpDirection = Vector2(sin(angle), -cos(angle));
+    if (_jumpDirection.length2 == 0) {
+      _jumpDirection = Vector2(0, -1);
+    }
+    _jumpDirection.normalize();
+    inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+  }
+
+  void _resolveJump(double dt) {
+    if (!_jumpActive) {
+      return;
+    }
+
+    _jumpElapsed += dt;
+    final double t = (_jumpElapsed / _jumpDuration).clamp(0, 1);
+    final double forwardScale = (1 - (0.6 * t)).clamp(0.35, 1.0);
+    position += _jumpDirection * _jumpForwardSpeed * dt * forwardScale;
+
+    if (_jumpElapsed >= _jumpDuration) {
+      _jumpActive = false;
+      _jumpElapsed = 0;
+      inputState.playerVerticalPosition = (_isTouchingGround || _isTouchingLily)
+          ? PlayerVerticalPosition.land
+          : PlayerVerticalPosition.waterLevel;
+    }
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -190,10 +271,6 @@ class PlayerComponent extends CircleComponent
       return;
     }
 
-    final Vector2 velocity = normalizeMoveAxis(
-      inputState.moveAxisX,
-      inputState.moveAxisY,
-    );
     position += velocity * _moveSpeed * _speedMultiplier * dt;
 
     final double targetAngle = velocity.screenAngle();
@@ -206,31 +283,48 @@ class PlayerComponent extends CircleComponent
       }
     }
 
+    if (inputState.jumpPressed &&
+        levelPosition == PlayerVerticalPosition.waterLevel &&
+        isInWater) {
+      _startJump();
+    }
+    _resolveJump(dt);
+
     final double maxX = GameConfig.worldSize.x - size.x;
     final double maxY = GameConfig.worldSize.y - size.y;
     position.y = position.y.clamp(0, maxY);
     position.x = position.x.clamp(0, maxX);
 
-    Color newColor = _parseColor(profile.colorHex);
+    inputState.playerVerticalPosition = resolveVerticalPosition(
+      current: levelPosition,
+      isInWater: isInWater,
+      jumpPressed: inputState.jumpPressed,
+      divePressed: inputState.divePressed,
+      canStayOnLand: _isTouchingGround || _isTouchingLily,
+      jumpActive: _jumpActive,
+    );
+
     switch (levelPosition) {
-      case PlayerType.land:
-        newColor = newColor.withValues(alpha: 1.0);
+      case PlayerVerticalPosition.land:
+        _spriteOpacity = 1.0;
         radius = 48 * _sizeMultiplier * 1.1;
         break;
-      case PlayerType.middle:
-        newColor = newColor.withValues(alpha: 0.7);
+      case PlayerVerticalPosition.waterLevel:
+        _spriteOpacity = 0.7;
         radius = 48 * _sizeMultiplier;
         break;
-      case PlayerType.water:
-        newColor = newColor.withValues(alpha: 0.4);
+      case PlayerVerticalPosition.underwater:
+        _spriteOpacity = 0.4;
         radius = 48 * _sizeMultiplier * 0.9;
         break;
     }
-    paint.color = newColor;
+    _spritePaint.color = Colors.white.withValues(alpha: _spriteOpacity);
+    _syncHitbox();
   }
 
   void reset() {
     position.setFrom(_startPosition);
+    _remainingHealth = _maxHealth;
   }
 
   Future<void> onHitGround(GroundComponent ground) async {
@@ -239,6 +333,10 @@ class PlayerComponent extends CircleComponent
       _isDamageTextVisible = false;
     });
     _isDamageTextVisible = true;
+    _remainingHealth = (_remainingHealth - ground.damage).clamp(0, _maxHealth);
+    if (_remainingHealth <= 0) {
+      game.endGame();
+    }
     final damageText = SimpleTextComponent(
       color: Colors.red,
       text: '- ${ground.damage}',
@@ -266,9 +364,26 @@ class PlayerComponent extends CircleComponent
     Set<Vector2> intersectionPoints,
     PositionComponent other,
   ) async {
-    if (other is GroundComponent && !_isInWater) await onHitGround(other);
-
-    if (other is WaterLilyComponent && levelPosition == PlayerType.middle) {
+    if (other is GroundComponent) {
+      await onHitGround(other);
+      if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
+        if (intersectionPoints.length == 2) {
+          final mid =
+              (intersectionPoints.elementAt(0) +
+                  intersectionPoints.elementAt(1)) /
+              2;
+          final collisionNormal = absoluteCenter - mid;
+          final separationDistance = (size.x / 2) - collisionNormal.length;
+          collisionNormal.normalize();
+          final double moveDot = velocity.dot(collisionNormal);
+          if (moveDot < 0 || separationDistance > 1.5) {
+            position += collisionNormal.scaled(separationDistance);
+          }
+        }
+      }
+    }
+    if (other is WaterLilyComponent &&
+        levelPosition == PlayerVerticalPosition.waterLevel) {
       if (intersectionPoints.length != 2) return;
       final mid =
           (intersectionPoints.elementAt(0) + intersectionPoints.elementAt(1)) /
@@ -278,13 +393,57 @@ class PlayerComponent extends CircleComponent
       collisionNormal.normalize();
       position += collisionNormal.scaled(separationDistance);
     }
+
+    if (other is Egg) {
+      debugPrint('Collected an egg!');
+      other.collect();
+    }
     super.onCollision(intersectionPoints, other);
+  }
+
+  @override
+  void onCollisionStart(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) {
+    if (other is WaterComponent) {
+      _waterContacts++;
+      isInWater = _waterContacts > 0;
+      if (isInWater) {
+        removeAll(children.whereType<SimpleTextComponent>());
+      }
+    }
+    if (other is GroundComponent) {
+      _groundContacts++;
+      if (_jumpActive) {
+        _jumpActive = false;
+        _jumpElapsed = 0;
+        inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+      }
+    }
+    if (other is WaterLilyComponent) {
+      _lilyContacts++;
+      if (_jumpActive) {
+        _jumpActive = false;
+        _jumpElapsed = 0;
+        inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+      }
+    }
+    super.onCollisionStart(intersectionPoints, other);
   }
 
   @override
   void onCollisionEnd(PositionComponent other) {
     if (other is GroundComponent) {
+      _groundContacts = (_groundContacts - 1).clamp(0, 999999);
       removeAll(children.whereType<SimpleTextComponent>());
+    }
+    if (other is WaterComponent) {
+      _waterContacts = (_waterContacts - 1).clamp(0, 999999);
+      isInWater = _waterContacts > 0;
+    }
+    if (other is WaterLilyComponent) {
+      _lilyContacts = (_lilyContacts - 1).clamp(0, 999999);
     }
 
     super.onCollisionEnd(other);
