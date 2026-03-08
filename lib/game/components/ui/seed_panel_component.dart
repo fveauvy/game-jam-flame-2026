@@ -29,7 +29,7 @@ class SeedPanelComponent extends SpriteButtonComponent
     };
 
     _seedText = TextComponent(
-      text: game.characterDebugState.value?.seedCode ?? "-",
+      text: game.characterGenerationState.value?.seedCode ?? "-",
       textRenderer: TextPaint(
         style: const TextStyle(color: Colors.white, letterSpacing: 2.0),
       ),
@@ -37,7 +37,7 @@ class SeedPanelComponent extends SpriteButtonComponent
       position: size / 2 - Vector2(5, 2),
     );
 
-    game.characterDebugState.addListener(_updateSeedText);
+    game.characterGenerationState.addListener(_updateSeedText);
 
     add(
       RowComponent(
@@ -77,12 +77,12 @@ class SeedPanelComponent extends SpriteButtonComponent
   }
 
   void _updateSeedText() {
-    _seedText.text = game.characterDebugState.value?.seedCode ?? "-";
+    _seedText.text = game.characterGenerationState.value?.seedCode ?? "-";
   }
 
   @override
   void onRemove() {
-    game.characterDebugState.removeListener(_updateSeedText);
+    game.characterGenerationState.removeListener(_updateSeedText);
     super.onRemove();
   }
 }
