@@ -40,6 +40,7 @@ class PlayerComponent extends CircleComponent
 
   static const Duration _damageTextDuration = Duration(seconds: 1);
   static const Duration _damageTextDelay = Duration(milliseconds: 500);
+  static const int _defaultHealth = 100;
 
   final InputState inputState;
   final Vector2 _startPosition;
@@ -53,6 +54,8 @@ class PlayerComponent extends CircleComponent
   late double _intelligence;
   late double _eyeScale;
   late bool _showGlasses;
+  late int _maxHealth;
+  late int _remainingHealth;
 
   static const double _moveSpeed = 340;
   static const double _rotationSpeed = 30;
@@ -61,6 +64,8 @@ class PlayerComponent extends CircleComponent
   double get moveSpeed => _moveSpeed;
 
   CharacterProfile get profile => _profile;
+  int get maxHealth => _maxHealth;
+  int get remainingHealth => _remainingHealth;
 
   late Paint _directionDotPaint;
   late Paint _glassesPaint;
@@ -168,7 +173,17 @@ class PlayerComponent extends CircleComponent
     );
     _eyeScale = (2.2 - _intelligence).clamp(0.7, 2.0).toDouble();
     _showGlasses = shouldRenderGlasses(_intelligence);
+    _maxHealth = resolveMaxHealth(_profile);
+    _remainingHealth = _maxHealth;
     radius = 48 * _sizeMultiplier;
+  }
+
+  static int resolveMaxHealth(CharacterProfile profile) {
+    final int? health = profile.traits.health;
+    if (health == null) {
+      return _defaultHealth;
+    }
+    return health.clamp(1, 9999);
   }
 
   static Vector2 normalizeMoveAxis(double axisX, double axisY) {
@@ -231,6 +246,7 @@ class PlayerComponent extends CircleComponent
 
   void reset() {
     position.setFrom(_startPosition);
+    _remainingHealth = _maxHealth;
   }
 
   Future<void> onHitGround(GroundComponent ground) async {
@@ -239,6 +255,10 @@ class PlayerComponent extends CircleComponent
       _isDamageTextVisible = false;
     });
     _isDamageTextVisible = true;
+    _remainingHealth = (_remainingHealth - ground.damage).clamp(0, _maxHealth);
+    if (_remainingHealth <= 0) {
+      game.endGame();
+    }
     final damageText = SimpleTextComponent(
       color: Colors.red,
       text: '- ${ground.damage}',

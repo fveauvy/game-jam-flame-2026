@@ -3,7 +3,8 @@ import 'package:game_jam/core/entities/player_type.dart';
 class InputState {
   double moveAxisX = 0;
   double moveAxisY = 0;
-  PlayerType playerType = PlayerType.middle; // position of player in the world, determines what they can interact with
+  PlayerType playerType = PlayerType
+      .middle; // position of player in the world, determines what they can interact with
 
   bool jumpPressed = false;
   bool attackPressed = false;
@@ -17,7 +18,7 @@ class InputState {
   void goBellow() {
     playerType = playerType.bellow;
   }
-  
+
   void queueJump() {
     jumpPressed = true;
   }
@@ -28,6 +29,10 @@ class InputState {
 
   void queuePause() {
     pausePressed = true;
+  }
+
+  void clearPausePressed() {
+    pausePressed = false;
   }
 
   void queueConfirm() {

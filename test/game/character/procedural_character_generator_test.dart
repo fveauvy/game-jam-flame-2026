@@ -29,6 +29,7 @@ void main() {
     expect(a.traits.speed, isNotNull);
     expect(a.traits.size, isNotNull);
     expect(a.traits.intelligence, isNotNull);
+    expect(a.traits.health, isNotNull);
   });
 
   test('different seeds usually change profile', () async {
@@ -45,8 +46,14 @@ void main() {
     final bool sameSize = a.traits.size == b.traits.size;
     final bool sameIntelligence =
         a.traits.intelligence == b.traits.intelligence;
+    final bool sameHealth = a.traits.health == b.traits.health;
     expect(
-      sameName && sameColor && sameSpeed && sameSize && sameIntelligence,
+      sameName &&
+          sameColor &&
+          sameSpeed &&
+          sameSize &&
+          sameIntelligence &&
+          sameHealth,
       isFalse,
     );
   });
@@ -61,5 +68,6 @@ void main() {
     expect(profile.traits.speed, inInclusiveRange(0.7, 1.5));
     expect(profile.traits.size, inInclusiveRange(0.8, 1.25));
     expect(profile.traits.intelligence, inInclusiveRange(0.5, 2.0));
+    expect(profile.traits.health, inInclusiveRange(60, 150));
   });
 }

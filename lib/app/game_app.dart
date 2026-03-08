@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/model/character_debug_state.dart';
 import 'package:game_jam/game/input/touch_input.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -48,7 +49,18 @@ class _GameJamAppState extends State<GameJamApp> {
                   game: _game,
                   overlayBuilderMap: {
                     AppOverlays.pause: (_, MyGame game) {
-                      return PauseOverlay(onResume: game.togglePause);
+                      return ValueListenableBuilder<CharacterProfile?>(
+                        valueListenable: game.characterState,
+                        builder: (_, CharacterProfile? characterProfile, _) {
+                          return PauseOverlay(
+                            onResume: game.togglePause,
+                            seedCode: game.characterSeedCode,
+                            characterProfile: characterProfile,
+                            currentHealth: game.playerRemainingHealth,
+                            maxHealth: game.playerMaxHealth,
+                          );
+                        },
+                      );
                     },
                     AppOverlays.gameOver: (_, MyGame game) {
                       return GameOverOverlay(onRestart: game.startGame);

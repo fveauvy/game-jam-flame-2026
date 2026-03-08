@@ -59,6 +59,8 @@ class MyGame extends FlameGame<WorldRoot>
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
     GamePhase.menu,
   );
+  final ValueNotifier<CharacterProfile?> characterState =
+      ValueNotifier<CharacterProfile?>(null);
   final ValueNotifier<CharacterDebugState?> characterDebugState =
       ValueNotifier<CharacterDebugState?>(null);
 
@@ -69,6 +71,7 @@ class MyGame extends FlameGame<WorldRoot>
   Random get random => _random;
 
   late final PlayerComponent _player;
+  bool _isPlayerReady = false;
   late final GameCameraController _cameraController;
   int _profileRequestId = 0;
   String _characterSeedCode;
@@ -76,8 +79,10 @@ class MyGame extends FlameGame<WorldRoot>
   late GeneratedLevel _level;
 
   String get characterSeedCode => _characterSeedCode;
-  CharacterProfile? get generatedCharacterProfile =>
-      characterDebugState.value?.profile;
+  CharacterProfile? get generatedCharacterProfile => characterState.value;
+  int? get playerRemainingHealth =>
+      _isPlayerReady ? _player.remainingHealth : null;
+  int? get playerMaxHealth => _isPlayerReady ? _player.maxHealth : null;
 
   @override
   Future<void> onLoad() async {
@@ -92,6 +97,7 @@ class MyGame extends FlameGame<WorldRoot>
       seedCode: _characterSeedCode,
     );
     characterDebugState.value = initialState;
+    characterState.value = initialState.profile;
 
     _level = GeneratedLevel();
     _player = PlayerComponent(
@@ -102,6 +108,7 @@ class MyGame extends FlameGame<WorldRoot>
       sizeMultiplier: initialState.profile.traits.size ?? 1,
       intelligence: initialState.profile.traits.intelligence ?? 1,
     );
+    _isPlayerReady = true;
 
     final flies = List.generate(
       10,
@@ -165,6 +172,7 @@ class MyGame extends FlameGame<WorldRoot>
 
     _characterSeedCode = normalizedCode;
     characterDebugState.value = nextState;
+    characterState.value = nextState.profile;
     if (isLoaded) {
       _player.applyProfile(nextState.profile);
       await _level.onUpdateSeed();
@@ -251,6 +259,7 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     phase.value = GamePhase.playing;
+    inputState.clearPausePressed();
     resumeEngine();
     overlays
       ..remove(AppOverlays.pause)
