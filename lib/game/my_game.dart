@@ -160,6 +160,8 @@ class MyGame extends FlameGame<WorldRoot>
       },
     );
     await camera.viewport.add(_menu);
+
+    phase.value = GamePhase.menu;
   }
 
   @override
