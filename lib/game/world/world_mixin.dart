@@ -98,22 +98,32 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           );
         }
 
-        if (!inSpawnMargin &&
+        if (isWaterCell &&
+            !inSpawnMargin &&
             v >= biome.vegetation.min &&
             v <= biome.vegetation.max) {
-          final lilyPos = Vector2(
-            cellOrigin.x + _cellSize * (0.2 + random.nextDouble() * 0.6),
-            cellOrigin.y + _cellSize * (0.2 + random.nextDouble() * 0.6),
-          );
-          final tooClose = lilyPositions.any(
-            (p) => p.distanceTo(lilyPos) < _minLilySpacing,
-          );
-          if (!tooClose) {
-            lilyPositions.add(lilyPos.clone());
-            final radius =
-                _minLilyRadius +
-                random.nextDouble() * (_maxLilyRadius - _minLilyRadius);
-            add(WaterLilyComponent(position: lilyPos, radius: radius));
+          final radius =
+              _minLilyRadius +
+              random.nextDouble() * (_maxLilyRadius - _minLilyRadius);
+          const buffer = 2.0;
+          final maxOffset = _cellSize - 2 * radius - buffer;
+          if (maxOffset > buffer) {
+            final lilyPos = Vector2(
+              cellOrigin.x +
+                  buffer +
+                  random.nextDouble() * (maxOffset - buffer),
+              cellOrigin.y +
+                  buffer +
+                  random.nextDouble() * (maxOffset - buffer),
+            );
+            final lilyCenter = Vector2(lilyPos.x + radius, lilyPos.y + radius);
+            final tooClose = lilyPositions.any(
+              (p) => p.distanceTo(lilyCenter) < _minLilySpacing,
+            );
+            if (!tooClose) {
+              lilyPositions.add(lilyCenter.clone());
+              add(WaterLilyComponent(position: lilyPos, radius: radius));
+            }
           }
         }
       }
