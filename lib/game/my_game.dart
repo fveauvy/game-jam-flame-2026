@@ -152,7 +152,7 @@ class MyGame extends FlameGame<WorldRoot>
 
     _menu = MenuComponent(
       onStart: () {
-        // Hide the menu when start is clicked
+        //TODO: This doesn't work
         remove(_menu);
       },
       onReroll: () async {

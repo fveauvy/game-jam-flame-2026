@@ -65,6 +65,7 @@ class MenuComponent extends PositionComponent
           SeedPanelComponent(
             size: Vector2(menuSize.x * 0.8, menuSize.y * 0.4),
             onReroll: onReroll,
+            onStart: onStart,
           ),
         ],
       ),

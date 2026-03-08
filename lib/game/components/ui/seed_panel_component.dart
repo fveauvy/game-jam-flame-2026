@@ -4,12 +4,15 @@ import 'package:flame/input.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/game/my_game.dart';
 
-class SeedPanelComponent extends SpriteComponent with HasGameReference<MyGame> {
+class SeedPanelComponent extends SpriteButtonComponent
+    with HasGameReference<MyGame> {
   final Future<void> Function() onReroll;
+  final VoidCallback onStart;
 
   SeedPanelComponent({
     Anchor anchor = Anchor.topLeft,
     required this.onReroll,
+    required this.onStart,
     required Vector2 size,
   }) : super(anchor: anchor, size: size);
 
@@ -17,7 +20,12 @@ class SeedPanelComponent extends SpriteComponent with HasGameReference<MyGame> {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    sprite = Sprite(game.images.fromCache('plank.png'));
+    button = Sprite(game.images.fromCache('plank.png'));
+    onPressed = () {
+      onStart();
+      // Hide the menu when start is clicked
+      remove(this);
+    };
 
     add(
       RowComponent(
