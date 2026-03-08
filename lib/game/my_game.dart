@@ -19,7 +19,6 @@ import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
-import 'package:game_jam/game/components/ui/menu_component.dart';
 import 'package:game_jam/game/input/gamepad_input.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/keyboard_input.dart';
@@ -29,7 +28,7 @@ import 'package:game_jam/game/systems/spawn_system.dart';
 import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
-enum GamePhase { menu, playing, paused, gameOver }
+enum GamePhase { menu, playing, paused, gameOver, loading }
 
 class MyGame extends FlameGame<WorldRoot>
     with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
@@ -58,7 +57,7 @@ class MyGame extends FlameGame<WorldRoot>
   late final TouchController touchController;
   late final GamepadInput gamepadInput;
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
-    GamePhase.menu,
+    GamePhase.loading,
   );
   final ValueNotifier<CharacterDebugState?> characterDebugState =
       ValueNotifier<CharacterDebugState?>(null);
@@ -75,7 +74,6 @@ class MyGame extends FlameGame<WorldRoot>
 
   late final PlayerComponent _player;
   late final GameCameraController _cameraController;
-  late final MenuComponent _menuComponent;
   int _profileRequestId = 0;
   String _characterSeedCode;
 
@@ -132,8 +130,6 @@ class MyGame extends FlameGame<WorldRoot>
     world.bindPlayer(_player);
 
     await camera.viewport.add(HudComponent());
-    _menuComponent = MenuComponent();
-    await camera.viewport.add(_menuComponent);
 
     keyboardInput = KeyboardInput(inputState);
     touchController = TouchController(inputState);
@@ -153,6 +149,8 @@ class MyGame extends FlameGame<WorldRoot>
     overlays
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.pause);
+
+    phase.value = GamePhase.menu;
   }
 
   @override
@@ -253,7 +251,6 @@ class MyGame extends FlameGame<WorldRoot>
     phase.value = GamePhase.playing;
     resumeEngine();
 
-    _menuComponent.removeFromParent();
     overlays
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.pause)

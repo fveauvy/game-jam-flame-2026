@@ -66,13 +66,24 @@ class _GameJamAppState extends State<GameJamApp> {
                   ValueListenableBuilder<CharacterDebugState?>(
                     valueListenable: _game.characterDebugState,
                     builder: (_, CharacterDebugState? debugState, _) {
+                      String seed = debugState?.seedCode ?? '-';
+                      final inputController = TextEditingController(text: seed);
+                      void onInputChange(String value) {
+                        if (value.length == 5) {
+                          debugPrint('Seed submitted: ${inputController.text}');
+                          seed = inputController.text;
+                        }
+                      }
+
                       return MenuScreen(
-                        onStart: _game.startGame,
                         onReroll: () async {
                           await _game.rerollCharacter();
                         },
-                        debugState: debugState,
                         viewPortSize: _game.camera.viewport.size,
+                        inputController: inputController,
+                        onInputChange: onInputChange,
+                        onStart: _game.startGame,
+                        debugState: debugState,
                       );
                     },
                   ),
