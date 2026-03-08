@@ -1,5 +1,5 @@
 import 'package:flame/components.dart';
-import 'package:game_jam/core/entities/player_type.dart';
+import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 
 extension PlayerAnimationExtension on PlayerComponent {
@@ -14,7 +14,7 @@ extension PlayerAnimationExtension on PlayerComponent {
   static const String _swim1Name = 'Nage1eau.png';
   static const String _swim2Name = 'Nage2eau.png';
 
-  SpriteAnimation moveAnimation(PlayerType type) {
+  SpriteAnimation moveAnimation(PlayerVerticalPosition type) {
     if (!supportedSpritesId.contains(profile.spriteId)) {
       return SpriteAnimation.spriteList(
         [Sprite(game.images.fromCache("gronouy/${profile.spriteId}.png"))],
@@ -23,7 +23,7 @@ extension PlayerAnimationExtension on PlayerComponent {
       );
     }
     switch (type) {
-      case PlayerType.land:
+      case PlayerVerticalPosition.land:
         return SpriteAnimation.spriteList(
           [
             Sprite(
@@ -36,8 +36,8 @@ extension PlayerAnimationExtension on PlayerComponent {
           stepTime: 0.3,
           loop: true,
         );
-      case PlayerType.middle:
-      case PlayerType.water:
+      case PlayerVerticalPosition.waterLevel:
+      case PlayerVerticalPosition.underwater:
         return SpriteAnimation.spriteList(
           [
             Sprite(
@@ -53,7 +53,7 @@ extension PlayerAnimationExtension on PlayerComponent {
     }
   }
 
-  SpriteAnimation idleAnimation(PlayerType type) {
+  SpriteAnimation idleAnimation(PlayerVerticalPosition type) {
     if (!supportedSpritesId.contains(profile.spriteId)) {
       return SpriteAnimation.spriteList(
         [Sprite(game.images.fromCache("gronouy/${profile.spriteId}.png"))],
@@ -62,7 +62,7 @@ extension PlayerAnimationExtension on PlayerComponent {
       );
     }
     switch (type) {
-      case PlayerType.land:
+      case PlayerVerticalPosition.land:
         return SpriteAnimation.spriteList(
           [
             Sprite(
@@ -74,8 +74,8 @@ extension PlayerAnimationExtension on PlayerComponent {
           stepTime: 1,
           loop: true,
         );
-      case PlayerType.middle:
-      case PlayerType.water:
+      case PlayerVerticalPosition.waterLevel:
+      case PlayerVerticalPosition.underwater:
         return SpriteAnimation.spriteList(
           [
             Sprite(
