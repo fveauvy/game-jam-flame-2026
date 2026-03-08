@@ -230,13 +230,31 @@ jobs:
             --build-number "${{ needs.prepare.outputs.build_number }}"
 
       - name: Package macOS artifact
+        shell: bash
         run: |
-          if [[ ! -d build/macos/Build/Products/Release/Runner.app ]]; then
-            echo "Missing macOS app bundle at build/macos/Build/Products/Release/Runner.app"
+          set -euo pipefail
+          shopt -s nullglob
+
+          apps=(build/macos/Build/Products/Release/*.app)
+          app_count="${#apps[@]}"
+
+          if [[ "$app_count" -eq 0 ]]; then
+            echo "No .app found in build/macos/Build/Products/Release"
+            ls -la build/macos/Build/Products/Release || true
             exit 1
           fi
+
+          if [[ "$app_count" -gt 1 ]]; then
+            echo "Multiple .app bundles found, aborting:"
+            printf ' - %s\n' "${apps[@]}"
+            exit 1
+          fi
+
+          app_path="${apps[0]}"
+          echo "Packaging: $app_path"
+
           ditto -c -k --sequesterRsrc --keepParent \
-            build/macos/Build/Products/Release/Runner.app \
+            "$app_path" \
             game-jam-macos-runner.app.zip
 
       - name: Upload macOS artifact
