@@ -10,12 +10,12 @@ class TouchController extends Controller {
     setMoveAxis(x, y);
   }
 
-  /// Handle up layer button press.
+  /// Handle jump button press.
   void onUpLayerPressed() {
     moveUpLayer();
   }
 
-  /// Handle down layer button press.
+  /// Handle dive button press.
   void onDownLayerPressed() {
     moveDownLayer();
   }
