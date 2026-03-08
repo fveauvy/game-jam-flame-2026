@@ -69,7 +69,7 @@ class SeedPanelComponent extends SpriteButtonComponent
   @override
   void onTapUp(TapUpEvent event) {
     super.onTapUp(event);
-    button = Sprite(game.images.fromCache('plank.png'));
+    button = Sprite(game.images.fromCache('plank_light.png'));
     scale = Vector2.all(1.05);
   }
 
@@ -77,6 +77,7 @@ class SeedPanelComponent extends SpriteButtonComponent
   void onHoverEnter() {
     super.onHoverEnter();
     scale = Vector2.all(1.05);
+    button = Sprite(game.images.fromCache('plank_light.png'));
   }
 
   @override

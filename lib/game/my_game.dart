@@ -110,6 +110,7 @@ class MyGame extends FlameGame<WorldRoot>
     await images.load('water_lily.png');
     await images.load('water_lily.png');
     await images.load('plank_dark.png');
+    await images.load('plank_light.png');
     await images.load('plank.png');
     await images.load('plank.png');
     await images.load('eggs.png');

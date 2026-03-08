@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/experimental.dart';
@@ -20,6 +22,11 @@ class MenuComponent extends PositionComponent
     final menuWidth = game.camera.viewport.size.x * 0.3;
     final menuHeight = game.camera.viewport.size.y * 0.3;
     final menuSize = Vector2(menuWidth, menuHeight);
+
+    // Cap plank size to a maximum of 359x98 while still
+    // being proportional to the menu size.
+    final plankWidth = math.min(menuSize.x * 0.8, 359.0);
+    final plankHeight = math.min(menuSize.y * 0.4, 98.0);
 
     // Listen to character debug state changes to update the menu
     // 1. Add a semi-transparent background
@@ -62,7 +69,7 @@ class MenuComponent extends PositionComponent
           ),
 
           SeedPanelComponent(
-            size: Vector2(menuSize.x * 0.8, menuSize.y * 0.4),
+            size: Vector2(plankWidth, plankHeight),
             onReroll: onReroll,
             onStart: onStart,
             position: Vector2(menuSize.x / 2, menuSize.y / 1.5),
