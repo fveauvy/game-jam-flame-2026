@@ -25,8 +25,8 @@ class MenuComponent extends PositionComponent
 
     // Cap plank size to a maximum of 359x98 while still
     // being proportional to the menu size.
-    final plankWidth = math.min(menuSize.x * 0.8, 359.0);
-    final plankHeight = math.min(menuSize.y * 0.4, 98.0);
+    final plankWidth = math.min(menuSize.x * 0.8, 160.0);
+    final plankHeight = math.min(menuSize.y * 0.4, 55.0);
 
     // Listen to character debug state changes to update the menu
     // 1. Add a semi-transparent background
