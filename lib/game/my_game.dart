@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
@@ -16,10 +17,12 @@ import 'package:game_jam/game/character/infra/seed_code.dart';
 import 'package:game_jam/game/character/model/character_debug_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
+import 'package:game_jam/game/components/allies/tadpole.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/player/water_ripple_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
+import 'package:game_jam/game/game_state.dart';
 import 'package:game_jam/game/input/gamepad_input.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/keyboard_input.dart';
@@ -75,6 +78,7 @@ class MyGame extends FlameGame<WorldRoot>
   late final WaterRippleComponent _waterRipple;
   bool _isPlayerReady = false;
   late final GameCameraController _cameraController;
+  late final GameState gameState;
 
   int _profileRequestId = 0;
   String _characterSeedCode;
@@ -91,10 +95,13 @@ class MyGame extends FlameGame<WorldRoot>
   Future<void> onLoad() async {
     await super.onLoad();
 
+    await FlameAudio.audioCache.loadAll(['sound_effects/whawhawhawhoua.wav']);
+
     await images.load('plank.png');
     await images.load('water_lily.png');
     await images.load('water_lily_1.png');
     await images.load('fly.png');
+    await images.load('eggs.png');
 
     final CharacterDebugState initialState = await _buildDebugState(
       seedCode: _characterSeedCode,
@@ -126,6 +133,17 @@ class MyGame extends FlameGame<WorldRoot>
       ),
     );
 
+    final eggs = List.generate(
+      20,
+      (index) => Egg(
+        position: Vector2(
+          game.random.nextDouble() * GameConfig.worldSize.x,
+          game.random.nextDouble() * GameConfig.worldSize.y,
+        ),
+        size: Vector2.all(32),
+      ),
+    );
+
     await world.addAll([
       _level,
       _waterRipple,
@@ -133,6 +151,7 @@ class MyGame extends FlameGame<WorldRoot>
       SpawnSystem(),
       CollisionSystem(),
       ...flies,
+      ...eggs,
     ]);
     world.bindPlayer(_player);
     await camera.viewport.add(HudComponent());
@@ -149,6 +168,8 @@ class MyGame extends FlameGame<WorldRoot>
       viewportSize: Vector2(GameConfig.baseWidth, GameConfig.baseHeight),
     );
     _cameraController.attach();
+
+    gameState = GameState();
   }
 
   Future<CharacterProfile> generateCharacterProfile({
