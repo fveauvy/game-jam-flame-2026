@@ -4,6 +4,8 @@ abstract final class AssetPaths {
   // World and menu sprites.
   static const String splashScreen = 'assets/images/splash_screen.png';
   static const String plank = 'assets/images/plank.png';
+  static const String plankLight = 'assets/images/plank_light.png';
+  static const String plankDark = 'assets/images/plank_dark.png';
   static const String waterLily = 'assets/images/water_lily.png';
   static const String waterLilyAlt = 'assets/images/water_lily_1.png';
   static const String fly = 'assets/images/fly.png';
@@ -12,6 +14,7 @@ abstract final class AssetPaths {
   // HUD and overlay art.
   static const String uiTooltip = 'assets/images/ui/tooltip.png';
   static const String uiHeartLogo = 'assets/images/ui/health_logo.png';
+  static const String uiRefreshLogo = 'assets/images/ui/refresh_logo.png';
   static const String uiIntelligenceLogo =
       'assets/images/ui/intelligence_logo.png';
   static const String uiSpeedLogo = 'assets/images/ui/speed_logo.png';
@@ -23,6 +26,8 @@ abstract final class AssetPaths {
   // Flame image cache keys.
   static const String splashScreenCacheKey = 'splash_screen.png';
   static const String plankCacheKey = 'plank.png';
+  static const String plankLightCacheKey = 'plank_light.png';
+  static const String plankDarkCacheKey = 'plank_dark.png';
   static const String waterLilyCacheKey = 'water_lily.png';
   static const String waterLilyAltCacheKey = 'water_lily_1.png';
   static const String flyCacheKey = 'fly.png';
@@ -59,6 +64,8 @@ abstract final class AssetPaths {
 
   static List<String> get preloadImageCacheKeys => <String>[
     plankCacheKey,
+    plankLightCacheKey,
+    plankDarkCacheKey,
     waterLilyCacheKey,
     waterLilyAltCacheKey,
     flyCacheKey,
@@ -78,6 +85,7 @@ abstract final class AssetPaths {
     splashScreen,
     uiTooltip,
     uiHeartLogo,
+    uiRefreshLogo,
     uiIntelligenceLogo,
     uiSpeedLogo,
     characterPools,
