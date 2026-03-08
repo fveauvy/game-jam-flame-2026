@@ -34,6 +34,10 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     text: 'Health: -',
     textRenderer: TextPaint(style: healthTextStyle),
   );
+  late final TextComponent _eggsText = TextComponent(
+    text: 'Eggs: -',
+    textRenderer: TextPaint(style: healthTextStyle),
+  );
   late final TextComponent _fpsText = TextComponent(
     text: 'FPS: -',
     anchor: Anchor.topRight,
@@ -46,7 +50,7 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await addAll([_nameText, _healthText, _fpsText]);
+    await addAll([_nameText, _healthText, _eggsText, _fpsText]);
     game.characterState.addListener(_syncCharacterText);
     _syncCharacterText();
   }
@@ -61,6 +65,7 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     _fpsFrames += 1;
     if (_fpsElapsed < 0.25) {
       _syncHealthText();
+      _syncEggsText();
       _layoutText();
       return;
     }
@@ -104,8 +109,17 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     _healthText.text = 'Health: $remainingHealth/$maxHealth';
   }
 
+  void _syncEggsText() {
+    final int savedEggs = game.gameState.savedEggs;
+    _eggsText.text = 'Eggs: $savedEggs';
+  }
+
   void _layoutText() {
     _healthText.position = Vector2(0, _nameText.size.y + 4);
+    _eggsText.position = Vector2(
+      0,
+      _healthText.position.y + _healthText.size.y + 4,
+    );
     _fpsText.position = Vector2(game.size.x - 16, 16);
   }
 
