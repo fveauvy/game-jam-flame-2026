@@ -51,7 +51,7 @@ class WaterRippleComponent extends PositionComponent {
   void _spawnRippleSet() {
     final faceX = sin(player.angle);
     final faceY = -cos(player.angle);
-    final backOffset = player.radius * 0.6;
+    final backOffset = player.size.x * 0.6;
 
     // Position mondiale directe (pas besoin de conversion locale)
     final spawnPos = Vector2(
@@ -61,7 +61,7 @@ class WaterRippleComponent extends PositionComponent {
 
     for (int i = 0; i < _ringsPerSet; i++) {
       _ripples.add(
-        _Ripple(radius: player.radius * 0.5, alpha: 0.85, position: spawnPos),
+        _Ripple(radius: player.size.x * 0.5, alpha: 0.85, position: spawnPos),
       );
     }
   }

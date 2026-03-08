@@ -1,6 +1,6 @@
 abstract final class PhysicsTuning {
   // Base player body and movement.
-  static const double playerBaseRadius = 48;
+  static const double playerBaseSize = 96;
   static const double playerMoveSpeed = 340;
   static const double playerRotationSpeed = 30;
 
