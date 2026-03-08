@@ -67,9 +67,10 @@ class MyGame extends FlameGame<WorldRoot>
 
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
-  final Random _random;
+  late final Random _random;
+  late Random _randomSeeded;
 
-  Random get random => _random;
+  Random get random => _randomSeeded;
 
   late final PlayerComponent _player;
   late final WaterRippleComponent _waterRipple;
@@ -94,6 +95,7 @@ class MyGame extends FlameGame<WorldRoot>
     for (int i = 1; i <= 30; i++) {
       await images.load('gronouy/frog-$i.png');
     }
+    _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
     await images.load('plank.png');
     await images.load('water_lily.png');
     await images.load('water_lily_1.png');
@@ -177,6 +179,7 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     _characterSeedCode = normalizedCode;
+    _randomSeeded = Random(SeedCode.decode(normalizedCode));
     characterGenerationState.value = nextState;
     characterState.value = nextState.profile;
     if (isLoaded) {
