@@ -1,26 +1,23 @@
-import 'package:game_jam/core/entities/player_type.dart';
+import 'package:game_jam/core/entities/player_vertical_position.dart';
 
 class InputState {
   double moveAxisX = 0;
   double moveAxisY = 0;
-  PlayerType playerType = PlayerType
-      .middle; // position of player in the world, determines what they can interact with
+  PlayerVerticalPosition playerVerticalPosition =
+      PlayerVerticalPosition.waterLevel;
 
   bool jumpPressed = false;
+  bool divePressed = false;
   bool attackPressed = false;
   bool pausePressed = false;
   bool confirmPressed = false;
 
-  void goAbove() {
-    playerType = playerType.above;
-  }
-
-  void goBellow() {
-    playerType = playerType.bellow;
-  }
-
   void queueJump() {
     jumpPressed = true;
+  }
+
+  void queueDive() {
+    divePressed = true;
   }
 
   void queueAttack() {
@@ -41,6 +38,7 @@ class InputState {
 
   void clearTransient() {
     jumpPressed = false;
+    divePressed = false;
     attackPressed = false;
     pausePressed = false;
     confirmPressed = false;

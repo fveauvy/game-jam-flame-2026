@@ -13,14 +13,14 @@ abstract class Controller {
     state.moveAxisY = y;
   }
 
-  /// Protected helper to move up a layer.
+  /// Protected helper to request a jump.
   void moveUpLayer() {
-    state.goAbove();
+    state.queueJump();
   }
 
-  /// Protected helper to move down a layer.
+  /// Protected helper to request a dive.
   void moveDownLayer() {
-    state.goBellow();
+    state.queueDive();
   }
 
   void pause() {

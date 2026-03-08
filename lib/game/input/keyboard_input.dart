@@ -25,6 +25,8 @@ class KeyboardInput extends Controller {
     } else if (key == LogicalKeyboardKey.shiftLeft ||
         key == LogicalKeyboardKey.shiftRight) {
       moveDownLayer();
+    } else if (key == LogicalKeyboardKey.keyX) {
+      moveDownLayer();
     } else if (key == LogicalKeyboardKey.escape) {
       pause();
     } else if (key == LogicalKeyboardKey.enter) {
