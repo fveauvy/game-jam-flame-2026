@@ -6,22 +6,22 @@ import 'package:game_jam/game/character/model/character_debug_state.dart';
 class MenuScreen extends StatelessWidget {
   const MenuScreen({
     super.key,
-    required this.onStart,
-    required this.onReroll,
-    required this.debugState,
+    required this.inputController,
+    required this.onInputChange,
     required this.viewPortSize,
+    required this.debugState,
+    required this.onReroll,
+    required this.onStart,
   });
 
-  final VoidCallback onStart;
-  final VoidCallback onReroll;
+  final TextEditingController inputController;
+  final void Function(String)? onInputChange;
   final CharacterDebugState? debugState;
+  final VoidCallback onReroll;
+  final VoidCallback onStart;
   final Vector2 viewPortSize;
 
-  @override
   Widget build(BuildContext context) {
-    String seed = debugState?.seedCode ?? '-';
-    final controller = TextEditingController(text: seed);
-
     final menuWidth = viewPortSize.x * 0.4;
     final menuHeight = viewPortSize.y * 0.4;
 
@@ -30,8 +30,9 @@ class MenuScreen extends StatelessWidget {
         width: menuWidth,
         height: menuHeight,
         child: ColoredBox(
-          color: Color.fromARGB(150, 255, 255, 255),
-          child: Column(
+          color: const Color.fromARGB(150, 255, 255, 255),
+          child: Flex(
+            direction: Axis.vertical,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Text(
@@ -53,7 +54,7 @@ class MenuScreen extends StatelessWidget {
                     decoration: const BoxDecoration(
                       image: DecorationImage(
                         image: AssetImage('assets/images/plank.png'),
-                        fit: BoxFit.fitWidth,
+                        fit: BoxFit.scaleDown,
                       ),
                     ),
                     child: TextField(
@@ -72,14 +73,8 @@ class MenuScreen extends StatelessWidget {
                             required bool isFocused,
                             maxLength,
                           }) => null,
-                      controller: controller,
-                      onChanged: (value) => {
-                        if (value.length == 5)
-                          {
-                            debugPrint('Seed submitted: ${controller.text}'),
-                            seed = controller.text,
-                          },
-                      },
+                      controller: inputController,
+                      onChanged: onInputChange,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
@@ -103,7 +98,7 @@ class MenuScreen extends StatelessWidget {
                     splashColor: Colors.transparent, // Keeps it clean looking
                     highlightColor: Colors.transparent,
                     onPressed: () {
-                      controller.clear(); // Clears the text field visually
+                      inputController.clear(); // Clears the text field visually
                       debugPrint('Seed reset');
                       onReroll();
                       // If you need to trigger a game event, do it here!

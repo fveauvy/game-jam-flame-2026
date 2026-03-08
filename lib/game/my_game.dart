@@ -19,6 +19,7 @@ import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
+import 'package:game_jam/game/components/ui/menu_component.dart';
 import 'package:game_jam/game/input/gamepad_input.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/keyboard_input.dart';
@@ -28,7 +29,7 @@ import 'package:game_jam/game/systems/spawn_system.dart';
 import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
-enum GamePhase { menu, playing, paused, gameOver, loading }
+enum GamePhase { menu, playing, paused, gameOver }
 
 class MyGame extends FlameGame<WorldRoot>
     with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
@@ -57,10 +58,14 @@ class MyGame extends FlameGame<WorldRoot>
   late final TouchController touchController;
   late final GamepadInput gamepadInput;
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
-    GamePhase.loading,
+    GamePhase.menu,
   );
   final ValueNotifier<CharacterDebugState?> characterDebugState =
       ValueNotifier<CharacterDebugState?>(null);
+  final ValueNotifier<Vector2> viewportSize = ValueNotifier<Vector2>(
+    Vector2.zero(),
+  );
+  final ValueNotifier<bool> menuVisible = ValueNotifier<bool>(false);
 
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
@@ -70,6 +75,7 @@ class MyGame extends FlameGame<WorldRoot>
 
   late final PlayerComponent _player;
   late final GameCameraController _cameraController;
+  late final MenuComponent _menuComponent;
   int _profileRequestId = 0;
   String _characterSeedCode;
 
@@ -82,8 +88,6 @@ class MyGame extends FlameGame<WorldRoot>
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    phase.value = GamePhase.menu;
 
     await images.load('plank.png');
     await images.load('water_lily.png');
@@ -126,7 +130,11 @@ class MyGame extends FlameGame<WorldRoot>
     ]);
 
     world.bindPlayer(_player);
+
     await camera.viewport.add(HudComponent());
+    _menuComponent = MenuComponent();
+    await camera.viewport.add(_menuComponent);
+
     keyboardInput = KeyboardInput(inputState);
     touchController = TouchController(inputState);
     gamepadInput = GamepadInput(inputState);
@@ -141,6 +149,16 @@ class MyGame extends FlameGame<WorldRoot>
       viewportSize: Vector2(GameConfig.baseWidth, GameConfig.baseHeight),
     );
     _cameraController.attach();
+
+    overlays
+      ..remove(AppOverlays.gameOver)
+      ..remove(AppOverlays.pause);
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    viewportSize.value = size;
   }
 
   Future<CharacterProfile> generateCharacterProfile({
@@ -235,6 +253,7 @@ class MyGame extends FlameGame<WorldRoot>
     phase.value = GamePhase.playing;
     resumeEngine();
 
+    _menuComponent.removeFromParent();
     overlays
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.pause)
