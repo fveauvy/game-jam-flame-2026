@@ -18,6 +18,7 @@ import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
+import 'package:game_jam/game/components/player/water_ripple_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
 import 'package:game_jam/game/input/gamepad_input.dart';
 import 'package:game_jam/game/input/input_state.dart';
@@ -71,8 +72,10 @@ class MyGame extends FlameGame<WorldRoot>
   Random get random => _random;
 
   late final PlayerComponent _player;
+  late final WaterRippleComponent _waterRipple;
   bool _isPlayerReady = false;
   late final GameCameraController _cameraController;
+
   int _profileRequestId = 0;
   String _characterSeedCode;
 
@@ -111,6 +114,8 @@ class MyGame extends FlameGame<WorldRoot>
     );
     _isPlayerReady = true;
 
+    _waterRipple = WaterRippleComponent(player: _player);
+
     final flies = List.generate(
       10,
       (index) => FlyComponent(
@@ -124,6 +129,7 @@ class MyGame extends FlameGame<WorldRoot>
 
     await world.addAll([
       _level,
+      _waterRipple,
       _player,
       SpawnSystem(),
       CollisionSystem(),
