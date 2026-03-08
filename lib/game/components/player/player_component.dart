@@ -32,7 +32,7 @@ class PlayerComponent extends SpriteAnimationComponent
        _baseSizeMultiplier = sizeMultiplier,
        super(
          position: startPosition.clone(),
-         size: Vector2.all(PhysicsTuning.playerBaseRadius),
+         size: Vector2.all(PhysicsTuning.playerBaseSize),
          anchor: Anchor.center,
          priority: 10,
        ) {
@@ -50,7 +50,6 @@ class PlayerComponent extends SpriteAnimationComponent
   final double _baseSizeMultiplier;
 
   CharacterProfile _profile;
-  late final Paint _spritePaint;
   double _spriteOpacity = 1.0;
   CircleHitbox? _hitbox;
   late double _speedMultiplier;
@@ -93,8 +92,9 @@ class PlayerComponent extends SpriteAnimationComponent
   @override
   Future<void> onMount() async {
     super.onMount();
-    _spritePaint = Paint();
-    _hitbox = CircleHitbox(radius: size.x);
+    paint = Paint()
+      ..color = Colors.white.withAlpha((_spriteOpacity * 255).toInt());
+    _hitbox = CircleHitbox(radius: size.x / 2);
     animation = idleAnimation(levelPosition);
     await add(_hitbox!);
   }
@@ -122,6 +122,7 @@ class PlayerComponent extends SpriteAnimationComponent
   void applyProfile(CharacterProfile profile) {
     _profile = profile;
     _applyStatsFromProfile();
+    animation = idleAnimation(levelPosition);
   }
 
   void _applyStatsFromProfile() {
@@ -135,7 +136,7 @@ class PlayerComponent extends SpriteAnimationComponent
     );
     _maxHealth = resolveMaxHealth(_profile);
     _remainingHealth = _maxHealth;
-    size = Vector2.all(PhysicsTuning.playerBaseRadius * _sizeMultiplier);
+    size = Vector2.all(PhysicsTuning.playerBaseSize * _sizeMultiplier);
     _syncHitbox();
   }
 
@@ -144,7 +145,7 @@ class PlayerComponent extends SpriteAnimationComponent
     if (hitbox == null) {
       return;
     }
-    hitbox.radius = size.x;
+    hitbox.radius = size.x / 2;
   }
 
   static int resolveMaxHealth(CharacterProfile profile) {
@@ -299,21 +300,21 @@ class PlayerComponent extends SpriteAnimationComponent
       case PlayerVerticalPosition.land:
         _spriteOpacity = PhysicsTuning.landOpacity;
         size = Vector2.all(
-          PhysicsTuning.playerBaseRadius * _sizeMultiplier * 1.1,
+          PhysicsTuning.playerBaseSize * _sizeMultiplier * 1.1,
         );
         break;
       case PlayerVerticalPosition.waterLevel:
         _spriteOpacity = PhysicsTuning.waterOpacity;
-        size = Vector2.all(PhysicsTuning.playerBaseRadius * _sizeMultiplier);
+        size = Vector2.all(PhysicsTuning.playerBaseSize * _sizeMultiplier);
         break;
       case PlayerVerticalPosition.underwater:
         _spriteOpacity = PhysicsTuning.underwaterOpacity;
         size = Vector2.all(
-          PhysicsTuning.playerBaseRadius * _sizeMultiplier * 0.9,
+          PhysicsTuning.playerBaseSize * _sizeMultiplier * 0.9,
         );
         break;
     }
-    _spritePaint.color = Colors.white.withValues(alpha: _spriteOpacity);
+    paint.color = Colors.white.withValues(alpha: _spriteOpacity);
     _syncHitbox();
   }
 

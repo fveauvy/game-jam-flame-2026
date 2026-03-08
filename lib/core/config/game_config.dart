@@ -2,7 +2,7 @@ import 'package:flame/components.dart';
 
 abstract final class GameConfig {
   static const String title = "Gronouy: Tadpole's Big Frother";
-  static const String defaultCharacterSeedCode = '4SFE6';
+  static const String defaultCharacterSeedCode = '6DCE9';
   static const double baseWidth = 960;
   static const double baseHeight = 540;
   static const double maxDeltaTime = 1 / 30;
