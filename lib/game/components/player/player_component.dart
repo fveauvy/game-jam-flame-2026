@@ -6,6 +6,8 @@ import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/constants/asset_paths.dart';
+import 'package:game_jam/core/constants/physics.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/components/allies/tadpole.dart';
@@ -30,7 +32,7 @@ class PlayerComponent extends CircleComponent
        _baseSizeMultiplier = sizeMultiplier,
        super(
          position: startPosition.clone(),
-         radius: 48,
+         radius: PhysicsTuning.playerBaseRadius,
          anchor: Anchor.center,
          priority: 10,
          paint: Paint()..color = Colors.transparent,
@@ -58,13 +60,8 @@ class PlayerComponent extends CircleComponent
   late int _maxHealth;
   late int _remainingHealth;
 
-  static const double _moveSpeed = 340;
-  static const double _rotationSpeed = 30;
-  static const double _jumpDuration = 0.24;
-  static const double _jumpForwardSpeed = 420;
-
   PlayerVerticalPosition get levelPosition => inputState.playerVerticalPosition;
-  double get moveSpeed => _moveSpeed;
+  double get moveSpeed => PhysicsTuning.playerMoveSpeed;
 
   CharacterProfile get profile => _profile;
   int get maxHealth => _maxHealth;
@@ -137,16 +134,16 @@ class PlayerComponent extends CircleComponent
 
   void _applyStatsFromProfile() {
     _speedMultiplier = (_profile.traits.speed ?? _baseSpeedMultiplier).clamp(
-      0.2,
-      5.0,
+      PhysicsTuning.minSpeedMultiplier,
+      PhysicsTuning.maxSpeedMultiplier,
     );
     _sizeMultiplier = (_profile.traits.size ?? _baseSizeMultiplier).clamp(
-      0.3,
-      3.0,
+      PhysicsTuning.minSizeMultiplier,
+      PhysicsTuning.maxSizeMultiplier,
     );
     _maxHealth = resolveMaxHealth(_profile);
     _remainingHealth = _maxHealth;
-    radius = 48 * _sizeMultiplier;
+    radius = PhysicsTuning.playerBaseRadius * _sizeMultiplier;
     _syncHitbox();
   }
 
@@ -160,11 +157,7 @@ class PlayerComponent extends CircleComponent
   }
 
   String _cacheKeyFromAssetPath(String path) {
-    const String prefix = 'assets/images/';
-    if (path.startsWith(prefix)) {
-      return path.substring(prefix.length);
-    }
-    return path;
+    return AssetPaths.imageCacheKeyFromAssetPath(path);
   }
 
   void _syncHitbox() {
@@ -251,11 +244,16 @@ class PlayerComponent extends CircleComponent
     }
 
     _jumpElapsed += dt;
-    final double t = (_jumpElapsed / _jumpDuration).clamp(0, 1);
-    final double forwardScale = (1 - (0.6 * t)).clamp(0.35, 1.0);
-    position += _jumpDirection * _jumpForwardSpeed * dt * forwardScale;
+    final double t = (_jumpElapsed / PhysicsTuning.jumpDurationSeconds).clamp(
+      0,
+      1,
+    );
+    final double forwardScale = (1 - (PhysicsTuning.jumpForwardScaleDecay * t))
+        .clamp(PhysicsTuning.minJumpForwardScale, 1.0);
+    position +=
+        _jumpDirection * PhysicsTuning.jumpForwardSpeed * dt * forwardScale;
 
-    if (_jumpElapsed >= _jumpDuration) {
+    if (_jumpElapsed >= PhysicsTuning.jumpDurationSeconds) {
       _jumpActive = false;
       _jumpElapsed = 0;
       inputState.playerVerticalPosition = (_isTouchingGround || _isTouchingLily)
@@ -271,13 +269,15 @@ class PlayerComponent extends CircleComponent
       return;
     }
 
-    position += velocity * _moveSpeed * _speedMultiplier * dt;
+    position +=
+        velocity * PhysicsTuning.playerMoveSpeed * _speedMultiplier * dt;
 
     final double targetAngle = velocity.screenAngle();
     if (velocity.x != 0 || velocity.y != 0) {
       final double angleDelta = _shortestAngleDelta(targetAngle, angle);
       if (angleDelta != 0) {
-        final double maxStep = _rotationSpeed * _speedMultiplier * dt;
+        final double maxStep =
+            PhysicsTuning.playerRotationSpeed * _speedMultiplier * dt;
         final double step = angleDelta.clamp(-maxStep, maxStep).toDouble();
         angle = _normalizeAngle(angle + step);
       }
@@ -306,16 +306,16 @@ class PlayerComponent extends CircleComponent
 
     switch (levelPosition) {
       case PlayerVerticalPosition.land:
-        _spriteOpacity = 1.0;
-        radius = 48 * _sizeMultiplier * 1.1;
+        _spriteOpacity = PhysicsTuning.landOpacity;
+        radius = PhysicsTuning.playerBaseRadius * _sizeMultiplier * 1.1;
         break;
       case PlayerVerticalPosition.waterLevel:
-        _spriteOpacity = 0.7;
-        radius = 48 * _sizeMultiplier;
+        _spriteOpacity = PhysicsTuning.waterOpacity;
+        radius = PhysicsTuning.playerBaseRadius * _sizeMultiplier;
         break;
       case PlayerVerticalPosition.underwater:
-        _spriteOpacity = 0.4;
-        radius = 48 * _sizeMultiplier * 0.9;
+        _spriteOpacity = PhysicsTuning.underwaterOpacity;
+        radius = PhysicsTuning.playerBaseRadius * _sizeMultiplier * 0.9;
         break;
     }
     _spritePaint.color = Colors.white.withValues(alpha: _spriteOpacity);
