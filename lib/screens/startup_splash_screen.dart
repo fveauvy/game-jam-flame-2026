@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:game_jam/core/constants/asset_paths.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 
 class StartupSplashScreen extends StatelessWidget {
   const StartupSplashScreen({super.key});

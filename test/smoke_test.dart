@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game_jam/app/game_app.dart';
-import 'package:game_jam/core/constants/ui_timing.dart';
+import 'package:game_jam/core/config/ui_config.dart';
 
 void main() {
   testWidgets('app boots', (WidgetTester tester) async {

@@ -2,7 +2,7 @@ import 'package:flame/flame.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:game_jam/core/constants/asset_paths.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 
 class StartupAssetLoader {
   Future<void> preloadAll() async {

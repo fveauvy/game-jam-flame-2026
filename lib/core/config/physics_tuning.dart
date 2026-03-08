@@ -1,18 +1,22 @@
 abstract final class PhysicsTuning {
+  // Base player body and movement.
   static const double playerBaseRadius = 48;
-
   static const double playerMoveSpeed = 340;
   static const double playerRotationSpeed = 30;
+
+  // Jump movement and timing.
   static const double jumpDurationSeconds = 0.24;
   static const double jumpForwardSpeed = 420;
+  static const double jumpForwardScaleDecay = 0.6;
+  static const double minJumpForwardScale = 0.35;
 
+  // Trait multiplier clamps.
   static const double minSpeedMultiplier = 0.2;
   static const double maxSpeedMultiplier = 5.0;
   static const double minSizeMultiplier = 0.3;
   static const double maxSizeMultiplier = 3.0;
 
-  static const double jumpForwardScaleDecay = 0.6;
-  static const double minJumpForwardScale = 0.35;
+  // Sprite opacity by vertical layer.
   static const double landOpacity = 1.0;
   static const double waterOpacity = 0.7;
   static const double underwaterOpacity = 0.4;

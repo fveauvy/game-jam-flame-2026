@@ -1,6 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
-import 'package:game_jam/core/constants/gameplay_tuning.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/my_game.dart';
 
