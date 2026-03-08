@@ -48,7 +48,17 @@ class _GameJamAppState extends State<GameJamApp> {
                   game: _game,
                   overlayBuilderMap: {
                     AppOverlays.pause: (_, MyGame game) {
-                      return PauseOverlay(onResume: game.togglePause);
+                      return ValueListenableBuilder<CharacterDebugState?>(
+                        valueListenable: game.characterDebugState,
+                        builder: (_, CharacterDebugState? debugState, _) {
+                          return PauseOverlay(
+                            onResume: game.togglePause,
+                            debugState: debugState,
+                            currentHealth: game.playerRemainingHealth,
+                            maxHealth: game.playerMaxHealth,
+                          );
+                        },
+                      );
                     },
                     AppOverlays.gameOver: (_, MyGame game) {
                       return GameOverOverlay(onRestart: game.startGame);
