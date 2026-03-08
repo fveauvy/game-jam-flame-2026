@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/constants/asset_paths.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 
 class PauseOverlay extends StatelessWidget {
@@ -46,7 +46,7 @@ class PauseOverlay extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Image.asset(
-                    GameConfig.uiTooltipAssetPath,
+                    AssetPaths.uiTooltip,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return const ColoredBox(color: Color(0xFFD9B89C));
@@ -83,7 +83,7 @@ class PauseOverlay extends StatelessWidget {
                         const SizedBox(height: 8),
                         _IconStatRow(
                           icon: Image.asset(
-                            GameConfig.uiIntelligenceLogoAssetPath,
+                            AssetPaths.uiIntelligenceLogo,
                             width: 34,
                             height: 34,
                             fit: BoxFit.contain,
@@ -99,7 +99,7 @@ class PauseOverlay extends StatelessWidget {
                         const SizedBox(height: 8),
                         _IconStatRow(
                           icon: Image.asset(
-                            GameConfig.uiHeartLogoAssetPath,
+                            AssetPaths.uiHeartLogo,
                             width: 34,
                             height: 34,
                             fit: BoxFit.contain,
@@ -123,7 +123,7 @@ class PauseOverlay extends StatelessWidget {
                         const SizedBox(height: 8),
                         _IconStatRow(
                           icon: Image.asset(
-                            GameConfig.uiSpeedLogoAssetPath,
+                            AssetPaths.uiSpeedLogo,
                             width: 34,
                             height: 34,
                             fit: BoxFit.contain,

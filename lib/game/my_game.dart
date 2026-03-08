@@ -3,11 +3,11 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/constants/gameplay_tuning.dart';
 import 'package:game_jam/core/utils/time_utils.dart';
 import 'package:game_jam/game/camera/camera_controller.dart';
 import 'package:game_jam/game/character/generator/character_generator.dart';
@@ -96,32 +96,7 @@ class MyGame extends FlameGame<WorldRoot>
   Future<void> onLoad() async {
     await super.onLoad();
 
-    await FlameAudio.audioCache.loadAll(['sound_effects/whawhawhawhoua.wav']);
-
-    final List<int> animatedIds = [14];
-    for (int i in animatedIds) {
-      await images.loadAll([
-        'gronouy/frog-$i/Saut_1.png',
-        'gronouy/frog-$i/Saut_2.png',
-        'gronouy/frog-$i/ChillTerre.png',
-        'gronouy/frog-$i/ChillEau.png',
-        'gronouy/frog-$i/Nage1eau.png',
-        'gronouy/frog-$i/Nage2eau.png',
-      ]);
-    }
-
-    for (int i = 1; i <= 30; i++) {
-      if (!animatedIds.contains(i)) {
-        await images.load('gronouy/frog-$i.png');
-      }
-    }
     _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
-    await images.load('plank.png');
-    await images.load('water_lily.png');
-    await images.load('water_lily_1.png');
-    await images.load('fly.png');
-    await images.load('eggs.png');
-    await images.load('Saut.png');
 
     final CharacterGenerationState initialState =
         await _buildCharacterGenerationState(seedCode: _characterSeedCode);
@@ -141,24 +116,24 @@ class MyGame extends FlameGame<WorldRoot>
     _waterRipple = WaterRippleComponent(player: _player);
 
     final flies = List.generate(
-      10,
+      GameplayTuning.initialFlyCount,
       (index) => FlyComponent(
         position: Vector2(
           game.random.nextDouble() * GameConfig.worldSize.x,
           game.random.nextDouble() * GameConfig.worldSize.y,
         ),
-        size: Vector2.all(32),
+        size: Vector2.all(GameplayTuning.worldPickupSize),
       ),
     );
 
     final eggs = List.generate(
-      20,
+      GameplayTuning.initialEggCount,
       (index) => Egg(
         position: Vector2(
           game.random.nextDouble() * GameConfig.worldSize.x,
           game.random.nextDouble() * GameConfig.worldSize.y,
         ),
-        size: Vector2.all(32),
+        size: Vector2.all(GameplayTuning.worldPickupSize),
       ),
     );
 
@@ -230,7 +205,7 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     String nextCode = _characterSeedCode;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < GameplayTuning.characterRerollAttempts; i++) {
       final String candidate = SeedCode.randomCode(_random);
       if (candidate != _characterSeedCode) {
         nextCode = candidate;

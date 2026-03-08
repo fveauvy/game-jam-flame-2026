@@ -6,7 +6,8 @@ import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
-import 'package:game_jam/core/entities/player_type.dart';
+import 'package:game_jam/core/constants/physics.dart';
+import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/components/allies/tadpole.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
@@ -31,12 +32,12 @@ class PlayerComponent extends SpriteAnimationComponent
        _baseSizeMultiplier = sizeMultiplier,
        super(
          position: startPosition.clone(),
-         size: Vector2.all(48),
+         size: Vector2.all(PhysicsTuning.playerBaseRadius),
          anchor: Anchor.center,
          priority: 10,
        ) {
     _applyStatsFromProfile();
-    previousPosition = inputState.playerType;
+    previousPosition = inputState.playerVerticalPosition;
   }
 
   static const Duration _damageTextDuration = Duration(seconds: 1);
@@ -57,12 +58,9 @@ class PlayerComponent extends SpriteAnimationComponent
   late int _maxHealth;
   late int _remainingHealth;
 
-  static const double _moveSpeed = 340;
-  static const double _rotationSpeed = 30;
-
-  PlayerType get levelPosition => inputState.playerType;
-  late PlayerType previousPosition;
-  double get moveSpeed => _moveSpeed;
+  PlayerVerticalPosition get levelPosition => inputState.playerVerticalPosition;
+  late PlayerVerticalPosition previousPosition;
+  double get moveSpeed => PhysicsTuning.playerMoveSpeed;
 
   CharacterProfile get profile => _profile;
   int get maxHealth => _maxHealth;
@@ -70,6 +68,15 @@ class PlayerComponent extends SpriteAnimationComponent
 
   bool _isDamageTextVisible = false;
   bool isInWater = false;
+  int _waterContacts = 0;
+  int _groundContacts = 0;
+  int _lilyContacts = 0;
+  bool _jumpActive = false;
+  double _jumpElapsed = 0;
+  Vector2 _jumpDirection = Vector2.zero();
+
+  bool get _isTouchingGround => _groundContacts > 0;
+  bool get _isTouchingLily => _lilyContacts > 0;
 
   bool get _isMoving => velocity.length2 > 0;
   bool _wasMoving = false;
@@ -88,20 +95,7 @@ class PlayerComponent extends SpriteAnimationComponent
     super.onMount();
     _spritePaint = Paint();
     _hitbox = CircleHitbox(radius: size.x);
-    await add(_hitbox!);
-  }
-
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-
     animation = idleAnimation(levelPosition);
-  }
-
-  Future<void> onMount() async {
-    await super.onMount();
-    _spritePaint = Paint();
-    _hitbox = CircleHitbox(radius: size.x);
     await add(_hitbox!);
   }
 
@@ -132,16 +126,16 @@ class PlayerComponent extends SpriteAnimationComponent
 
   void _applyStatsFromProfile() {
     _speedMultiplier = (_profile.traits.speed ?? _baseSpeedMultiplier).clamp(
-      0.2,
-      5.0,
+      PhysicsTuning.minSpeedMultiplier,
+      PhysicsTuning.maxSpeedMultiplier,
     );
     _sizeMultiplier = (_profile.traits.size ?? _baseSizeMultiplier).clamp(
-      0.3,
-      3.0,
+      PhysicsTuning.minSizeMultiplier,
+      PhysicsTuning.maxSizeMultiplier,
     );
     _maxHealth = resolveMaxHealth(_profile);
     _remainingHealth = _maxHealth;
-    size = Vector2.all(48 * _sizeMultiplier);
+    size = Vector2.all(PhysicsTuning.playerBaseRadius * _sizeMultiplier);
     _syncHitbox();
   }
 
@@ -173,6 +167,80 @@ class PlayerComponent extends SpriteAnimationComponent
     return intelligence >= 1.7;
   }
 
+  static PlayerVerticalPosition resolveVerticalPosition({
+    required PlayerVerticalPosition current,
+    required bool isInWater,
+    required bool jumpPressed,
+    required bool divePressed,
+    required bool canStayOnLand,
+    required bool jumpActive,
+  }) {
+    if (jumpActive) {
+      return PlayerVerticalPosition.land;
+    }
+
+    if (current == PlayerVerticalPosition.land) {
+      if (isInWater && !canStayOnLand) {
+        return PlayerVerticalPosition.waterLevel;
+      }
+      return PlayerVerticalPosition.land;
+    }
+
+    if (current == PlayerVerticalPosition.waterLevel) {
+      if (divePressed && isInWater) {
+        return PlayerVerticalPosition.underwater;
+      }
+      return PlayerVerticalPosition.waterLevel;
+    }
+
+    if (!isInWater) {
+      return PlayerVerticalPosition.waterLevel;
+    }
+
+    if (jumpPressed) {
+      return PlayerVerticalPosition.waterLevel;
+    }
+    return PlayerVerticalPosition.underwater;
+  }
+
+  void _startJump() {
+    if (_jumpActive) {
+      return;
+    }
+    _jumpActive = true;
+    _jumpElapsed = 0;
+    _jumpDirection = Vector2(sin(angle), -cos(angle));
+    if (_jumpDirection.length2 == 0) {
+      _jumpDirection = Vector2(0, -1);
+    }
+    _jumpDirection.normalize();
+    inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+  }
+
+  void _resolveJump(double dt) {
+    if (!_jumpActive) {
+      return;
+    }
+
+    _jumpElapsed += dt;
+    final double t = (_jumpElapsed / PhysicsTuning.jumpDurationSeconds).clamp(
+      0,
+      1,
+    );
+    final double forwardScale = (1 - (PhysicsTuning.jumpForwardScaleDecay * t))
+        .clamp(PhysicsTuning.minJumpForwardScale, 1.0);
+    position +=
+        _jumpDirection * PhysicsTuning.jumpForwardSpeed * dt * forwardScale;
+
+    if (_jumpElapsed >= PhysicsTuning.jumpDurationSeconds) {
+      _jumpActive = false;
+      _jumpElapsed = 0;
+      inputState.playerVerticalPosition = (_isTouchingGround || _isTouchingLily)
+          ? PlayerVerticalPosition.land
+          : PlayerVerticalPosition.waterLevel;
+    }
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -192,35 +260,57 @@ class PlayerComponent extends SpriteAnimationComponent
     _wasMoving = _isMoving;
     previousPosition = levelPosition;
 
-    position += velocity * _moveSpeed * _speedMultiplier * dt;
+    position +=
+        velocity * PhysicsTuning.playerMoveSpeed * _speedMultiplier * dt;
 
     final double targetAngle = velocity.screenAngle();
     if (velocity.x != 0 || velocity.y != 0) {
       final double angleDelta = _shortestAngleDelta(targetAngle, angle);
       if (angleDelta != 0) {
-        final double maxStep = _rotationSpeed * _speedMultiplier * dt;
+        final double maxStep =
+            PhysicsTuning.playerRotationSpeed * _speedMultiplier * dt;
         final double step = angleDelta.clamp(-maxStep, maxStep).toDouble();
         angle = _normalizeAngle(angle + step);
       }
     }
+
+    if (inputState.jumpPressed &&
+        levelPosition == PlayerVerticalPosition.waterLevel &&
+        isInWater) {
+      _startJump();
+    }
+    _resolveJump(dt);
 
     final double maxX = GameConfig.worldSize.x - size.x;
     final double maxY = GameConfig.worldSize.y - size.y;
     position.y = position.y.clamp(0, maxY);
     position.x = position.x.clamp(0, maxX);
 
+    inputState.playerVerticalPosition = resolveVerticalPosition(
+      current: levelPosition,
+      isInWater: isInWater,
+      jumpPressed: inputState.jumpPressed,
+      divePressed: inputState.divePressed,
+      canStayOnLand: _isTouchingGround || _isTouchingLily,
+      jumpActive: _jumpActive,
+    );
+
     switch (levelPosition) {
-      case PlayerType.land:
-        _spriteOpacity = 1.0;
-        size = Vector2.all(48 * _sizeMultiplier * 1.1);
+      case PlayerVerticalPosition.land:
+        _spriteOpacity = PhysicsTuning.landOpacity;
+        size = Vector2.all(
+          PhysicsTuning.playerBaseRadius * _sizeMultiplier * 1.1,
+        );
         break;
-      case PlayerType.middle:
-        _spriteOpacity = 0.7;
-        size = Vector2.all(48 * _sizeMultiplier);
+      case PlayerVerticalPosition.waterLevel:
+        _spriteOpacity = PhysicsTuning.waterOpacity;
+        size = Vector2.all(PhysicsTuning.playerBaseRadius * _sizeMultiplier);
         break;
-      case PlayerType.water:
-        _spriteOpacity = 0.4;
-        size = Vector2.all(48 * _sizeMultiplier * 0.9);
+      case PlayerVerticalPosition.underwater:
+        _spriteOpacity = PhysicsTuning.underwaterOpacity;
+        size = Vector2.all(
+          PhysicsTuning.playerBaseRadius * _sizeMultiplier * 0.9,
+        );
         break;
     }
     _spritePaint.color = Colors.white.withValues(alpha: _spriteOpacity);
@@ -271,13 +361,24 @@ class PlayerComponent extends SpriteAnimationComponent
   ) async {
     if (other is GroundComponent) {
       await onHitGround(other);
-    } else if (other is WaterComponent) {
-      isInWater = true;
-      if (isInWater) {
-        removeAll(children.whereType<SimpleTextComponent>());
+      if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
+        if (intersectionPoints.length == 2) {
+          final mid =
+              (intersectionPoints.elementAt(0) +
+                  intersectionPoints.elementAt(1)) /
+              2;
+          final collisionNormal = absoluteCenter - mid;
+          final separationDistance = (size.x / 2) - collisionNormal.length;
+          collisionNormal.normalize();
+          final double moveDot = velocity.dot(collisionNormal);
+          if (moveDot < 0 || separationDistance > 1.5) {
+            position += collisionNormal.scaled(separationDistance);
+          }
+        }
       }
     }
-    if (other is WaterLilyComponent && levelPosition == PlayerType.middle) {
+    if (other is WaterLilyComponent &&
+        levelPosition == PlayerVerticalPosition.waterLevel) {
       if (intersectionPoints.length != 2) return;
       final mid =
           (intersectionPoints.elementAt(0) + intersectionPoints.elementAt(1)) /
@@ -296,12 +397,48 @@ class PlayerComponent extends SpriteAnimationComponent
   }
 
   @override
+  void onCollisionStart(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) {
+    if (other is WaterComponent) {
+      _waterContacts++;
+      isInWater = _waterContacts > 0;
+      if (isInWater) {
+        removeAll(children.whereType<SimpleTextComponent>());
+      }
+    }
+    if (other is GroundComponent) {
+      _groundContacts++;
+      if (_jumpActive) {
+        _jumpActive = false;
+        _jumpElapsed = 0;
+        inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+      }
+    }
+    if (other is WaterLilyComponent) {
+      _lilyContacts++;
+      if (_jumpActive) {
+        _jumpActive = false;
+        _jumpElapsed = 0;
+        inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+      }
+    }
+    super.onCollisionStart(intersectionPoints, other);
+  }
+
+  @override
   void onCollisionEnd(PositionComponent other) {
     if (other is GroundComponent) {
+      _groundContacts = (_groundContacts - 1).clamp(0, 999999);
       removeAll(children.whereType<SimpleTextComponent>());
     }
     if (other is WaterComponent) {
-      isInWater = false;
+      _waterContacts = (_waterContacts - 1).clamp(0, 999999);
+      isInWater = _waterContacts > 0;
+    }
+    if (other is WaterLilyComponent) {
+      _lilyContacts = (_lilyContacts - 1).clamp(0, 999999);
     }
 
     super.onCollisionEnd(other);

@@ -4,6 +4,8 @@ import 'package:game_jam/game/character/model/character_name.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/model/character_traits.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
+import 'package:game_jam/core/constants/asset_paths.dart';
+import 'package:game_jam/core/constants/gameplay_tuning.dart';
 
 class ProceduralCharacterGenerator implements CharacterGenerator {
   ProceduralCharacterGenerator({required CharacterPools pools})
@@ -12,7 +14,6 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
   static const int _traitPrecision = 1000;
   static const int _minHealth = 60;
   static const int _maxHealth = 150;
-  static const int _spriteCount = 30;
 
   final CharacterPools _pools;
 
@@ -36,7 +37,7 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
     return CharacterProfile(
       name: CharacterName(adjective: adjective, noun: noun, batch: batch),
       spriteId: 'frog-$spriteNumber',
-      spriteAssetPath: 'assets/images/gronouy/frog-$spriteNumber.png',
+      spriteAssetPath: AssetPaths.frogSpriteAssetPath(spriteNumber),
       traits: CharacterTraits(
         speed: speedMultiplier,
         size: sizeMultiplier,
@@ -51,7 +52,7 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
   }
 
   int _resolveSpriteNumber(int seed) {
-    return (seed % _spriteCount) + 1;
+    return (seed % GameplayTuning.frogSpriteCount) + 1;
   }
 
   double _rollTrait({
