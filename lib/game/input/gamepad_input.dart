@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flame/extensions.dart';
 import 'package:flutter/widgets.dart';
+import 'package:game_jam/core/config/gamepad_bindings.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/game/input/controler.dart';
 import 'package:gamepads/gamepads.dart';
 
@@ -34,24 +36,30 @@ class GamepadInput extends Controller {
       _gamepadSubscription = Gamepads.events.listen((event) {
         bool axisMoved = false;
         switch (event.key) {
-          case "l.joystick - xAxis":
-          case "r.joystick - xAxis":
+          case GamepadBindings.leftStickXAxis:
+          case GamepadBindings.rightStickXAxis:
+          case GamepadBindings.dpadXAxis:
             moveAxis.x = event.value;
             axisMoved = true;
             break;
-          case "l.joystick - yAxis":
-          case "r.joystick - yAxis":
+          case GamepadBindings.leftStickYAxis:
+          case GamepadBindings.rightStickYAxis:
+          case GamepadBindings.dpadYAxis:
             moveAxis.y =
                 -event.value; // Invert Y axis for typical game controls
             axisMoved = true;
             break;
-          case "a.circle":
-            if (event.value == 1) {
+          case GamepadBindings.aCircle:
+          case GamepadBindings.xboxButtonA:
+          case GamepadBindings.buttonA:
+          case GamepadBindings.buttonSouth:
+            if (event.value == GameplayTuning.gamepadButtonPressedValue) {
+              confirm();
               moveUpLayer();
             }
             break;
-          case "b.circle":
-            if (event.value == 1) {
+          case GamepadBindings.bCircle:
+            if (event.value == GameplayTuning.gamepadButtonPressedValue) {
               moveDownLayer();
             }
             break;
