@@ -11,7 +11,6 @@ import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
-import 'package:game_jam/game/components/player/water_ripple_component.dart';
 import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -75,8 +74,6 @@ class PlayerComponent extends CircleComponent
   bool _isDamageTextVisible = false;
   bool isInWater = false;
 
-  late WaterRippleComponent _waterRipple;
-
   Vector2 get velocity =>
       normalizeMoveAxis(inputState.moveAxisX, inputState.moveAxisY);
 
@@ -99,9 +96,6 @@ class PlayerComponent extends CircleComponent
       ..isAntiAlias = false;
 
     await add(CircleHitbox(radius: radius));
-
-    _waterRipple = WaterRippleComponent(player: this);
-    await add(_waterRipple);
   }
 
   @override
