@@ -23,18 +23,16 @@ class PlayerComponent extends CircleComponent
     required Vector2 startPosition,
     double speedMultiplier = 1.0,
     double sizeMultiplier = 1.0,
-    double intelligence = 1.0,
   }) : _startPosition = startPosition.clone(),
        _profile = profile,
        _baseSpeedMultiplier = speedMultiplier,
        _baseSizeMultiplier = sizeMultiplier,
-       _baseIntelligence = intelligence,
        super(
          position: startPosition.clone(),
          radius: 48,
          anchor: Anchor.center,
          priority: 10,
-         paint: Paint()..color = _parseColor(profile.colorHex),
+         paint: Paint()..color = Colors.transparent,
        ) {
     _applyStatsFromProfile();
   }
@@ -47,14 +45,15 @@ class PlayerComponent extends CircleComponent
   final Vector2 _startPosition;
   final double _baseSpeedMultiplier;
   final double _baseSizeMultiplier;
-  final double _baseIntelligence;
 
   CharacterProfile _profile;
+  Sprite? _frogSprite;
+  late String _spriteCacheKey;
+  late final Paint _spritePaint;
+  double _spriteOpacity = 1.0;
+  CircleHitbox? _hitbox;
   late double _speedMultiplier;
   late double _sizeMultiplier;
-  late double _intelligence;
-  late double _eyeScale;
-  late bool _showGlasses;
   late int _maxHealth;
   late int _remainingHealth;
 
@@ -67,9 +66,6 @@ class PlayerComponent extends CircleComponent
   CharacterProfile get profile => _profile;
   int get maxHealth => _maxHealth;
   int get remainingHealth => _remainingHealth;
-
-  late Paint _directionDotPaint;
-  late Paint _glassesPaint;
 
   bool _isDamageTextVisible = false;
   bool isInWater = false;
@@ -86,53 +82,19 @@ class PlayerComponent extends CircleComponent
   @override
   Future<void> onMount() async {
     super.onMount();
-    _directionDotPaint = Paint()
-      ..color = const Color(0xFFFFFFFF)
-      ..style = PaintingStyle.fill;
-    _glassesPaint = Paint()
-      ..color = const Color(0xFF1E1E1E)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..isAntiAlias = false;
-
-    await add(CircleHitbox(radius: radius));
+    _spritePaint = Paint();
+    _refreshSprite();
+    _hitbox = CircleHitbox(radius: radius);
+    await add(_hitbox!);
   }
 
   @override
   void render(Canvas canvas) {
-    super.render(canvas);
-
-    final double dotRadius = radius * 0.15 * _eyeScale;
-    final double dotOffset = radius * 0.5;
-    final double topY = dotRadius;
-    final Offset leftEyeCenter = Offset(dotOffset, topY);
-    final Offset rightEyeCenter = Offset(dotOffset + radius, topY);
-
-    canvas.drawCircle(leftEyeCenter, dotRadius, _directionDotPaint);
-    canvas.drawCircle(rightEyeCenter, dotRadius, _directionDotPaint);
-
-    if (_showGlasses) {
-      final double frameRadius = dotRadius * 1.3;
-      canvas.drawCircle(leftEyeCenter, frameRadius, _glassesPaint);
-      canvas.drawCircle(rightEyeCenter, frameRadius, _glassesPaint);
-      canvas.drawLine(
-        Offset(leftEyeCenter.dx + frameRadius, leftEyeCenter.dy),
-        Offset(rightEyeCenter.dx - frameRadius, rightEyeCenter.dy),
-        _glassesPaint,
-      );
+    if (_frogSprite == null) {
+      super.render(canvas);
+      return;
     }
-  }
-
-  static Color _parseColor(String hex) {
-    final String normalized = hex.replaceFirst('#', '').trim();
-    if (normalized.length != 6) {
-      return const Color(0xFF2A9D8F);
-    }
-    final int? rgb = int.tryParse(normalized, radix: 16);
-    if (rgb == null) {
-      return const Color(0xFF2A9D8F);
-    }
-    return Color(0xFF000000 | rgb);
+    _frogSprite!.render(canvas, size: size, overridePaint: _spritePaint);
   }
 
   static double _normalizeAngle(double value) {
@@ -157,7 +119,7 @@ class PlayerComponent extends CircleComponent
 
   void applyProfile(CharacterProfile profile) {
     _profile = profile;
-    paint.color = _parseColor(profile.colorHex);
+    _refreshSprite();
     _applyStatsFromProfile();
   }
 
@@ -170,15 +132,35 @@ class PlayerComponent extends CircleComponent
       0.3,
       3.0,
     );
-    _intelligence = (_profile.traits.intelligence ?? _baseIntelligence).clamp(
-      0.5,
-      2.0,
-    );
-    _eyeScale = (2.2 - _intelligence).clamp(0.7, 2.0).toDouble();
-    _showGlasses = shouldRenderGlasses(_intelligence);
     _maxHealth = resolveMaxHealth(_profile);
     _remainingHealth = _maxHealth;
     radius = 48 * _sizeMultiplier;
+    _syncHitbox();
+  }
+
+  void _refreshSprite() {
+    _spriteCacheKey = _cacheKeyFromAssetPath(_profile.spriteAssetPath);
+    if (!game.images.containsKey(_spriteCacheKey)) {
+      _frogSprite = null;
+      return;
+    }
+    _frogSprite = Sprite(game.images.fromCache(_spriteCacheKey));
+  }
+
+  String _cacheKeyFromAssetPath(String path) {
+    const String prefix = 'assets/images/';
+    if (path.startsWith(prefix)) {
+      return path.substring(prefix.length);
+    }
+    return path;
+  }
+
+  void _syncHitbox() {
+    final CircleHitbox? hitbox = _hitbox;
+    if (hitbox == null) {
+      return;
+    }
+    hitbox.radius = radius;
   }
 
   static int resolveMaxHealth(CharacterProfile profile) {
@@ -225,22 +207,22 @@ class PlayerComponent extends CircleComponent
     position.y = position.y.clamp(0, maxY);
     position.x = position.x.clamp(0, maxX);
 
-    Color newColor = _parseColor(profile.colorHex);
     switch (levelPosition) {
       case PlayerType.land:
-        newColor = newColor.withValues(alpha: 1.0);
+        _spriteOpacity = 1.0;
         radius = 48 * _sizeMultiplier * 1.1;
         break;
       case PlayerType.middle:
-        newColor = newColor.withValues(alpha: 0.7);
+        _spriteOpacity = 0.7;
         radius = 48 * _sizeMultiplier;
         break;
       case PlayerType.water:
-        newColor = newColor.withValues(alpha: 0.4);
+        _spriteOpacity = 0.4;
         radius = 48 * _sizeMultiplier * 0.9;
         break;
     }
-    paint.color = newColor;
+    _spritePaint.color = Colors.white.withValues(alpha: _spriteOpacity);
+    _syncHitbox();
   }
 
   void reset() {
