@@ -13,7 +13,8 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   Random get random => game.random;
 
   static const double _cellSize = 100;
-  static const double _spawnMargin = 180;
+
+  static const double _spawnZoneHalfSize = 300;
   static const double _noiseFrequency = 0.05;
   static const double _minLilyRadius = 25;
   static const double _maxLilyRadius = 45;
@@ -72,15 +73,18 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           cellOrigin.x + _cellSize * 0.5,
           cellOrigin.y + _cellSize * 0.5,
         );
-        final inSpawnMargin = cellCenter.distanceTo(spawn) < _spawnMargin;
+        final inSpawnZone =
+            cellCenter.x >= spawn.x - _spawnZoneHalfSize &&
+            cellCenter.x <= spawn.x + _spawnZoneHalfSize &&
+            cellCenter.y >= spawn.y - _spawnZoneHalfSize &&
+            cellCenter.y <= spawn.y + _spawnZoneHalfSize;
 
         final h = humidityNorm[i][j];
         final v = vegetationNorm[i][j];
 
+        // Spawn area is always water so the player fits; elsewhere use humidity.
         final isWaterCell =
-            !inSpawnMargin &&
-            h >= biome.humidity.min &&
-            h <= biome.humidity.max;
+            inSpawnZone || (h >= biome.humidity.min && h <= biome.humidity.max);
 
         if (isWaterCell) {
           await add(
@@ -99,7 +103,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         }
 
         if (isWaterCell &&
-            !inSpawnMargin &&
+            !inSpawnZone &&
             v >= biome.vegetation.min &&
             v <= biome.vegetation.max) {
           final radius =
