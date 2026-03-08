@@ -93,9 +93,6 @@ class MyGame extends FlameGame<WorldRoot>
   int? get playerMaxHealth => _isPlayerReady ? _player.maxHealth : null;
 
   @override
-  bool get debugMode => true;
-
-  @override
   Future<void> onLoad() async {
     await super.onLoad();
 
