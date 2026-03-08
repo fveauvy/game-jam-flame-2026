@@ -88,6 +88,9 @@ class MyGame extends FlameGame<WorldRoot>
   Future<void> onLoad() async {
     await super.onLoad();
 
+    for (int i = 1; i <= 30; i++) {
+      await images.load('gronouy/frog-$i.png');
+    }
     await images.load('plank.png');
     await images.load('water_lily.png');
     await images.load('water_lily_1.png');
@@ -105,7 +108,6 @@ class MyGame extends FlameGame<WorldRoot>
       startPosition: GameConfig.playerSpawn,
       speedMultiplier: initialState.profile.traits.speed ?? 1,
       sizeMultiplier: initialState.profile.traits.size ?? 1,
-      intelligence: initialState.profile.traits.intelligence ?? 1,
     );
     _isPlayerReady = true;
 

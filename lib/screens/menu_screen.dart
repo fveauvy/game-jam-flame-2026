@@ -136,9 +136,7 @@ class _CharacterDetailsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final CharacterGenerationState? state = generationState;
     final String name = state?.profile.name.display ?? '-';
-    final String color = state == null
-        ? '-'
-        : '${state.profile.colorId} ${state.profile.colorHex}';
+    final String sprite = state?.profile.spriteId ?? '-';
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -152,7 +150,7 @@ class _CharacterDetailsPanel extends StatelessWidget {
           spacing: 6,
           children: [
             _DetailRow(label: 'Name', value: name),
-            _DetailRow(label: 'Color', value: color),
+            _DetailRow(label: 'Sprite', value: sprite),
           ],
         ),
       ),
