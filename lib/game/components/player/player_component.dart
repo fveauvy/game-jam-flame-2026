@@ -6,7 +6,6 @@ import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
-import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
