@@ -38,6 +38,7 @@ class _GameJamAppState extends State<GameJamApp> {
         ),
         useMaterial3: true,
       ),
+
       home: Scaffold(
         body: ValueListenableBuilder<GamePhase>(
           valueListenable: _game.phase,
@@ -71,6 +72,7 @@ class _GameJamAppState extends State<GameJamApp> {
                           await _game.rerollCharacter();
                         },
                         debugState: debugState,
+                        viewPortSize: _game.camera.viewport.size,
                       );
                     },
                   ),

@@ -28,7 +28,7 @@ import 'package:game_jam/game/systems/spawn_system.dart';
 import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
-enum GamePhase { menu, playing, paused, gameOver }
+enum GamePhase { menu, playing, paused, gameOver, loading }
 
 class MyGame extends FlameGame<WorldRoot>
     with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
@@ -57,7 +57,7 @@ class MyGame extends FlameGame<WorldRoot>
   late final TouchController touchController;
   late final GamepadInput gamepadInput;
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
-    GamePhase.menu,
+    GamePhase.loading,
   );
   final ValueNotifier<CharacterDebugState?> characterDebugState =
       ValueNotifier<CharacterDebugState?>(null);
@@ -83,6 +83,8 @@ class MyGame extends FlameGame<WorldRoot>
   Future<void> onLoad() async {
     await super.onLoad();
 
+    phase.value = GamePhase.menu;
+
     await images.load('plank.png');
     await images.load('water_lily.png');
     await images.load('water_lily_1.png');
@@ -91,6 +93,7 @@ class MyGame extends FlameGame<WorldRoot>
     final CharacterDebugState initialState = await _buildDebugState(
       seedCode: _characterSeedCode,
     );
+
     characterDebugState.value = initialState;
 
     _level = GeneratedLevel();
@@ -121,11 +124,13 @@ class MyGame extends FlameGame<WorldRoot>
       CollisionSystem(),
       ...flies,
     ]);
+
     world.bindPlayer(_player);
     await camera.viewport.add(HudComponent());
     keyboardInput = KeyboardInput(inputState);
     touchController = TouchController(inputState);
     gamepadInput = GamepadInput(inputState);
+
     // Initialize gamepad input
     await gamepadInput.initialize();
 
