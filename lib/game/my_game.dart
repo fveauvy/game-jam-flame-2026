@@ -151,9 +151,8 @@ class MyGame extends FlameGame<WorldRoot>
     _cameraController.attach();
 
     _menu = MenuComponent(
-      onStart: () {
-        //TODO: This doesn't work
-        remove(_menu);
+      onStart: () async {
+        camera.viewport.remove(_menu);
       },
       onReroll: () async {
         await rerollCharacter();

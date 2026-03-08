@@ -6,9 +6,6 @@ import 'package:game_jam/game/my_game.dart';
 
 class SeedPanelComponent extends SpriteButtonComponent
     with HasGameReference<MyGame> {
-  final Future<void> Function() onReroll;
-  final VoidCallback onStart;
-
   SeedPanelComponent({
     Anchor anchor = Anchor.topLeft,
     required this.onReroll,
@@ -16,16 +13,29 @@ class SeedPanelComponent extends SpriteButtonComponent
     required Vector2 size,
   }) : super(anchor: anchor, size: size);
 
+  late final TextComponent _seedText;
+  final Future<void> Function() onReroll;
+  final VoidCallback onStart;
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
     button = Sprite(game.images.fromCache('plank.png'));
-    onPressed = () {
-      onStart();
-      // Hide the menu when start is clicked
-      remove(this);
+    onPressed = () async {
+      await onReroll();
     };
+
+    _seedText = TextComponent(
+      text: game.characterDebugState.value?.seedCode ?? "-",
+      textRenderer: TextPaint(
+        style: const TextStyle(color: Colors.white, letterSpacing: 2.0),
+      ),
+      anchor: Anchor.center,
+      position: size / 2 - Vector2(5, 2),
+    );
+
+    game.characterDebugState.addListener(_updateSeedText);
 
     add(
       RowComponent(
@@ -36,14 +46,7 @@ class SeedPanelComponent extends SpriteButtonComponent
         anchor: Anchor.center,
         position: size / 2,
         children: [
-          TextComponent(
-            text: game.characterDebugState.value?.seedCode ?? '-',
-            textRenderer: TextPaint(
-              style: const TextStyle(color: Colors.white, letterSpacing: 2.0),
-            ),
-            anchor: Anchor.center,
-            position: size / 2 - Vector2(5, 2),
-          ),
+          _seedText,
           SpriteButtonComponent(
             button: Sprite(game.images.fromCache('refresh_logo.png')),
             size: Vector2(16, 16),
@@ -51,12 +54,21 @@ class SeedPanelComponent extends SpriteButtonComponent
             anchor: Anchor.center,
             position: size / 2 + Vector2(50, 0),
             onPressed: () async {
-              debugPrint("Reroll button pressed");
               await onReroll();
             },
           ),
         ],
       ),
     );
+  }
+
+  void _updateSeedText() {
+    _seedText.text = game.characterDebugState.value?.seedCode ?? "-";
+  }
+
+  @override
+  void onRemove() {
+    game.characterDebugState.removeListener(_updateSeedText);
+    super.onRemove();
   }
 }
