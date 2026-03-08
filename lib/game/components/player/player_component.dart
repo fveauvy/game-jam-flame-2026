@@ -73,7 +73,7 @@ class PlayerComponent extends CircleComponent
   late Paint _glassesPaint;
 
   bool _isDamageTextVisible = false;
-  bool _isInWater = false;
+  bool isInWater = false;
 
   late WaterRippleComponent _waterRipple;
 
@@ -294,9 +294,8 @@ class PlayerComponent extends CircleComponent
     if (other is GroundComponent) {
       await onHitGround(other);
     } else if (other is WaterComponent) {
-      _isInWater = true;
-      _waterRipple.isActive = _isInWater;
-      if (_isInWater) {
+      isInWater = true;
+      if (isInWater) {
         removeAll(children.whereType<SimpleTextComponent>());
       }
     }
@@ -319,8 +318,7 @@ class PlayerComponent extends CircleComponent
       removeAll(children.whereType<SimpleTextComponent>());
     }
     if (other is WaterComponent) {
-      _isInWater = false;
-      _waterRipple.isActive = false;
+      isInWater = false;
     }
 
     super.onCollisionEnd(other);
