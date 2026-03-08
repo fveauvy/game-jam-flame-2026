@@ -19,6 +19,7 @@ import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
+import 'package:game_jam/game/components/ui/menu_component.dart';
 import 'package:game_jam/game/input/gamepad_input.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/keyboard_input.dart';
@@ -79,6 +80,8 @@ class MyGame extends FlameGame<WorldRoot>
 
   late GeneratedLevel _level;
 
+  late final MenuComponent _menu;
+
   String get characterSeedCode => _characterSeedCode;
   CharacterProfile? get generatedCharacterProfile =>
       characterDebugState.value?.profile;
@@ -87,9 +90,10 @@ class MyGame extends FlameGame<WorldRoot>
   Future<void> onLoad() async {
     await super.onLoad();
 
-    await images.load('plank.png');
-    await images.load('water_lily.png');
+    await images.load('refresh_logo.png');
     await images.load('water_lily_1.png');
+    await images.load('water_lily.png');
+    await images.load('plank.png');
     await images.load('fly.png');
 
     final CharacterDebugState initialState = await _buildDebugState(
@@ -100,12 +104,12 @@ class MyGame extends FlameGame<WorldRoot>
 
     _level = GeneratedLevel();
     _player = PlayerComponent(
-      inputState: inputState,
-      profile: initialState.profile,
-      startPosition: GameConfig.playerSpawn,
+      intelligence: initialState.profile.traits.intelligence ?? 1,
       speedMultiplier: initialState.profile.traits.speed ?? 1,
       sizeMultiplier: initialState.profile.traits.size ?? 1,
-      intelligence: initialState.profile.traits.intelligence ?? 1,
+      startPosition: GameConfig.playerSpawn,
+      profile: initialState.profile,
+      inputState: inputState,
     );
 
     final flies = List.generate(
@@ -146,11 +150,16 @@ class MyGame extends FlameGame<WorldRoot>
     );
     _cameraController.attach();
 
-    overlays
-      ..remove(AppOverlays.gameOver)
-      ..remove(AppOverlays.pause);
-
-    phase.value = GamePhase.menu;
+    _menu = MenuComponent(
+      onStart: () {
+        // Hide the menu when start is clicked
+        remove(_menu);
+      },
+      onReroll: () async {
+        await rerollCharacter();
+      },
+    );
+    await camera.viewport.add(_menu);
   }
 
   @override
@@ -286,4 +295,7 @@ class MyGame extends FlameGame<WorldRoot>
       ..remove(AppOverlays.touchControls)
       ..add(AppOverlays.gameOver);
   }
+
+  @override
+  bool get debugMode => false;
 }

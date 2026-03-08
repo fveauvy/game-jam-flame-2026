@@ -2,11 +2,9 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
-import 'package:game_jam/game/character/model/character_debug_state.dart';
 import 'package:game_jam/game/input/touch_input.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/screens/game_over_overlay.dart';
-import 'package:game_jam/screens/menu_screen.dart';
 import 'package:game_jam/screens/pause_overlay.dart';
 
 class GameJamApp extends StatefulWidget {
@@ -62,31 +60,31 @@ class _GameJamAppState extends State<GameJamApp> {
                     },
                   },
                 ),
-                if (phase == GamePhase.menu)
-                  ValueListenableBuilder<CharacterDebugState?>(
-                    valueListenable: _game.characterDebugState,
-                    builder: (_, CharacterDebugState? debugState, _) {
-                      String seed = debugState?.seedCode ?? '-';
-                      final inputController = TextEditingController(text: seed);
-                      void onInputChange(String value) {
-                        if (value.length == 5) {
-                          debugPrint('Seed submitted: ${inputController.text}');
-                          seed = inputController.text;
-                        }
-                      }
+                // if (phase == GamePhase.menu)
+                //   ValueListenableBuilder<CharacterDebugState?>(
+                //     valueListenable: _game.characterDebugState,
+                //     builder: (_, CharacterDebugState? debugState, _) {
+                //       String seed = debugState?.seedCode ?? '-';
+                //       final inputController = TextEditingController(text: seed);
+                //       void onInputChange(String value) {
+                //         if (value.length == 5) {
+                //           debugPrint('Seed submitted: ${inputController.text}');
+                //           seed = inputController.text;
+                //         }
+                //       }
 
-                      return MenuScreen(
-                        onReroll: () async {
-                          await _game.rerollCharacter();
-                        },
-                        viewPortSize: _game.camera.viewport.size,
-                        inputController: inputController,
-                        onInputChange: onInputChange,
-                        onStart: _game.startGame,
-                        debugState: debugState,
-                      );
-                    },
-                  ),
+                //       return MenuScreen(
+                //         onReroll: () async {
+                //           await _game.rerollCharacter();
+                //         },
+                //         viewPortSize: _game.camera.viewport.size,
+                //         inputController: inputController,
+                //         onInputChange: onInputChange,
+                //         onStart: _game.startGame,
+                //         debugState: debugState,
+                //       );
+                //     },
+                //   ),
               ],
             );
           },
