@@ -1,17 +1,16 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 
 typedef AssetStringLoader = Future<String> Function(String assetPath);
 
 class JsonCharacterPoolsRepository implements CharacterPoolsRepository {
   JsonCharacterPoolsRepository({
-    this.assetPath = _defaultAssetPath,
+    this.assetPath = AssetPaths.characterPools,
     AssetStringLoader? loader,
   }) : _loader = loader ?? rootBundle.loadString;
-
-  static const String _defaultAssetPath = 'assets/data/character_pools.json';
 
   final String assetPath;
   final AssetStringLoader _loader;

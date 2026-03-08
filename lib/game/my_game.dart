@@ -3,11 +3,11 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/utils/time_utils.dart';
 import 'package:game_jam/game/camera/camera_controller.dart';
 import 'package:game_jam/game/character/generator/character_generator.dart';
@@ -84,6 +84,8 @@ class MyGame extends FlameGame<WorldRoot>
 
   int _profileRequestId = 0;
   String _characterSeedCode;
+  int _menuNavDirection = 0;
+  double _menuNavRepeatTimer = 0;
 
   late GeneratedLevel _level;
 
@@ -99,22 +101,7 @@ class MyGame extends FlameGame<WorldRoot>
   Future<void> onLoad() async {
     await super.onLoad();
 
-    await FlameAudio.audioCache.loadAll(['sound_effects/whawhawhawhoua.wav']);
-
-    for (int i = 1; i <= 30; i++) {
-      await images.load('gronouy/frog-$i.png');
-    }
     _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
-    await images.load('water_lily_1.png');
-    await images.load('refresh_logo.png');
-    await images.load('water_lily.png');
-    await images.load('water_lily.png');
-    await images.load('plank_dark.png');
-    await images.load('plank_light.png');
-    await images.load('plank.png');
-    await images.load('plank.png');
-    await images.load('eggs.png');
-    await images.load('fly.png');
 
     final CharacterGenerationState initialState =
         await _buildCharacterGenerationState(seedCode: _characterSeedCode);
@@ -134,24 +121,24 @@ class MyGame extends FlameGame<WorldRoot>
     _waterRipple = WaterRippleComponent(player: _player);
 
     final flies = List.generate(
-      10,
+      GameplayTuning.initialFlyCount,
       (index) => FlyComponent(
         position: Vector2(
           game.random.nextDouble() * GameConfig.worldSize.x,
           game.random.nextDouble() * GameConfig.worldSize.y,
         ),
-        size: Vector2.all(32),
+        size: Vector2.all(GameplayTuning.worldPickupSize),
       ),
     );
 
     final eggs = List.generate(
-      20,
+      GameplayTuning.initialEggCount,
       (index) => Egg(
         position: Vector2(
           game.random.nextDouble() * GameConfig.worldSize.x,
           game.random.nextDouble() * GameConfig.worldSize.y,
         ),
-        size: Vector2.all(32),
+        size: Vector2.all(GameplayTuning.worldPickupSize),
       ),
     );
 
@@ -239,7 +226,7 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     String nextCode = _characterSeedCode;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < GameplayTuning.characterRerollAttempts; i++) {
       final String candidate = SeedCode.randomCode(_random);
       if (candidate != _characterSeedCode) {
         nextCode = candidate;
@@ -254,14 +241,110 @@ class MyGame extends FlameGame<WorldRoot>
   }) async {
     final String normalizedCode = SeedCode.normalize(seedCode);
     final int seedInt = SeedCode.decode(normalizedCode);
-    final CharacterProfile profile = await generateCharacterProfile(
-      seedCode: normalizedCode,
-    );
+    final List<String> candidateSeedCodes = <String>[];
+    final List<CharacterProfile> candidateProfiles = <CharacterProfile>[];
+    final Set<String> usedSpriteIds = <String>{};
+
+    int index = 0;
+    while (index < GameplayTuning.menuCharacterCandidateUniqueAttempts &&
+        candidateProfiles.length < GameplayTuning.menuCharacterCandidateCount) {
+      final String code = _candidateSeedCode(seedInt: seedInt, index: index);
+      final CharacterProfile profile = await generateCharacterProfile(
+        seedCode: code,
+      );
+      if (usedSpriteIds.add(profile.spriteId)) {
+        candidateSeedCodes.add(code);
+        candidateProfiles.add(profile);
+      }
+      index++;
+    }
+
+    while (candidateProfiles.length <
+        GameplayTuning.menuCharacterCandidateCount) {
+      final String code = _candidateSeedCode(seedInt: seedInt, index: index);
+      final CharacterProfile profile = await generateCharacterProfile(
+        seedCode: code,
+      );
+      candidateSeedCodes.add(code);
+      candidateProfiles.add(profile);
+      index++;
+    }
+
     return CharacterGenerationState(
       seedCode: normalizedCode,
       seedInt: seedInt,
-      profile: profile,
+      candidateSeedCodes: candidateSeedCodes,
+      candidateProfiles: candidateProfiles,
+      selectedIndex: 0,
     );
+  }
+
+  String _candidateSeedCode({required int seedInt, required int index}) {
+    final int candidateSeed =
+        (seedInt + (index * GameplayTuning.menuCharacterCandidateSeedStep)) %
+        SeedCode.maxValueExclusive;
+    return SeedCode.encode(candidateSeed);
+  }
+
+  void pointCharacterCandidate(int index) {
+    final CharacterGenerationState? state = characterGenerationState.value;
+    if (state == null || index < 0 || index >= state.candidateProfiles.length) {
+      return;
+    }
+    if (index == state.selectedIndex) {
+      return;
+    }
+    final CharacterGenerationState nextState = state.copyWith(
+      selectedIndex: index,
+    );
+    characterGenerationState.value = nextState;
+    characterState.value = nextState.profile;
+    if (isLoaded) {
+      _player.applyProfile(nextState.profile);
+    }
+  }
+
+  void _stepMenuCandidate(int delta) {
+    final CharacterGenerationState? state = characterGenerationState.value;
+    if (state == null || state.candidateProfiles.isEmpty) {
+      return;
+    }
+    final int count = state.candidateProfiles.length;
+    final int next = (state.selectedIndex + delta) % count;
+    pointCharacterCandidate(next < 0 ? next + count : next);
+  }
+
+  void _updateMenuNavigation(double dt) {
+    final double x = inputState.moveAxisX;
+    final double y = inputState.moveAxisY;
+    int direction = 0;
+    if (x >= GameplayTuning.menuNavigationAxisThreshold ||
+        y <= -GameplayTuning.menuNavigationAxisThreshold) {
+      direction = 1;
+    } else if (x <= -GameplayTuning.menuNavigationAxisThreshold ||
+        y >= GameplayTuning.menuNavigationAxisThreshold) {
+      direction = -1;
+    }
+
+    if (direction == 0) {
+      _menuNavDirection = 0;
+      _menuNavRepeatTimer = 0;
+      return;
+    }
+
+    if (direction != _menuNavDirection) {
+      _menuNavDirection = direction;
+      _menuNavRepeatTimer = 0;
+      _stepMenuCandidate(direction);
+      return;
+    }
+
+    _menuNavRepeatTimer += dt;
+    if (_menuNavRepeatTimer >=
+        GameplayTuning.menuNavigationRepeatIntervalSeconds) {
+      _menuNavRepeatTimer = 0;
+      _stepMenuCandidate(direction);
+    }
   }
 
   @override
@@ -275,6 +358,13 @@ class MyGame extends FlameGame<WorldRoot>
   @override
   void update(double dt) {
     super.update(clampDeltaTime(dt, GameConfig.maxDeltaTime));
+
+    if (phase.value == GamePhase.menu) {
+      _updateMenuNavigation(dt);
+      if (inputState.confirmPressed) {
+        startGame();
+      }
+    }
 
     if (inputState.pausePressed) {
       togglePause();
@@ -290,6 +380,16 @@ class MyGame extends FlameGame<WorldRoot>
 
     // Hide the menu when the game starts (for example, when tapping the frog).
     camera.viewport.remove(_menu);
+
+    final CharacterGenerationState? state = characterGenerationState.value;
+    if (state != null) {
+      _characterSeedCode = state.selectedSeedCode;
+      _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
+      characterState.value = state.profile;
+      if (isLoaded) {
+        _player.applyProfile(state.profile);
+      }
+    }
 
     world.reset();
     phase.value = GamePhase.playing;

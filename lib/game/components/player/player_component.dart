@@ -6,17 +6,19 @@ import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/components/allies/tadpole.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
+import 'package:game_jam/game/components/player/player_animation_extention.dart';
 import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
 
-class PlayerComponent extends CircleComponent
+class PlayerComponent extends SpriteAnimationComponent
     with HasGameReference<MyGame>, CollisionCallbacks, TapCallbacks {
   PlayerComponent({
     required this.inputState,
@@ -30,12 +32,12 @@ class PlayerComponent extends CircleComponent
        _baseSizeMultiplier = sizeMultiplier,
        super(
          position: startPosition.clone(),
-         radius: 48,
+         size: Vector2.all(PhysicsTuning.playerBaseSize),
          anchor: Anchor.center,
          priority: 10,
-         paint: Paint()..color = Colors.transparent,
        ) {
     _applyStatsFromProfile();
+    previousPosition = inputState.playerVerticalPosition;
   }
 
   static const Duration _damageTextDuration = Duration(seconds: 1);
@@ -48,9 +50,6 @@ class PlayerComponent extends CircleComponent
   final double _baseSizeMultiplier;
 
   CharacterProfile _profile;
-  Sprite? _frogSprite;
-  late String _spriteCacheKey;
-  late final Paint _spritePaint;
   double _spriteOpacity = 1.0;
   CircleHitbox? _hitbox;
   late double _speedMultiplier;
@@ -58,13 +57,9 @@ class PlayerComponent extends CircleComponent
   late int _maxHealth;
   late int _remainingHealth;
 
-  static const double _moveSpeed = 340;
-  static const double _rotationSpeed = 30;
-  static const double _jumpDuration = 0.24;
-  static const double _jumpForwardSpeed = 420;
-
   PlayerVerticalPosition get levelPosition => inputState.playerVerticalPosition;
-  double get moveSpeed => _moveSpeed;
+  late PlayerVerticalPosition previousPosition;
+  double get moveSpeed => PhysicsTuning.playerMoveSpeed;
 
   CharacterProfile get profile => _profile;
   int get maxHealth => _maxHealth;
@@ -82,6 +77,9 @@ class PlayerComponent extends CircleComponent
   bool get _isTouchingGround => _groundContacts > 0;
   bool get _isTouchingLily => _lilyContacts > 0;
 
+  bool get _isMoving => velocity.length2 > 0;
+  bool _wasMoving = false;
+
   Vector2 get velocity =>
       normalizeMoveAxis(inputState.moveAxisX, inputState.moveAxisY);
 
@@ -94,19 +92,11 @@ class PlayerComponent extends CircleComponent
   @override
   Future<void> onMount() async {
     super.onMount();
-    _spritePaint = Paint();
-    _refreshSprite();
-    _hitbox = CircleHitbox(radius: radius);
+    paint = Paint()
+      ..color = Colors.white.withAlpha((_spriteOpacity * 255).toInt());
+    _hitbox = CircleHitbox(radius: size.x / 2);
+    animation = idleAnimation(levelPosition);
     await add(_hitbox!);
-  }
-
-  @override
-  void render(Canvas canvas) {
-    if (_frogSprite == null) {
-      super.render(canvas);
-      return;
-    }
-    _frogSprite!.render(canvas, size: size, overridePaint: _spritePaint);
   }
 
   static double _normalizeAngle(double value) {
@@ -131,40 +121,23 @@ class PlayerComponent extends CircleComponent
 
   void applyProfile(CharacterProfile profile) {
     _profile = profile;
-    _refreshSprite();
     _applyStatsFromProfile();
+    animation = idleAnimation(levelPosition);
   }
 
   void _applyStatsFromProfile() {
     _speedMultiplier = (_profile.traits.speed ?? _baseSpeedMultiplier).clamp(
-      0.2,
-      5.0,
+      PhysicsTuning.minSpeedMultiplier,
+      PhysicsTuning.maxSpeedMultiplier,
     );
     _sizeMultiplier = (_profile.traits.size ?? _baseSizeMultiplier).clamp(
-      0.3,
-      3.0,
+      PhysicsTuning.minSizeMultiplier,
+      PhysicsTuning.maxSizeMultiplier,
     );
     _maxHealth = resolveMaxHealth(_profile);
     _remainingHealth = _maxHealth;
-    radius = 48 * _sizeMultiplier;
+    size = Vector2.all(PhysicsTuning.playerBaseSize * _sizeMultiplier);
     _syncHitbox();
-  }
-
-  void _refreshSprite() {
-    _spriteCacheKey = _cacheKeyFromAssetPath(_profile.spriteAssetPath);
-    if (!game.images.containsKey(_spriteCacheKey)) {
-      _frogSprite = null;
-      return;
-    }
-    _frogSprite = Sprite(game.images.fromCache(_spriteCacheKey));
-  }
-
-  String _cacheKeyFromAssetPath(String path) {
-    const String prefix = 'assets/images/';
-    if (path.startsWith(prefix)) {
-      return path.substring(prefix.length);
-    }
-    return path;
   }
 
   void _syncHitbox() {
@@ -172,7 +145,7 @@ class PlayerComponent extends CircleComponent
     if (hitbox == null) {
       return;
     }
-    hitbox.radius = radius;
+    hitbox.radius = size.x / 2;
   }
 
   static int resolveMaxHealth(CharacterProfile profile) {
@@ -251,11 +224,16 @@ class PlayerComponent extends CircleComponent
     }
 
     _jumpElapsed += dt;
-    final double t = (_jumpElapsed / _jumpDuration).clamp(0, 1);
-    final double forwardScale = (1 - (0.6 * t)).clamp(0.35, 1.0);
-    position += _jumpDirection * _jumpForwardSpeed * dt * forwardScale;
+    final double t = (_jumpElapsed / PhysicsTuning.jumpDurationSeconds).clamp(
+      0,
+      1,
+    );
+    final double forwardScale = (1 - (PhysicsTuning.jumpForwardScaleDecay * t))
+        .clamp(PhysicsTuning.minJumpForwardScale, 1.0);
+    position +=
+        _jumpDirection * PhysicsTuning.jumpForwardSpeed * dt * forwardScale;
 
-    if (_jumpElapsed >= _jumpDuration) {
+    if (_jumpElapsed >= PhysicsTuning.jumpDurationSeconds) {
       _jumpActive = false;
       _jumpElapsed = 0;
       inputState.playerVerticalPosition = (_isTouchingGround || _isTouchingLily)
@@ -271,13 +249,27 @@ class PlayerComponent extends CircleComponent
       return;
     }
 
-    position += velocity * _moveSpeed * _speedMultiplier * dt;
+    if (_isMoving) {
+      if (!_wasMoving || previousPosition != levelPosition) {
+        animation = moveAnimation(levelPosition);
+      }
+    } else {
+      if (_wasMoving || previousPosition != levelPosition) {
+        animation = idleAnimation(levelPosition);
+      }
+    }
+    _wasMoving = _isMoving;
+    previousPosition = levelPosition;
+
+    position +=
+        velocity * PhysicsTuning.playerMoveSpeed * _speedMultiplier * dt;
 
     final double targetAngle = velocity.screenAngle();
     if (velocity.x != 0 || velocity.y != 0) {
       final double angleDelta = _shortestAngleDelta(targetAngle, angle);
       if (angleDelta != 0) {
-        final double maxStep = _rotationSpeed * _speedMultiplier * dt;
+        final double maxStep =
+            PhysicsTuning.playerRotationSpeed * _speedMultiplier * dt;
         final double step = angleDelta.clamp(-maxStep, maxStep).toDouble();
         angle = _normalizeAngle(angle + step);
       }
@@ -306,19 +298,23 @@ class PlayerComponent extends CircleComponent
 
     switch (levelPosition) {
       case PlayerVerticalPosition.land:
-        _spriteOpacity = 1.0;
-        radius = 48 * _sizeMultiplier * 1.1;
+        _spriteOpacity = PhysicsTuning.landOpacity;
+        size = Vector2.all(
+          PhysicsTuning.playerBaseSize * _sizeMultiplier * 1.1,
+        );
         break;
       case PlayerVerticalPosition.waterLevel:
-        _spriteOpacity = 0.7;
-        radius = 48 * _sizeMultiplier;
+        _spriteOpacity = PhysicsTuning.waterOpacity;
+        size = Vector2.all(PhysicsTuning.playerBaseSize * _sizeMultiplier);
         break;
       case PlayerVerticalPosition.underwater:
-        _spriteOpacity = 0.4;
-        radius = 48 * _sizeMultiplier * 0.9;
+        _spriteOpacity = PhysicsTuning.underwaterOpacity;
+        size = Vector2.all(
+          PhysicsTuning.playerBaseSize * _sizeMultiplier * 0.9,
+        );
         break;
     }
-    _spritePaint.color = Colors.white.withValues(alpha: _spriteOpacity);
+    paint.color = Colors.white.withValues(alpha: _spriteOpacity);
     _syncHitbox();
   }
 
