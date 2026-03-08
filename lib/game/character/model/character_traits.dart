@@ -3,6 +3,7 @@ class CharacterTraits {
     this.speed,
     this.size,
     this.intelligence,
+    this.health,
     this.sanity,
     this.range,
     this.arms,
@@ -14,6 +15,7 @@ class CharacterTraits {
   final double? speed;
   final double? size;
   final double? intelligence;
+  final int? health;
   final double? sanity;
   final double? range;
   final int? arms;
@@ -32,6 +34,7 @@ class CharacterTraits {
         other.speed == speed &&
         other.size == size &&
         other.intelligence == intelligence &&
+        other.health == health &&
         other.sanity == sanity &&
         other.range == range &&
         other.arms == arms &&
@@ -45,6 +48,7 @@ class CharacterTraits {
     speed,
     size,
     intelligence,
+    health,
     sanity,
     range,
     arms,

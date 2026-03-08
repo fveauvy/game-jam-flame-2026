@@ -11,7 +11,7 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
       fontSize: 22,
       fontWeight: FontWeight.w700,
     ),
-    this.detailsTextStyle = const TextStyle(
+    this.healthTextStyle = const TextStyle(
       color: Color(0xFFFFFFFF),
       fontSize: 14,
     ),
@@ -19,19 +19,20 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
   }) : super(position: position ?? Vector2(16, 16), priority: 100);
 
   final TextStyle nameTextStyle;
-  final TextStyle detailsTextStyle;
+  final TextStyle healthTextStyle;
   final TextStyle fpsTextStyle;
 
   late final TextComponent _nameText = TextComponent(
     text: '-',
     textRenderer: TextPaint(style: nameTextStyle),
   );
-  late final TextComponent _detailsText = TextComponent(
-    text: 'Seed: -\nColor: -',
-    textRenderer: TextPaint(style: detailsTextStyle),
+  late final TextComponent _healthText = TextComponent(
+    text: 'Health: -',
+    textRenderer: TextPaint(style: healthTextStyle),
   );
   late final TextComponent _fpsText = TextComponent(
     text: 'FPS: -',
+    anchor: Anchor.topRight,
     textRenderer: TextPaint(style: fpsTextStyle),
   );
 
@@ -41,7 +42,7 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await addAll([_nameText, _detailsText, _fpsText]);
+    await addAll([_nameText, _healthText, _fpsText]);
     game.characterDebugState.addListener(_syncDebugText);
     _syncDebugText();
   }
@@ -55,12 +56,19 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     _fpsElapsed += dt;
     _fpsFrames += 1;
     if (_fpsElapsed < 0.25) {
+      _syncHealthText();
+      _layoutText();
       return;
     }
     final double fps = _fpsFrames / _fpsElapsed;
     _fpsText.text = 'FPS: ${fps.toStringAsFixed(0)}';
+    _fpsText.textRenderer = TextPaint(
+      style: fpsTextStyle.copyWith(color: fpsColor(fps)),
+    );
     _fpsElapsed = 0;
     _fpsFrames = 0;
+    _syncHealthText();
+    _layoutText();
   }
 
   @override
@@ -73,18 +81,40 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     final CharacterDebugState? debugState = game.characterDebugState.value;
     if (debugState == null) {
       _nameText.text = '-';
-      _detailsText.text = 'Seed: -\nColor: -';
+      _healthText.text = 'Health: -';
       _layoutText();
       return;
     }
     _nameText.text = debugState.profile.name.display;
-    _detailsText.text =
-        'Seed: ${debugState.seedCode}\nColor: ${debugState.profile.colorHex}';
+    _syncHealthText();
     _layoutText();
   }
 
+  void _syncHealthText() {
+    final int? remainingHealth = game.playerRemainingHealth;
+    final int? maxHealth = game.playerMaxHealth;
+    if (remainingHealth == null || maxHealth == null) {
+      _healthText.text = 'Health: -';
+      return;
+    }
+    _healthText.text = 'Health: $remainingHealth/$maxHealth';
+  }
+
   void _layoutText() {
-    _detailsText.position = Vector2(0, _nameText.size.y + 4);
-    _fpsText.position = Vector2(0, _nameText.size.y + _detailsText.size.y + 8);
+    _healthText.position = Vector2(0, _nameText.size.y + 4);
+    _fpsText.position = Vector2(game.size.x - 16, 16);
+  }
+
+  static Color fpsColor(double fps) {
+    if (fps <= 30) {
+      return const Color(0xFFF44336);
+    }
+    if (fps <= 60) {
+      return const Color(0xFFFF9800);
+    }
+    if (fps <= 90) {
+      return const Color(0xFFFFEB3B);
+    }
+    return const Color(0xFF4CAF50);
   }
 }

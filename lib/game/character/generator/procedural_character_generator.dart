@@ -10,6 +10,8 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
     : _pools = pools;
 
   static const int _traitPrecision = 1000;
+  static const int _minHealth = 60;
+  static const int _maxHealth = 150;
 
   final CharacterPools _pools;
 
@@ -28,6 +30,7 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
     final double speedMultiplier = _rollTrait(rng: rng, min: 0.7, max: 1.5);
     final double sizeMultiplier = _rollTrait(rng: rng, min: 0.8, max: 1.25);
     final double intelligence = _rollTrait(rng: rng, min: 0.5, max: 2.0);
+    final int health = _rollHealth(rng);
 
     return CharacterProfile(
       name: CharacterName(adjective: adjective, noun: noun, batch: batch),
@@ -37,8 +40,13 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
         speed: speedMultiplier,
         size: sizeMultiplier,
         intelligence: intelligence,
+        health: health,
       ),
     );
+  }
+
+  int _rollHealth(SeededRng rng) {
+    return _minHealth + rng.nextInt(_maxHealth - _minHealth + 1);
   }
 
   double _rollTrait({

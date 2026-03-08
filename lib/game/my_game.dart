@@ -69,6 +69,7 @@ class MyGame extends FlameGame<WorldRoot>
   Random get random => _random;
 
   late final PlayerComponent _player;
+  bool _isPlayerReady = false;
   late final GameCameraController _cameraController;
   int _profileRequestId = 0;
   String _characterSeedCode;
@@ -78,6 +79,9 @@ class MyGame extends FlameGame<WorldRoot>
   String get characterSeedCode => _characterSeedCode;
   CharacterProfile? get generatedCharacterProfile =>
       characterDebugState.value?.profile;
+  int? get playerRemainingHealth =>
+      _isPlayerReady ? _player.remainingHealth : null;
+  int? get playerMaxHealth => _isPlayerReady ? _player.maxHealth : null;
 
   @override
   Future<void> onLoad() async {
@@ -102,6 +106,7 @@ class MyGame extends FlameGame<WorldRoot>
       sizeMultiplier: initialState.profile.traits.size ?? 1,
       intelligence: initialState.profile.traits.intelligence ?? 1,
     );
+    _isPlayerReady = true;
 
     final flies = List.generate(
       10,
