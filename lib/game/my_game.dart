@@ -259,6 +259,7 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     phase.value = GamePhase.playing;
+    inputState.clearPausePressed();
     resumeEngine();
     overlays
       ..remove(AppOverlays.pause)
