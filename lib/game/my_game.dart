@@ -109,6 +109,7 @@ class MyGame extends FlameGame<WorldRoot>
     await images.load('refresh_logo.png');
     await images.load('water_lily.png');
     await images.load('water_lily.png');
+    await images.load('plank_dark.png');
     await images.load('plank.png');
     await images.load('plank.png');
     await images.load('eggs.png');
@@ -328,5 +329,5 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   @override
-  bool get debugMode => true;
+  bool get debugMode => false;
 }

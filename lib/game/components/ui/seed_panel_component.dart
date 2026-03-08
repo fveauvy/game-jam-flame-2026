@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class SeedPanelComponent extends SpriteButtonComponent
-    with HasGameReference<MyGame>, HoverCallbacks {
+    with HasGameReference<MyGame>, HoverCallbacks, TapCallbacks {
   SeedPanelComponent({
     Anchor anchor = Anchor.center,
     required Vector2 position,
@@ -24,9 +24,6 @@ class SeedPanelComponent extends SpriteButtonComponent
     await super.onLoad();
 
     button = Sprite(game.images.fromCache('plank.png'));
-    onPressed = () async {
-      await onReroll();
-    };
 
     _seedText = TextComponent(
       text: game.characterGenerationState.value?.seedCode ?? "-",
@@ -49,19 +46,31 @@ class SeedPanelComponent extends SpriteButtonComponent
         position: size / 2,
         children: [
           _seedText,
-          SpriteButtonComponent(
-            button: Sprite(game.images.fromCache('refresh_logo.png')),
+          SpriteComponent(
+            sprite: Sprite(game.images.fromCache('refresh_logo.png')),
             size: Vector2(16, 16),
             // buttonDown: (game.images.fromCache('refresh_logo_down.png')),
             anchor: Anchor.center,
             position: size / 2 + Vector2(50, 0),
-            onPressed: () async {
-              await onReroll();
-            },
           ),
         ],
       ),
     );
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) async {
+    super.onTapDown(event);
+    scale = Vector2.all(.90);
+    button = Sprite(game.images.fromCache('plank_dark.png'));
+    await onReroll();
+  }
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    super.onTapUp(event);
+    button = Sprite(game.images.fromCache('plank.png'));
+    scale = Vector2.all(1.05);
   }
 
   @override
@@ -74,6 +83,7 @@ class SeedPanelComponent extends SpriteButtonComponent
   void onHoverExit() {
     super.onHoverExit();
     scale = Vector2.all(1.0);
+    button = Sprite(game.images.fromCache('plank.png'));
   }
 
   void _updateSeedText() {
