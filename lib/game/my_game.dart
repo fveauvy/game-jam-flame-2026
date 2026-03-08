@@ -67,9 +67,10 @@ class MyGame extends FlameGame<WorldRoot>
 
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
-  final Random _random;
+  late final Random _random;
+  late Random _randomSeeded;
 
-  Random get random => _random;
+  Random get random => _randomSeeded;
 
   late final PlayerComponent _player;
   late final WaterRippleComponent _waterRipple;
@@ -90,6 +91,8 @@ class MyGame extends FlameGame<WorldRoot>
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+
+    _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
 
     await images.load('plank.png');
     await images.load('water_lily.png');
