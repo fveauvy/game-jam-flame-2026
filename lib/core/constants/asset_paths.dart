@@ -33,6 +33,17 @@ abstract final class AssetPaths {
     return 'gronouy/frog-$number.png';
   }
 
+  static List<String> frogAnimatedSpriteCacheKey(int number) {
+    return [
+      'gronouy/frog-$number/Saut_1.png',
+      'gronouy/frog-$number/Saut_2.png',
+      'gronouy/frog-$number/ChillTerre.png',
+      'gronouy/frog-$number/ChillEau.png',
+      'gronouy/frog-$number/Nage1eau.png',
+      'gronouy/frog-$number/Nage2eau.png',
+    ];
+  }
+
   static String imageCacheKeyFromAssetPath(String path) {
     const String imageAssetPrefix = 'assets/images/';
     if (path.startsWith(imageAssetPrefix)) {
@@ -41,17 +52,21 @@ abstract final class AssetPaths {
     return path;
   }
 
+  static List<int> animatedFrogSpriteId = [14];
+
   static List<String> get preloadImageCacheKeys => <String>[
     plankCacheKey,
     waterLilyCacheKey,
     waterLilyAltCacheKey,
     flyCacheKey,
     eggsCacheKey,
-    ...List<String>.generate(
-      GameplayTuning.frogSpriteCount,
-      (int index) => frogSpriteCacheKey(index + 1),
-      growable: false,
-    ),
+    ...animatedFrogSpriteId.expand((id) => frogAnimatedSpriteCacheKey(id)),
+    ...List<String>.generate(GameplayTuning.frogSpriteCount, (int index) {
+      if (animatedFrogSpriteId.contains(index + 1)) {
+        return '';
+      }
+      return frogSpriteCacheKey(index + 1);
+    }, growable: false).where((path) => path.isNotEmpty),
   ];
 
   static List<String> get preloadAudioCacheKeys => <String>[splashAudioEffect];

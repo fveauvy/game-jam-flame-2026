@@ -6,7 +6,6 @@ import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
-import 'package:game_jam/core/constants/asset_paths.dart';
 import 'package:game_jam/core/constants/physics.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
@@ -14,11 +13,12 @@ import 'package:game_jam/game/components/allies/tadpole.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
+import 'package:game_jam/game/components/player/player_animation_extention.dart';
 import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
 
-class PlayerComponent extends CircleComponent
+class PlayerComponent extends SpriteAnimationComponent
     with HasGameReference<MyGame>, CollisionCallbacks, TapCallbacks {
   PlayerComponent({
     required this.inputState,
@@ -32,12 +32,12 @@ class PlayerComponent extends CircleComponent
        _baseSizeMultiplier = sizeMultiplier,
        super(
          position: startPosition.clone(),
-         radius: PhysicsTuning.playerBaseRadius,
+         size: Vector2.all(PhysicsTuning.playerBaseSize),
          anchor: Anchor.center,
          priority: 10,
-         paint: Paint()..color = Colors.transparent,
        ) {
     _applyStatsFromProfile();
+    previousPosition = inputState.playerVerticalPosition;
   }
 
   static const Duration _damageTextDuration = Duration(seconds: 1);
@@ -50,9 +50,6 @@ class PlayerComponent extends CircleComponent
   final double _baseSizeMultiplier;
 
   CharacterProfile _profile;
-  Sprite? _frogSprite;
-  late String _spriteCacheKey;
-  late final Paint _spritePaint;
   double _spriteOpacity = 1.0;
   CircleHitbox? _hitbox;
   late double _speedMultiplier;
@@ -61,6 +58,7 @@ class PlayerComponent extends CircleComponent
   late int _remainingHealth;
 
   PlayerVerticalPosition get levelPosition => inputState.playerVerticalPosition;
+  late PlayerVerticalPosition previousPosition;
   double get moveSpeed => PhysicsTuning.playerMoveSpeed;
 
   CharacterProfile get profile => _profile;
@@ -79,6 +77,9 @@ class PlayerComponent extends CircleComponent
   bool get _isTouchingGround => _groundContacts > 0;
   bool get _isTouchingLily => _lilyContacts > 0;
 
+  bool get _isMoving => velocity.length2 > 0;
+  bool _wasMoving = false;
+
   Vector2 get velocity =>
       normalizeMoveAxis(inputState.moveAxisX, inputState.moveAxisY);
 
@@ -91,19 +92,11 @@ class PlayerComponent extends CircleComponent
   @override
   Future<void> onMount() async {
     super.onMount();
-    _spritePaint = Paint();
-    _refreshSprite();
-    _hitbox = CircleHitbox(radius: radius);
+    paint = Paint()
+      ..color = Colors.white.withAlpha((_spriteOpacity * 255).toInt());
+    _hitbox = CircleHitbox(radius: size.x / 2);
+    animation = idleAnimation(levelPosition);
     await add(_hitbox!);
-  }
-
-  @override
-  void render(Canvas canvas) {
-    if (_frogSprite == null) {
-      super.render(canvas);
-      return;
-    }
-    _frogSprite!.render(canvas, size: size, overridePaint: _spritePaint);
   }
 
   static double _normalizeAngle(double value) {
@@ -128,8 +121,8 @@ class PlayerComponent extends CircleComponent
 
   void applyProfile(CharacterProfile profile) {
     _profile = profile;
-    _refreshSprite();
     _applyStatsFromProfile();
+    animation = idleAnimation(levelPosition);
   }
 
   void _applyStatsFromProfile() {
@@ -143,21 +136,8 @@ class PlayerComponent extends CircleComponent
     );
     _maxHealth = resolveMaxHealth(_profile);
     _remainingHealth = _maxHealth;
-    radius = PhysicsTuning.playerBaseRadius * _sizeMultiplier;
+    size = Vector2.all(PhysicsTuning.playerBaseSize * _sizeMultiplier);
     _syncHitbox();
-  }
-
-  void _refreshSprite() {
-    _spriteCacheKey = _cacheKeyFromAssetPath(_profile.spriteAssetPath);
-    if (!game.images.containsKey(_spriteCacheKey)) {
-      _frogSprite = null;
-      return;
-    }
-    _frogSprite = Sprite(game.images.fromCache(_spriteCacheKey));
-  }
-
-  String _cacheKeyFromAssetPath(String path) {
-    return AssetPaths.imageCacheKeyFromAssetPath(path);
   }
 
   void _syncHitbox() {
@@ -165,7 +145,7 @@ class PlayerComponent extends CircleComponent
     if (hitbox == null) {
       return;
     }
-    hitbox.radius = radius;
+    hitbox.radius = size.x / 2;
   }
 
   static int resolveMaxHealth(CharacterProfile profile) {
@@ -269,6 +249,18 @@ class PlayerComponent extends CircleComponent
       return;
     }
 
+    if (_isMoving) {
+      if (!_wasMoving || previousPosition != levelPosition) {
+        animation = moveAnimation(levelPosition);
+      }
+    } else {
+      if (_wasMoving || previousPosition != levelPosition) {
+        animation = idleAnimation(levelPosition);
+      }
+    }
+    _wasMoving = _isMoving;
+    previousPosition = levelPosition;
+
     position +=
         velocity * PhysicsTuning.playerMoveSpeed * _speedMultiplier * dt;
 
@@ -307,18 +299,22 @@ class PlayerComponent extends CircleComponent
     switch (levelPosition) {
       case PlayerVerticalPosition.land:
         _spriteOpacity = PhysicsTuning.landOpacity;
-        radius = PhysicsTuning.playerBaseRadius * _sizeMultiplier * 1.1;
+        size = Vector2.all(
+          PhysicsTuning.playerBaseSize * _sizeMultiplier * 1.1,
+        );
         break;
       case PlayerVerticalPosition.waterLevel:
         _spriteOpacity = PhysicsTuning.waterOpacity;
-        radius = PhysicsTuning.playerBaseRadius * _sizeMultiplier;
+        size = Vector2.all(PhysicsTuning.playerBaseSize * _sizeMultiplier);
         break;
       case PlayerVerticalPosition.underwater:
         _spriteOpacity = PhysicsTuning.underwaterOpacity;
-        radius = PhysicsTuning.playerBaseRadius * _sizeMultiplier * 0.9;
+        size = Vector2.all(
+          PhysicsTuning.playerBaseSize * _sizeMultiplier * 0.9,
+        );
         break;
     }
-    _spritePaint.color = Colors.white.withValues(alpha: _spriteOpacity);
+    paint.color = Colors.white.withValues(alpha: _spriteOpacity);
     _syncHitbox();
   }
 
