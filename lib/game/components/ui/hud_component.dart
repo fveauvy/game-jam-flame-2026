@@ -26,10 +26,12 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     text: '-',
     textRenderer: TextPaint(style: nameTextStyle),
   );
+
   late final TextComponent _detailsText = TextComponent(
     text: 'Seed: -\nColor: -',
     textRenderer: TextPaint(style: detailsTextStyle),
   );
+
   late final TextComponent _fpsText = TextComponent(
     text: 'FPS: -',
     textRenderer: TextPaint(style: fpsTextStyle),

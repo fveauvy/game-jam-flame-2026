@@ -38,6 +38,7 @@ class _GameJamAppState extends State<GameJamApp> {
         ),
         useMaterial3: true,
       ),
+
       home: Scaffold(
         body: ValueListenableBuilder<GamePhase>(
           valueListenable: _game.phase,
@@ -62,20 +63,29 @@ class _GameJamAppState extends State<GameJamApp> {
                   },
                 ),
                 if (phase == GamePhase.menu)
-                  Positioned.fromRelativeRect(
-                    rect: const RelativeRect.fromLTRB(200, 100, 200, 100),
-                    child: ValueListenableBuilder<CharacterDebugState?>(
-                      valueListenable: _game.characterDebugState,
-                      builder: (_, CharacterDebugState? debugState, _) {
-                        return MenuScreen(
-                          onStart: _game.startGame,
-                          onReroll: () async {
-                            await _game.rerollCharacter();
-                          },
-                          debugState: debugState,
-                        );
-                      },
-                    ),
+                  ValueListenableBuilder<CharacterDebugState?>(
+                    valueListenable: _game.characterDebugState,
+                    builder: (_, CharacterDebugState? debugState, _) {
+                      String seed = debugState?.seedCode ?? '-';
+                      final inputController = TextEditingController(text: seed);
+                      void onInputChange(String value) {
+                        if (value.length == 5) {
+                          debugPrint('Seed submitted: ${inputController.text}');
+                          seed = inputController.text;
+                        }
+                      }
+
+                      return MenuScreen(
+                        onReroll: () async {
+                          await _game.rerollCharacter();
+                        },
+                        viewPortSize: _game.camera.viewport.size,
+                        inputController: inputController,
+                        onInputChange: onInputChange,
+                        onStart: _game.startGame,
+                        debugState: debugState,
+                      );
+                    },
                   ),
               ],
             );

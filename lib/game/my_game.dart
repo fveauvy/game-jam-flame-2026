@@ -28,7 +28,7 @@ import 'package:game_jam/game/systems/spawn_system.dart';
 import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
-enum GamePhase { menu, playing, paused, gameOver }
+enum GamePhase { menu, playing, paused, gameOver, loading }
 
 class MyGame extends FlameGame<WorldRoot>
     with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
@@ -57,10 +57,14 @@ class MyGame extends FlameGame<WorldRoot>
   late final TouchController touchController;
   late final GamepadInput gamepadInput;
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
-    GamePhase.menu,
+    GamePhase.loading,
   );
   final ValueNotifier<CharacterDebugState?> characterDebugState =
       ValueNotifier<CharacterDebugState?>(null);
+  final ValueNotifier<Vector2> viewportSize = ValueNotifier<Vector2>(
+    Vector2.zero(),
+  );
+  final ValueNotifier<bool> menuVisible = ValueNotifier<bool>(false);
 
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
@@ -91,6 +95,7 @@ class MyGame extends FlameGame<WorldRoot>
     final CharacterDebugState initialState = await _buildDebugState(
       seedCode: _characterSeedCode,
     );
+
     characterDebugState.value = initialState;
 
     _level = GeneratedLevel();
@@ -121,11 +126,15 @@ class MyGame extends FlameGame<WorldRoot>
       CollisionSystem(),
       ...flies,
     ]);
+
     world.bindPlayer(_player);
+
     await camera.viewport.add(HudComponent());
+
     keyboardInput = KeyboardInput(inputState);
     touchController = TouchController(inputState);
     gamepadInput = GamepadInput(inputState);
+
     // Initialize gamepad input
     await gamepadInput.initialize();
 
@@ -136,6 +145,18 @@ class MyGame extends FlameGame<WorldRoot>
       viewportSize: Vector2(GameConfig.baseWidth, GameConfig.baseHeight),
     );
     _cameraController.attach();
+
+    overlays
+      ..remove(AppOverlays.gameOver)
+      ..remove(AppOverlays.pause);
+
+    phase.value = GamePhase.menu;
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    viewportSize.value = size;
   }
 
   Future<CharacterProfile> generateCharacterProfile({
