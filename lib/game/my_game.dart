@@ -98,8 +98,22 @@ class MyGame extends FlameGame<WorldRoot>
 
     await FlameAudio.audioCache.loadAll(['sound_effects/whawhawhawhoua.wav']);
 
+    final List<int> animatedIds = [14];
+    for (int i in animatedIds) {
+      await images.loadAll([
+        'gronouy/frog-$i/Saut_1.png',
+        'gronouy/frog-$i/Saut_2.png',
+        'gronouy/frog-$i/ChillTerre.png',
+        'gronouy/frog-$i/ChillEau.png',
+        'gronouy/frog-$i/Nage1eau.png',
+        'gronouy/frog-$i/Nage2eau.png',
+      ]);
+    }
+
     for (int i = 1; i <= 30; i++) {
-      await images.load('gronouy/frog-$i.png');
+      if (!animatedIds.contains(i)) {
+        await images.load('gronouy/frog-$i.png');
+      }
     }
     _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
     await images.load('plank.png');
@@ -107,6 +121,7 @@ class MyGame extends FlameGame<WorldRoot>
     await images.load('water_lily_1.png');
     await images.load('fly.png');
     await images.load('eggs.png');
+    await images.load('Saut.png');
 
     final CharacterGenerationState initialState =
         await _buildCharacterGenerationState(seedCode: _characterSeedCode);

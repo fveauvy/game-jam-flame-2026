@@ -12,11 +12,12 @@ import 'package:game_jam/game/components/allies/tadpole.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
+import 'package:game_jam/game/components/player/player_animation_extention.dart';
 import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
 
-class PlayerComponent extends CircleComponent
+class PlayerComponent extends SpriteAnimationComponent
     with HasGameReference<MyGame>, CollisionCallbacks, TapCallbacks {
   PlayerComponent({
     required this.inputState,
@@ -30,12 +31,12 @@ class PlayerComponent extends CircleComponent
        _baseSizeMultiplier = sizeMultiplier,
        super(
          position: startPosition.clone(),
-         radius: 48,
+         size: Vector2.all(48),
          anchor: Anchor.center,
          priority: 10,
-         paint: Paint()..color = Colors.transparent,
        ) {
     _applyStatsFromProfile();
+    previousPosition = inputState.playerType;
   }
 
   static const Duration _damageTextDuration = Duration(seconds: 1);
@@ -48,8 +49,6 @@ class PlayerComponent extends CircleComponent
   final double _baseSizeMultiplier;
 
   CharacterProfile _profile;
-  Sprite? _frogSprite;
-  late String _spriteCacheKey;
   late final Paint _spritePaint;
   double _spriteOpacity = 1.0;
   CircleHitbox? _hitbox;
@@ -62,6 +61,7 @@ class PlayerComponent extends CircleComponent
   static const double _rotationSpeed = 30;
 
   PlayerType get levelPosition => inputState.playerType;
+  late PlayerType previousPosition;
   double get moveSpeed => _moveSpeed;
 
   CharacterProfile get profile => _profile;
@@ -70,6 +70,9 @@ class PlayerComponent extends CircleComponent
 
   bool _isDamageTextVisible = false;
   bool isInWater = false;
+
+  bool get _isMoving => velocity.length2 > 0;
+  bool _wasMoving = false;
 
   Vector2 get velocity =>
       normalizeMoveAxis(inputState.moveAxisX, inputState.moveAxisY);
@@ -84,18 +87,22 @@ class PlayerComponent extends CircleComponent
   Future<void> onMount() async {
     super.onMount();
     _spritePaint = Paint();
-    _refreshSprite();
-    _hitbox = CircleHitbox(radius: radius);
+    _hitbox = CircleHitbox(radius: size.x);
     await add(_hitbox!);
   }
 
   @override
-  void render(Canvas canvas) {
-    if (_frogSprite == null) {
-      super.render(canvas);
-      return;
-    }
-    _frogSprite!.render(canvas, size: size, overridePaint: _spritePaint);
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    animation = idleAnimation(levelPosition);
+  }
+
+  Future<void> onMount() async {
+    await super.onMount();
+    _spritePaint = Paint();
+    _hitbox = CircleHitbox(radius: size.x);
+    await add(_hitbox!);
   }
 
   static double _normalizeAngle(double value) {
@@ -120,7 +127,6 @@ class PlayerComponent extends CircleComponent
 
   void applyProfile(CharacterProfile profile) {
     _profile = profile;
-    _refreshSprite();
     _applyStatsFromProfile();
   }
 
@@ -135,25 +141,8 @@ class PlayerComponent extends CircleComponent
     );
     _maxHealth = resolveMaxHealth(_profile);
     _remainingHealth = _maxHealth;
-    radius = 48 * _sizeMultiplier;
+    size = Vector2.all(48 * _sizeMultiplier);
     _syncHitbox();
-  }
-
-  void _refreshSprite() {
-    _spriteCacheKey = _cacheKeyFromAssetPath(_profile.spriteAssetPath);
-    if (!game.images.containsKey(_spriteCacheKey)) {
-      _frogSprite = null;
-      return;
-    }
-    _frogSprite = Sprite(game.images.fromCache(_spriteCacheKey));
-  }
-
-  String _cacheKeyFromAssetPath(String path) {
-    const String prefix = 'assets/images/';
-    if (path.startsWith(prefix)) {
-      return path.substring(prefix.length);
-    }
-    return path;
   }
 
   void _syncHitbox() {
@@ -161,7 +150,7 @@ class PlayerComponent extends CircleComponent
     if (hitbox == null) {
       return;
     }
-    hitbox.radius = radius;
+    hitbox.radius = size.x;
   }
 
   static int resolveMaxHealth(CharacterProfile profile) {
@@ -191,6 +180,18 @@ class PlayerComponent extends CircleComponent
       return;
     }
 
+    if (_isMoving) {
+      if (!_wasMoving || previousPosition != levelPosition) {
+        animation = moveAnimation(levelPosition);
+      }
+    } else {
+      if (_wasMoving || previousPosition != levelPosition) {
+        animation = idleAnimation(levelPosition);
+      }
+    }
+    _wasMoving = _isMoving;
+    previousPosition = levelPosition;
+
     position += velocity * _moveSpeed * _speedMultiplier * dt;
 
     final double targetAngle = velocity.screenAngle();
@@ -211,15 +212,15 @@ class PlayerComponent extends CircleComponent
     switch (levelPosition) {
       case PlayerType.land:
         _spriteOpacity = 1.0;
-        radius = 48 * _sizeMultiplier * 1.1;
+        size = Vector2.all(48 * _sizeMultiplier * 1.1);
         break;
       case PlayerType.middle:
         _spriteOpacity = 0.7;
-        radius = 48 * _sizeMultiplier;
+        size = Vector2.all(48 * _sizeMultiplier);
         break;
       case PlayerType.water:
         _spriteOpacity = 0.4;
-        radius = 48 * _sizeMultiplier * 0.9;
+        size = Vector2.all(48 * _sizeMultiplier * 0.9);
         break;
     }
     _spritePaint.color = Colors.white.withValues(alpha: _spriteOpacity);
