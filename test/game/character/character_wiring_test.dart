@@ -44,7 +44,7 @@ void main() {
     },
   );
 
-  test('setCharacterSeedCode updates current debug state', () async {
+  test('setCharacterSeedCode updates current generation state', () async {
     final CharacterProfile profile = const CharacterProfile(
       name: CharacterName(adjective: 'Tiny', noun: 'Froglet', batch: ''),
       colorId: 'moss',
@@ -55,9 +55,12 @@ void main() {
 
     await game.setCharacterSeedCode('4SFE6');
 
-    expect(game.characterDebugState.value, isNotNull);
-    expect(game.characterDebugState.value!.seedCode, '4SFE6');
-    expect(game.characterDebugState.value!.seedInt, SeedCode.decode('4SFE6'));
-    expect(game.characterDebugState.value!.profile, profile);
+    expect(game.characterGenerationState.value, isNotNull);
+    expect(game.characterGenerationState.value!.seedCode, '4SFE6');
+    expect(
+      game.characterGenerationState.value!.seedInt,
+      SeedCode.decode('4SFE6'),
+    );
+    expect(game.characterGenerationState.value!.profile, profile);
   });
 }

@@ -13,7 +13,7 @@ import 'package:game_jam/game/character/generator/character_generator.dart';
 import 'package:game_jam/game/character/generator/procedural_character_generator.dart';
 import 'package:game_jam/game/character/infra/json_character_pools_repository.dart';
 import 'package:game_jam/game/character/infra/seed_code.dart';
-import 'package:game_jam/game/character/model/character_debug_state.dart';
+import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
@@ -61,8 +61,8 @@ class MyGame extends FlameGame<WorldRoot>
   );
   final ValueNotifier<CharacterProfile?> characterState =
       ValueNotifier<CharacterProfile?>(null);
-  final ValueNotifier<CharacterDebugState?> characterDebugState =
-      ValueNotifier<CharacterDebugState?>(null);
+  final ValueNotifier<CharacterGenerationState?> characterGenerationState =
+      ValueNotifier<CharacterGenerationState?>(null);
 
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
@@ -93,10 +93,9 @@ class MyGame extends FlameGame<WorldRoot>
     await images.load('water_lily_1.png');
     await images.load('fly.png');
 
-    final CharacterDebugState initialState = await _buildDebugState(
-      seedCode: _characterSeedCode,
-    );
-    characterDebugState.value = initialState;
+    final CharacterGenerationState initialState =
+        await _buildCharacterGenerationState(seedCode: _characterSeedCode);
+    characterGenerationState.value = initialState;
     characterState.value = initialState.profile;
 
     _level = GeneratedLevel();
@@ -163,15 +162,14 @@ class MyGame extends FlameGame<WorldRoot>
   Future<void> setCharacterSeedCode(String seedCode) async {
     final String normalizedCode = SeedCode.normalize(seedCode);
     final int requestId = ++_profileRequestId;
-    final CharacterDebugState nextState = await _buildDebugState(
-      seedCode: normalizedCode,
-    );
+    final CharacterGenerationState nextState =
+        await _buildCharacterGenerationState(seedCode: normalizedCode);
     if (requestId != _profileRequestId) {
       return;
     }
 
     _characterSeedCode = normalizedCode;
-    characterDebugState.value = nextState;
+    characterGenerationState.value = nextState;
     characterState.value = nextState.profile;
     if (isLoaded) {
       _player.applyProfile(nextState.profile);
@@ -195,7 +193,7 @@ class MyGame extends FlameGame<WorldRoot>
     await setCharacterSeedCode(nextCode);
   }
 
-  Future<CharacterDebugState> _buildDebugState({
+  Future<CharacterGenerationState> _buildCharacterGenerationState({
     required String seedCode,
   }) async {
     final String normalizedCode = SeedCode.normalize(seedCode);
@@ -203,7 +201,7 @@ class MyGame extends FlameGame<WorldRoot>
     final CharacterProfile profile = await generateCharacterProfile(
       seedCode: normalizedCode,
     );
-    return CharacterDebugState(
+    return CharacterGenerationState(
       seedCode: normalizedCode,
       seedInt: seedInt,
       profile: profile,
