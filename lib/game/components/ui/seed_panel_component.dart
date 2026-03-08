@@ -1,17 +1,19 @@
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/experimental.dart';
 import 'package:flame/input.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class SeedPanelComponent extends SpriteButtonComponent
-    with HasGameReference<MyGame> {
+    with HasGameReference<MyGame>, HoverCallbacks {
   SeedPanelComponent({
-    Anchor anchor = Anchor.topLeft,
+    Anchor anchor = Anchor.center,
+    required Vector2 position,
     required this.onReroll,
     required this.onStart,
     required Vector2 size,
-  }) : super(anchor: anchor, size: size);
+  }) : super(anchor: anchor, size: size, position: position);
 
   late final TextComponent _seedText;
   final Future<void> Function() onReroll;
@@ -60,6 +62,18 @@ class SeedPanelComponent extends SpriteButtonComponent
         ],
       ),
     );
+  }
+
+  @override
+  void onHoverEnter() {
+    super.onHoverEnter();
+    scale = Vector2.all(1.05);
+  }
+
+  @override
+  void onHoverExit() {
+    super.onHoverExit();
+    scale = Vector2.all(1.0);
   }
 
   void _updateSeedText() {

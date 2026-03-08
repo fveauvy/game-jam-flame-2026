@@ -66,6 +66,7 @@ class MenuComponent extends PositionComponent
             size: Vector2(menuSize.x * 0.8, menuSize.y * 0.4),
             onReroll: onReroll,
             onStart: onStart,
+            position: Vector2(menuSize.x / 2, menuSize.y / 2),
           ),
         ],
       ),

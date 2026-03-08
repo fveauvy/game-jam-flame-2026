@@ -298,5 +298,5 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   @override
-  bool get debugMode => false;
+  bool get debugMode => true;
 }
