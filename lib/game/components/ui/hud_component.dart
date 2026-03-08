@@ -1,6 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
-import 'package:game_jam/game/character/model/character_debug_state.dart';
+import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class HudComponent extends PositionComponent with HasGameReference<MyGame> {
@@ -15,7 +15,11 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
       color: Color(0xFFFFFFFF),
       fontSize: 14,
     ),
-    this.fpsTextStyle = const TextStyle(color: Color(0xFFFFFFFF), fontSize: 12),
+    this.fpsTextStyle = const TextStyle(
+      color: Color(0xFFFFFFFF),
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+    ),
   }) : super(position: position ?? Vector2(16, 16), priority: 100);
 
   final TextStyle nameTextStyle;
@@ -43,8 +47,8 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
   Future<void> onLoad() async {
     await super.onLoad();
     await addAll([_nameText, _healthText, _fpsText]);
-    game.characterDebugState.addListener(_syncDebugText);
-    _syncDebugText();
+    game.characterState.addListener(_syncCharacterText);
+    _syncCharacterText();
   }
 
   @override
@@ -73,19 +77,19 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
 
   @override
   void onRemove() {
-    game.characterDebugState.removeListener(_syncDebugText);
+    game.characterState.removeListener(_syncCharacterText);
     super.onRemove();
   }
 
-  void _syncDebugText() {
-    final CharacterDebugState? debugState = game.characterDebugState.value;
-    if (debugState == null) {
+  void _syncCharacterText() {
+    final CharacterProfile? profile = game.characterState.value;
+    if (profile == null) {
       _nameText.text = '-';
       _healthText.text = 'Health: -';
       _layoutText();
       return;
     }
-    _nameText.text = debugState.profile.name.display;
+    _nameText.text = profile.name.display;
     _syncHealthText();
     _layoutText();
   }

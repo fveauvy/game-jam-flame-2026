@@ -1,31 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
-import 'package:game_jam/game/character/model/character_debug_state.dart';
+import 'package:game_jam/game/character/model/character_profile.dart';
 
 class PauseOverlay extends StatelessWidget {
   const PauseOverlay({
     super.key,
     required this.onResume,
-    required this.debugState,
+    required this.seedCode,
+    required this.characterProfile,
     required this.currentHealth,
     required this.maxHealth,
   });
 
   final VoidCallback onResume;
-  final CharacterDebugState? debugState;
+  final String seedCode;
+  final CharacterProfile? characterProfile;
   final int? currentHealth;
   final int? maxHealth;
 
   @override
   Widget build(BuildContext context) {
-    final String seedCode = debugState?.seedCode ?? '-';
-    final String name = debugState?.profile.name.display ?? '-';
+    final String name = characterProfile?.name.display ?? '-';
     final String intelligence =
-        debugState?.profile.traits.intelligence?.toStringAsFixed(2) ?? '-';
+        characterProfile?.traits.intelligence?.toStringAsFixed(2) ?? '-';
     final String speed =
-        debugState?.profile.traits.speed?.toStringAsFixed(2) ?? '-';
+        characterProfile?.traits.speed?.toStringAsFixed(2) ?? '-';
     final String size =
-        debugState?.profile.traits.size?.toStringAsFixed(2) ?? '-';
+        characterProfile?.traits.size?.toStringAsFixed(2) ?? '-';
     final String health = currentHealth == null || maxHealth == null
         ? '-'
         : '$currentHealth/$maxHealth';
