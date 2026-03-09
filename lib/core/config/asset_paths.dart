@@ -38,12 +38,11 @@ abstract final class AssetPaths {
 
   static List<String> frogAnimatedSpriteCacheKey(int number) {
     return [
-      'gronouy/frog-$number/Saut_1.png',
-      'gronouy/frog-$number/Saut_2.png',
-      'gronouy/frog-$number/ChillTerre.png',
-      'gronouy/frog-$number/ChillEau.png',
-      'gronouy/frog-$number/Nage1eau.png',
-      'gronouy/frog-$number/Nage2eau.png',
+      'gronouy/frog-$number/Saut1.png',
+      'gronouy/frog-$number/Saut2.png',
+      'gronouy/frog-$number/Chill.png',
+      'gronouy/frog-$number/Nage1.png',
+      'gronouy/frog-$number/Nage2.png',
     ];
   }
 
@@ -55,7 +54,7 @@ abstract final class AssetPaths {
     return path;
   }
 
-  static List<int> animatedFrogSpriteId = [14];
+  static List<int> animatedFrogSpriteId = [10, 11, 12, 13, 14];
 
   static List<String> get preloadImageCacheKeys => <String>[
     plankCacheKey,
