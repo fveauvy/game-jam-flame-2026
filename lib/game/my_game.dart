@@ -94,6 +94,7 @@ class MyGame extends FlameGame<WorldRoot>
   String _characterSeedCode;
   int _menuNavDirection = 0;
   double _menuNavRepeatTimer = 0;
+  bool _bgmStarted = false;
 
   late GeneratedLevel _level;
 
@@ -110,7 +111,6 @@ class MyGame extends FlameGame<WorldRoot>
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await FlameAudio.bgm.play('mud-ambient.mp3', volume: .25);
 
     _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
 
@@ -141,8 +141,8 @@ class MyGame extends FlameGame<WorldRoot>
       initialSize: Vector2.all(100),
     );
 
+    await world.add(_level);
     await world.addAll([
-      _level,
       ..._waterRipples,
       ..._playerList,
       SpawnSystem(),
@@ -335,19 +335,29 @@ class MyGame extends FlameGame<WorldRoot>
     return List<Egg>.generate(
       GameplayTuning.initialEggCount,
       (int index) => Egg(
-        position: Vector2(
-          (random.nextDouble() * GameConfig.worldSize.x).clamp(
-            PhysicsTuning.playerBaseSize,
-            GameConfig.worldSize.x - PhysicsTuning.playerBaseSize,
-          ),
-          (random.nextDouble() * GameConfig.worldSize.y).clamp(
-            PhysicsTuning.playerBaseSize,
-            GameConfig.worldSize.y - PhysicsTuning.playerBaseSize,
-          ),
-        ),
+        position: _randomEggPosition(),
         size: Vector2.all(GameplayTuning.worldPickupSize),
       ),
     );
+  }
+
+  Vector2 _randomEggPosition() {
+    for (int i = 0; i < GameplayTuning.eggSpawnMaxRetries; i++) {
+      final Vector2 candidate = Vector2(
+        (random.nextDouble() * GameConfig.worldSize.x).clamp(
+          PhysicsTuning.playerBaseSize,
+          GameConfig.worldSize.x - PhysicsTuning.playerBaseSize,
+        ),
+        (random.nextDouble() * GameConfig.worldSize.y).clamp(
+          PhysicsTuning.playerBaseSize,
+          GameConfig.worldSize.y - PhysicsTuning.playerBaseSize,
+        ),
+      );
+      if (!_level.isPositionOnThorn(candidate)) {
+        return candidate;
+      }
+    }
+    return GameConfig.playerSpawn.clone();
   }
 
   Future<void> _resetWorldPopulation() async {
@@ -556,6 +566,8 @@ class MyGame extends FlameGame<WorldRoot>
       return;
     }
 
+    _startBgmIfNeeded();
+
     // Hide the menu and remove non-selected candidates when the game starts.
     if (phase.value == GamePhase.menu) {
       if (isLoaded && _menu.parent != null) {
@@ -582,6 +594,19 @@ class MyGame extends FlameGame<WorldRoot>
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.pause)
       ..add(AppOverlays.touchControls);
+  }
+
+  void _startBgmIfNeeded() {
+    if (_bgmStarted) {
+      return;
+    }
+    _bgmStarted = true;
+    unawaited(
+      FlameAudio.bgm.play('mud-ambient.mp3', volume: .25).catchError((error) {
+        _bgmStarted = false;
+        debugPrint('[audio] bgm start failed: $error');
+      }),
+    );
   }
 
   void togglePause() {

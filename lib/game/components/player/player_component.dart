@@ -4,6 +4,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
+import 'package:flame/particles.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
@@ -11,6 +12,7 @@ import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/components/allies/tadpole.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
+import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
 import 'package:game_jam/game/components/player/player_animation_extention.dart';
@@ -73,6 +75,9 @@ class PlayerComponent extends SpriteAnimationComponent
   bool _jumpActive = false;
   double _jumpElapsed = 0;
   Vector2 _jumpDirection = Vector2.zero();
+  final Vector2 _thornKnockbackVelocity = Vector2.zero();
+  double _thornInvincibilityRemaining = 0;
+  double _thornFlickerElapsed = 0;
 
   bool get _isTouchingGround => _groundContacts > 0;
   bool get _isTouchingLily => _lilyContacts > 0;
@@ -175,6 +180,41 @@ class PlayerComponent extends SpriteAnimationComponent
     return intelligence >= 1.7;
   }
 
+  static double nextThornInvincibilityRemaining({
+    required double current,
+    required double dt,
+  }) {
+    return (current - dt).clamp(0.0, PhysicsTuning.thornInvincibilitySeconds);
+  }
+
+  static bool shouldUseThornFlickerLowOpacity({
+    required double thornInvincibilityRemaining,
+    required double thornFlickerElapsed,
+  }) {
+    if (thornInvincibilityRemaining <= 0) {
+      return false;
+    }
+    return (thornFlickerElapsed / PhysicsTuning.thornFlickerStepSeconds)
+        .floor()
+        .isEven;
+  }
+
+  static Vector2 resolveThornKnockbackDirection({
+    required Vector2 playerCenter,
+    required Vector2 collisionMidpoint,
+    Vector2? thornCenter,
+  }) {
+    final Vector2 collisionNormal = playerCenter - collisionMidpoint;
+    if (collisionNormal.length2 == 0 && thornCenter != null) {
+      collisionNormal.setFrom(playerCenter - thornCenter);
+    }
+    if (collisionNormal.length2 == 0) {
+      collisionNormal.setValues(0, -1);
+    }
+    collisionNormal.normalize();
+    return collisionNormal;
+  }
+
   static PlayerVerticalPosition resolveVerticalPosition({
     required PlayerVerticalPosition current,
     required bool isInWater,
@@ -252,6 +292,12 @@ class PlayerComponent extends SpriteAnimationComponent
   @override
   void update(double dt) {
     super.update(dt);
+    _thornInvincibilityRemaining = nextThornInvincibilityRemaining(
+      current: _thornInvincibilityRemaining,
+      dt: dt,
+    );
+    _thornFlickerElapsed += dt;
+
     if (game.phase.value != GamePhase.playing) {
       return;
     }
@@ -291,6 +337,15 @@ class PlayerComponent extends SpriteAnimationComponent
         _speedMultiplier *
         dt *
         (hopScale * 1.5);
+    position += _thornKnockbackVelocity * dt;
+    _thornKnockbackVelocity.scale(
+      (1 - (PhysicsTuning.thornKnockbackDrag * dt)).clamp(0.0, 1.0),
+    );
+    if (_thornKnockbackVelocity.length2 <=
+        PhysicsTuning.thornKnockbackMinSpeed *
+            PhysicsTuning.thornKnockbackMinSpeed) {
+      _thornKnockbackVelocity.setZero();
+    }
     _wasMoving = _isMoving;
 
     final double targetAngle = velocity.screenAngle();
@@ -343,13 +398,23 @@ class PlayerComponent extends SpriteAnimationComponent
         );
         break;
     }
-    paint.color = Colors.white.withValues(alpha: _spriteOpacity);
+    final bool isFlickerLow = shouldUseThornFlickerLowOpacity(
+      thornInvincibilityRemaining: _thornInvincibilityRemaining,
+      thornFlickerElapsed: _thornFlickerElapsed,
+    );
+    final double targetOpacity = isFlickerLow
+        ? PhysicsTuning.thornFlickerLowOpacity
+        : _spriteOpacity;
+    paint.color = Colors.white.withValues(alpha: targetOpacity);
     _syncHitbox();
   }
 
   void reset() {
     position.setFrom(_startPosition);
     _remainingHealth = _maxHealth;
+    _thornKnockbackVelocity.setZero();
+    _thornInvincibilityRemaining = 0;
+    _thornFlickerElapsed = 0;
     _waterContacts = 0;
     _groundContacts = 0;
     _lilyContacts = 0;
@@ -391,6 +456,100 @@ class PlayerComponent extends SpriteAnimationComponent
     });
   }
 
+  Vector2 _resolveCollisionMidpoint(Set<Vector2> intersectionPoints) {
+    if (intersectionPoints.isEmpty) {
+      return absoluteCenter.clone();
+    }
+    Vector2 sum = Vector2.zero();
+    for (final Vector2 point in intersectionPoints) {
+      sum += point;
+    }
+    return sum / intersectionPoints.length.toDouble();
+  }
+
+  void _applyThornImpact(
+    Set<Vector2> intersectionPoints,
+    ThornComponent thorn,
+  ) {
+    final Vector2 collisionMid = _resolveCollisionMidpoint(intersectionPoints);
+    final Vector2 collisionNormal = resolveThornKnockbackDirection(
+      playerCenter: absoluteCenter,
+      collisionMidpoint: collisionMid,
+      thornCenter: thorn.absoluteCenter,
+    );
+    _thornKnockbackVelocity.setFrom(
+      collisionNormal.scaled(PhysicsTuning.thornKnockbackSpeed),
+    );
+
+    final double separationDistance =
+        (size.x / 2) - absoluteCenter.distanceTo(collisionMid);
+    if (separationDistance > 0) {
+      position += collisionNormal.scaled(separationDistance);
+    }
+  }
+
+  Future<void> _runThornFlashEffect() async {
+    await add(
+      SequenceEffect([
+        OpacityEffect.to(
+          PhysicsTuning.thornFlickerLowOpacity,
+          EffectController(duration: PhysicsTuning.thornFlashStepSeconds),
+        ),
+        OpacityEffect.to(
+          1,
+          EffectController(duration: PhysicsTuning.thornFlashStepSeconds),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _spawnThornParticles(Vector2 impactPoint) async {
+    final Paint particlePaint = Paint()
+      ..color = Colors.lightGreenAccent.withValues(
+        alpha: PhysicsTuning.thornParticleAlpha,
+      );
+    await game.world.add(
+      ParticleSystemComponent(
+        position: impactPoint,
+        priority: priority + 1,
+        particle: Particle.generate(
+          count: PhysicsTuning.thornParticleCount,
+          lifespan: PhysicsTuning.thornParticleLifespanSeconds,
+          generator: (int index) {
+            final double direction = game.random.nextDouble() * pi * 2;
+            final double speed =
+                PhysicsTuning.thornParticleSpeedMin +
+                game.random.nextDouble() *
+                    (PhysicsTuning.thornParticleSpeedMax -
+                        PhysicsTuning.thornParticleSpeedMin);
+            return AcceleratedParticle(
+              speed: Vector2(cos(direction), sin(direction)) * speed,
+              child: CircleParticle(
+                radius: PhysicsTuning.thornParticleRadius,
+                paint: particlePaint,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onThornCollision(
+    Set<Vector2> intersectionPoints,
+    ThornComponent thorn,
+  ) async {
+    _applyThornImpact(intersectionPoints, thorn);
+    if (_thornInvincibilityRemaining > 0) {
+      return;
+    }
+    _thornInvincibilityRemaining = PhysicsTuning.thornInvincibilitySeconds;
+    _thornFlickerElapsed = 0;
+    applyDamage(PhysicsTuning.thornDamageAmount);
+    await _runThornFlashEffect();
+    await _spawnThornParticles(_resolveCollisionMidpoint(intersectionPoints));
+  }
+
   @override
   Future<void> onCollision(
     Set<Vector2> intersectionPoints,
@@ -413,6 +572,9 @@ class PlayerComponent extends SpriteAnimationComponent
           }
         }
       }
+    }
+    if (other is ThornComponent) {
+      await _onThornCollision(intersectionPoints, other);
     }
     if (other is WaterLilyComponent &&
         levelPosition == PlayerVerticalPosition.waterLevel) {

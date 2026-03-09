@@ -7,6 +7,7 @@ abstract final class GameplayTuning {
   static const int initialFlyCount = 10;
   static const int initialEggCount = 20;
   static const double worldPickupSize = 32;
+  static const int eggSpawnMaxRetries = 96;
 
   // HUD and sampling behavior.
   static const double hudFpsSampleWindowSeconds = 0.25;
@@ -20,4 +21,13 @@ abstract final class GameplayTuning {
 
   // Shared input thresholds.
   static const double gamepadButtonPressedValue = 1;
+
+  // Thorn world generation.
+  static const double thornPatchNoiseFrequency = 0.12;
+  static const double thornPatchThresholdMin = 0.56;
+  static const double thornPatchThresholdMax = 0.69;
+  static const double thornPatchSpawnChance = 0.35;
+
+  // Thorn animation.
+  static const double thornAnimationFrameSeconds = 0.2;
 }

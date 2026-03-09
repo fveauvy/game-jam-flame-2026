@@ -31,7 +31,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-
   flame: ^1.36.0
   flame_audio: ^2.12.0
   gamepads: ^0.1.9
@@ -69,6 +68,7 @@ flutter:
     - assets/images/gronouy/frog-13/
     - assets/images/gronouy/frog-14/
     - assets/images/ui/
+    - assets/images/environment/
     - assets/audio/
     - assets/audio/sound_effects/
     - assets/fonts/

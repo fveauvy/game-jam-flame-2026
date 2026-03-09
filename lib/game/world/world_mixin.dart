@@ -3,8 +3,10 @@ import 'dart:math';
 import 'package:fast_noise/fast_noise.dart';
 import 'package:flame/components.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/entities/biome_type.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
+import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -25,6 +27,19 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   static const double _lilyGapBuffer = 20;
   static const double _minLilySpacing =
       2 * _maxLilyRadius + _playerBaseDiameter + _lilyGapBuffer;
+
+  static bool shouldSpawnInteriorThorn({
+    required bool isWaterCell,
+    required bool inSpawnZone,
+    required double thornNoiseValue,
+    required double thornPatchRoll,
+  }) {
+    return !isWaterCell &&
+        !inSpawnZone &&
+        thornNoiseValue >= GameplayTuning.thornPatchThresholdMin &&
+        thornNoiseValue <= GameplayTuning.thornPatchThresholdMax &&
+        thornPatchRoll <= GameplayTuning.thornPatchSpawnChance;
+  }
 
   BiomeType computeBiome() {
     final biome = BiomeType.from(
@@ -58,9 +73,18 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       frequency: _noiseFrequency,
       cellularReturnType: CellularReturnType.distance,
     );
+    final thornNoise = noise2(
+      gridW,
+      gridH,
+      seed: seed + 2,
+      noiseType: NoiseType.cellular,
+      frequency: GameplayTuning.thornPatchNoiseFrequency,
+      cellularReturnType: CellularReturnType.distance,
+    );
 
     final humidityNorm = _normalizeGrid(humidityNoise, gridW, gridH);
     final vegetationNorm = _normalizeGrid(vegetationNoise, gridW, gridH);
+    final thornNorm = _normalizeGrid(thornNoise, gridW, gridH);
 
     final spawn = GameConfig.playerSpawn;
     final lilyPositions = <Vector2>[];
@@ -81,6 +105,9 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
 
         final h = humidityNorm[i][j];
         final v = vegetationNorm[i][j];
+        final t = thornNorm[i][j];
+        final isBorderCell =
+            i == 0 || j == 0 || i == gridW - 1 || j == gridH - 1;
 
         // Spawn area is always water so the player fits; elsewhere use humidity.
         final isWaterCell =
@@ -98,6 +125,24 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             GroundComponent(
               position: cellOrigin.clone(),
               size: cellSizeVec.clone(),
+            ),
+          );
+        }
+
+        final bool isThornCell =
+            isBorderCell ||
+            shouldSpawnInteriorThorn(
+              isWaterCell: isWaterCell,
+              inSpawnZone: inSpawnZone,
+              thornNoiseValue: t,
+              thornPatchRoll: random.nextDouble(),
+            );
+        if (isThornCell) {
+          await add(
+            ThornComponent(
+              position: cellOrigin.clone(),
+              size: cellSizeVec.clone(),
+              drawLandBackground: !isWaterCell,
             ),
           );
         }
