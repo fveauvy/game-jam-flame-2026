@@ -237,6 +237,9 @@ class MyGame extends FlameGame<WorldRoot>
       }
     }
     await setCharacterSeedCode(nextCode);
+    if (isLoaded) {
+      await _rebuildMenuCandidates();
+    }
   }
 
   Future<CharacterGenerationState> _buildCharacterListGenerationState({
@@ -392,8 +395,13 @@ class MyGame extends FlameGame<WorldRoot>
     );
     characterGenerationState.value = nextState;
     characterState.value = nextState.profile;
-    if (isLoaded) {
-      _player.applyProfile(nextState.profile);
+
+    if (isLoaded &&
+        phase.value == GamePhase.menu &&
+        index < _playerList.length) {
+      _player = _playerList[index];
+      world.bindPlayer(_player);
+      _cameraController.target = _player;
     }
   }
 
@@ -657,10 +665,8 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     if (isLoaded) {
-      // Reroll picks new profiles into characterGenerationState, then
-      // _rebuildMenuCandidates spawns the full frog carousel from those profiles.
+      // Reroll refreshes the full menu candidate carousel.
       await rerollCharacter();
-      await _rebuildMenuCandidates();
     }
   }
 }
