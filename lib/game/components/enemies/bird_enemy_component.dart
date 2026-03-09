@@ -4,6 +4,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/game/components/environment/fly_animation_definition.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/utils/shadow_component.dart';
@@ -16,14 +17,16 @@ class BirdEnemyComponent extends SpriteAnimationComponent
   final Vector2 initialSize;
 
   late final Random _random = game.random;
-  static const double _speed = 200;
-  static const double _directionChangeInterval = 1.5;
-  static const double _margin = 60;
+  static const double _speed = PhysicsTuning.birdEnemySpeed;
+  static const double _directionChangeInterval =
+      PhysicsTuning.birdEnemyDirectionChangeInterval;
+  static const double _margin = PhysicsTuning.birdEnemyMargin;
 
   /// Min horizontal distance to target before we change facing (avoids flip jitter when on top of player).
-  static const double _facingFlipDeadZone = 8;
+  static const double _facingFlipDeadZone =
+      PhysicsTuning.birdEnemyFacingFlipDeadZone;
   static final minSize = Vector2.all(10);
-  static const double _scaleUpDistance = 400;
+  static const double _scaleUpDistance = PhysicsTuning.birdEnemyScaleUpDistance;
 
   Vector2 _velocity = Vector2.zero();
   double _directionChangeTimer = 0;
@@ -39,10 +42,10 @@ class BirdEnemyComponent extends SpriteAnimationComponent
 
   /// 0..1 during descent (shadow "becomes" bird); null when not descending.
   double? _descentProgress;
-  static const double _descentDuration = 1.0;
+  static const double _descentDuration = PhysicsTuning.birdEnemyDescentDuration;
 
   /// Vertical distance the bird descends from (creates sense of height).
-  static const double _descentHeight = 140;
+  static const double _descentHeight = PhysicsTuning.birdEnemyDescentHeight;
   double _shadowPulseTime = 0;
 
   /// World position of the shadow center when descent started (merge point).
@@ -54,9 +57,9 @@ class BirdEnemyComponent extends SpriteAnimationComponent
 
   /// Time remaining before next damage can be applied (seconds).
   double _damageCooldown = 0;
-  static const double _damageInterval = 1.0;
-  static const double _damageRange = 80;
-  static const int _damageAmount = 10;
+  static const double _damageInterval = PhysicsTuning.birdEnemyDamageInterval;
+  static const double _damageRange = PhysicsTuning.birdEnemyDamageRange;
+  static const int _damageAmount = PhysicsTuning.birdEnemyDamageAmount;
 
   /// Set when we finish ascend: we remove shadow/hitbox but defer adding new
   /// ones to the next frame so Flame's collision system sees the pair end
@@ -96,7 +99,10 @@ class BirdEnemyComponent extends SpriteAnimationComponent
   Future<void> update(double dt) async {
     if (_pendingRecreateShadowAndHitbox) {
       _pendingRecreateShadowAndHitbox = false;
-      _recreateShadowAndHitboxForShadowOnly();
+      // Defer add until after this frame's update tree and collisionDetection.run()
+      // so the collision system sees the pair as ended before the new hitbox exists.
+      // ignore: unawaited_futures
+      Future.microtask(_recreateShadowAndHitboxForShadowOnly);
     }
 
     final target = _target;
@@ -135,6 +141,29 @@ class BirdEnemyComponent extends SpriteAnimationComponent
 
     _updateWandering(dt);
     super.update(dt);
+  }
+
+  @override
+  void onCollisionStart(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) {
+    if (other is PlayerComponent && !other.isInWater) {
+      if (_shadowOnlyPhase) {
+        _shadowOnlyPhase = false;
+        _target = other;
+        _descentProgress = 0;
+      } else {
+        _target = other;
+      }
+    }
+    super.onCollisionStart(intersectionPoints, other);
+  }
+
+  @override
+  void onCollisionEnd(PositionComponent other) {
+    debugPrint('onCollisionEnd: $other');
+    super.onCollisionEnd(other);
   }
 
   void _updateShadowOnly(double dt) {
@@ -279,7 +308,7 @@ class BirdEnemyComponent extends SpriteAnimationComponent
   /// Re-adds shadow and hitbox. Called at the start of the next frame after
   /// _removeShadowAndHitbox so Flame's collision run sees the pair ended
   /// before the new hitbox exists (fixes "collision only once").
-  void _recreateShadowAndHitboxForShadowOnly() {
+  Future<void> _recreateShadowAndHitboxForShadowOnly() async {
     add(
       CircleHitbox(
         radius: initialSize.x,
@@ -345,29 +374,6 @@ class BirdEnemyComponent extends SpriteAnimationComponent
       newCenter.x.clamp(_margin, bounds.x - _margin),
       newCenter.y.clamp(_margin, bounds.y - _margin),
     );
-  }
-
-  @override
-  void onCollisionStart(
-    Set<Vector2> intersectionPoints,
-    PositionComponent other,
-  ) {
-    if (other is PlayerComponent) {
-      if (_shadowOnlyPhase) {
-        _shadowOnlyPhase = false;
-        _target = other;
-        _descentProgress = 0;
-      } else {
-        _target = other;
-      }
-    }
-    super.onCollisionStart(intersectionPoints, other);
-  }
-
-  @override
-  void onCollisionEnd(PositionComponent other) {
-    debugPrint('onCollisionEnd: $other');
-    super.onCollisionEnd(other);
   }
 
   void _scaleDownShadow(PositionComponent target) {
