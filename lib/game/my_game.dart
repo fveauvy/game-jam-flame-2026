@@ -117,28 +117,10 @@ class MyGame extends FlameGame<WorldRoot>
     characterGenerationState.value = initialState;
     characterState.value = initialState.profile;
 
-    // Place candidate frogs on a circle fully contained in the initial viewport.
-    final Vector2 viewportSize = camera.viewport.size;
-    final Vector2 circleSpawnCenter = viewportSize / 2;
-    final double circleSpawnRadius = min(viewportSize.x, viewportSize.y) * 0.25;
-
-    _playerList = List.generate(initialState.candidateProfiles.length, (index) {
-      final CharacterProfile profile = initialState.candidateProfiles[index];
-      final double angle =
-          (2 * pi * index) / initialState.candidateProfiles.length;
-      final Vector2 position = Vector2(
-        circleSpawnCenter.x + circleSpawnRadius * cos(angle),
-        circleSpawnCenter.y + circleSpawnRadius * sin(angle),
-      );
-
-      return PlayerComponent(
-        speedMultiplier: profile.traits.speed ?? 1,
-        sizeMultiplier: profile.traits.size ?? 1,
-        startPosition: position,
-        inputState: inputState,
-        profile: profile,
-      );
-    });
+    _playerList = _buildInitialFrogs(
+      initialState.candidateProfiles,
+      inputState,
+    );
 
     // Default selected player is the first candidate.
     _player = _playerList.first;
@@ -156,6 +138,7 @@ class MyGame extends FlameGame<WorldRoot>
       CollisionSystem(),
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
+      ..._playerList,
     ]);
 
     // Bind the initially selected player.
@@ -294,6 +277,36 @@ class MyGame extends FlameGame<WorldRoot>
     return SeedCode.encode(candidateSeed);
   }
 
+  List<PlayerComponent> _buildInitialFrogs(
+    List<CharacterProfile> candidateProfiles,
+    InputState inputState,
+  ) {
+    final Vector2 viewportSize = camera.viewport.size;
+    final Vector2 circleSpawnCenter = viewportSize / 2;
+    final double circleSpawnRadius = min(viewportSize.x, viewportSize.y) * 0.25;
+
+    return List<PlayerComponent>.generate(
+      GameplayTuning.menuCharacterCandidateCount,
+      (int index) {
+        final CharacterProfile profile = candidateProfiles[index];
+        final double angle =
+            (2 * pi * index) / GameplayTuning.menuCharacterCandidateCount;
+        final Vector2 position = Vector2(
+          circleSpawnCenter.x + circleSpawnRadius * cos(angle),
+          circleSpawnCenter.y + circleSpawnRadius * sin(angle),
+        );
+
+        return PlayerComponent(
+          speedMultiplier: profile.traits.speed ?? 1,
+          sizeMultiplier: profile.traits.size ?? 1,
+          startPosition: position,
+          inputState: inputState,
+          profile: profile,
+        );
+      },
+    );
+  }
+
   List<FlyComponent> _buildInitialFlies() {
     return List<FlyComponent>.generate(
       GameplayTuning.initialFlyCount,
@@ -423,9 +436,20 @@ class MyGame extends FlameGame<WorldRoot>
     // Update the selected candidate in the generation state.
     pointCharacterCandidate(index);
 
-    // Switch the active player reference.
+    // Make the other frogs vanish
+    for (final player in List<PlayerComponent>.from(_playerList)) {
+      if (player != tapped) {
+        player.removeFromParent();
+      }
+    }
+
+    // keep the list in sync without reassigning the late-final variable
+    _playerList.removeWhere((p) => p != tapped);
+
+    // Switch the active player reference and make the camera follow it.
     _player = tapped;
     world.bindPlayer(_player);
+    _cameraController.target = _player;
 
     // Start the game with this selected player.
     startGame();

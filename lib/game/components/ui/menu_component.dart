@@ -77,11 +77,6 @@ class MenuComponent extends PositionComponent
   }
 
   @override
-  void update(double dt) {
-    super.update(dt);
-  }
-
-  @override
   void onRemove() {
     game.characterGenerationState.removeListener(_syncDebugText);
     super.onRemove();
