@@ -149,7 +149,6 @@ class MyGame extends FlameGame<WorldRoot>
       CollisionSystem(),
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
-      ..._playerList,
       bird,
     ]);
 
@@ -434,6 +433,48 @@ class MyGame extends FlameGame<WorldRoot>
     }
   }
 
+  /// Rebuilds all menu candidate frogs and their water ripples from the
+  /// current [characterGenerationState]. Called when returning to the menu
+  /// after a play session, since [_cleanupMenuCandidates] removed all but the
+  /// active player.
+  Future<void> _rebuildMenuCandidates() async {
+    final CharacterGenerationState? state = characterGenerationState.value;
+    if (state == null) {
+      return;
+    }
+
+    // Drop whatever is left in the lists from the previous session.
+    for (final PlayerComponent p in List<PlayerComponent>.from(_playerList)) {
+      p.removeFromParent();
+    }
+    _playerList.clear();
+
+    for (final WaterRippleComponent r in List<WaterRippleComponent>.from(
+      _waterRipples,
+    )) {
+      r.removeFromParent();
+    }
+    _waterRipples.clear();
+
+    // Rebuild players and ripples from the freshly-generated profiles.
+    final List<PlayerComponent> newPlayers = _buildInitialFrogs(
+      state.candidateProfiles,
+      inputState,
+    );
+    final List<WaterRippleComponent> newRipples = newPlayers
+        .map((PlayerComponent p) => WaterRippleComponent(player: p))
+        .toList();
+
+    _playerList.addAll(newPlayers);
+    _waterRipples.addAll(newRipples);
+
+    _player = _playerList.first;
+    world.bindPlayer(_player);
+    _cameraController.target = _player;
+
+    await world.addAll([..._waterRipples, ..._playerList]);
+  }
+
   /// Called when a player candidate frog is tapped in the menu.
   void onPlayerTapped(PlayerComponent tapped) {
     if (phase.value != GamePhase.menu) {
@@ -448,23 +489,37 @@ class MyGame extends FlameGame<WorldRoot>
     // Update the selected candidate in the generation state.
     pointCharacterCandidate(index);
 
-    // Make the other frogs vanish
-    for (final player in List<PlayerComponent>.from(_playerList)) {
-      if (player != tapped) {
-        player.removeFromParent();
-      }
-    }
-
-    // keep the list in sync without reassigning the late-final variable
-    _playerList.removeWhere((p) => p != tapped);
-
     // Switch the active player reference and make the camera follow it.
     _player = tapped;
     world.bindPlayer(_player);
     _cameraController.target = _player;
 
     // Start the game with this selected player.
+    // startGame() will handle removing the other candidates.
     startGame();
+  }
+
+  /// Removes all non-active player candidates and their water ripples from the
+  /// world. Called once when transitioning from menu to playing, regardless of
+  /// whether the game was started via tap or keyboard.
+  void _cleanupMenuCandidates() {
+    for (final PlayerComponent player in List<PlayerComponent>.from(
+      _playerList,
+    )) {
+      if (player != _player) {
+        player.removeFromParent();
+      }
+    }
+    _playerList.removeWhere((PlayerComponent p) => p != _player);
+
+    for (final WaterRippleComponent ripple in List<WaterRippleComponent>.from(
+      _waterRipples,
+    )) {
+      if (ripple.player != _player) {
+        ripple.removeFromParent();
+      }
+    }
+    _waterRipples.removeWhere((WaterRippleComponent r) => r.player != _player);
   }
 
   @override
@@ -501,9 +556,12 @@ class MyGame extends FlameGame<WorldRoot>
       return;
     }
 
-    // Hide the menu when the game starts (for example, when tapping the frog).
+    // Hide the menu and remove non-selected candidates when the game starts.
     if (phase.value == GamePhase.menu) {
-      camera.viewport.remove(_menu);
+      if (isLoaded && _menu.parent != null) {
+        camera.viewport.remove(_menu);
+      }
+      _cleanupMenuCandidates();
     }
 
     final CharacterGenerationState? state = characterGenerationState.value;
@@ -557,8 +615,8 @@ class MyGame extends FlameGame<WorldRoot>
       ..add(AppOverlays.gameOver);
   }
 
-  void restartToMenu() {
-    if (phase.value != GamePhase.paused) {
+  Future<void> restartToMenu() async {
+    if (phase.value != GamePhase.paused && phase.value != GamePhase.gameOver) {
       return;
     }
 
@@ -571,8 +629,16 @@ class MyGame extends FlameGame<WorldRoot>
       ..remove(AppOverlays.touchControls)
       ..remove(AppOverlays.gameOver);
 
+    // Re-show the menu overlay.
+    if (isLoaded && _menu.parent == null) {
+      await camera.viewport.add(_menu);
+    }
+
     if (isLoaded) {
-      unawaited(rerollCharacter());
+      // Reroll picks new profiles into characterGenerationState, then
+      // _rebuildMenuCandidates spawns the full frog carousel from those profiles.
+      await rerollCharacter();
+      await _rebuildMenuCandidates();
     }
   }
 }

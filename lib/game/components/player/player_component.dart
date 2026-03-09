@@ -98,6 +98,10 @@ class PlayerComponent extends SpriteAnimationComponent
     paint = Paint()
       ..color = Colors.white.withAlpha((_spriteOpacity * 255).toInt());
     _hitbox = CircleHitbox(radius: size.x / 2);
+    // Players always spawn on land; initialise the shared input state so that
+    // the correct animation, size and physics are applied from frame 1.
+    inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+    previousPosition = PlayerVerticalPosition.land;
     animation = idleAnimation(levelPosition);
     await add(_hitbox!);
   }
@@ -346,6 +350,16 @@ class PlayerComponent extends SpriteAnimationComponent
   void reset() {
     position.setFrom(_startPosition);
     _remainingHealth = _maxHealth;
+    _waterContacts = 0;
+    _groundContacts = 0;
+    _lilyContacts = 0;
+    isInWater = false;
+    _jumpActive = false;
+    _jumpElapsed = 0;
+    _hopTime = 0;
+    // Reset the vertical position to land, matching the spawn tile.
+    inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+    previousPosition = PlayerVerticalPosition.land;
   }
 
   Future<void> onHitGround(GroundComponent ground) async {
