@@ -61,6 +61,10 @@ class BirdEnemyComponent extends SpriteAnimationComponent
   static const double _damageRange = PhysicsTuning.birdEnemyDamageRange;
   static const int _damageAmount = PhysicsTuning.birdEnemyDamageAmount;
 
+  static bool shouldRunForPhase(GamePhase phase) {
+    return phase == GamePhase.playing;
+  }
+
   /// Set when we finish ascend: we remove shadow/hitbox but defer adding new
   /// ones to the next frame so Flame's collision system sees the pair end
   /// before the new hitbox is added (fixes "collision only once").
@@ -97,7 +101,7 @@ class BirdEnemyComponent extends SpriteAnimationComponent
 
   @override
   Future<void> update(double dt) async {
-    if (game.phase.value != GamePhase.playing) {
+    if (!shouldRunForPhase(game.phase.value)) {
       super.update(dt);
       return;
     }
