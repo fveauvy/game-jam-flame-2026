@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flame/components.dart';
+import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_name.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
@@ -156,5 +158,60 @@ void main() {
     );
 
     expect(next, PlayerVerticalPosition.land);
+  });
+
+  test('thorn invincibility timer decays and clamps to zero', () {
+    final double next = PlayerComponent.nextThornInvincibilityRemaining(
+      current: 0.2,
+      dt: 1,
+    );
+
+    expect(next, 0);
+  });
+
+  test('thorn flicker uses low opacity only while invincible', () {
+    expect(
+      PlayerComponent.shouldUseThornFlickerLowOpacity(
+        thornInvincibilityRemaining: 0,
+        thornFlickerElapsed: 0,
+      ),
+      isFalse,
+    );
+    expect(
+      PlayerComponent.shouldUseThornFlickerLowOpacity(
+        thornInvincibilityRemaining: PhysicsTuning.thornInvincibilitySeconds,
+        thornFlickerElapsed: 0,
+      ),
+      isTrue,
+    );
+    expect(
+      PlayerComponent.shouldUseThornFlickerLowOpacity(
+        thornInvincibilityRemaining: PhysicsTuning.thornInvincibilitySeconds,
+        thornFlickerElapsed: PhysicsTuning.thornFlickerStepSeconds,
+      ),
+      isFalse,
+    );
+  });
+
+  test('thorn knockback direction falls back to thorn center vector', () {
+    final Vector2 direction = PlayerComponent.resolveThornKnockbackDirection(
+      playerCenter: Vector2(10, 10),
+      collisionMidpoint: Vector2(10, 10),
+      thornCenter: Vector2(6, 10),
+    );
+
+    expect(direction.x, closeTo(1, 0.000001));
+    expect(direction.y, closeTo(0, 0.000001));
+  });
+
+  test('thorn knockback direction uses default when all points overlap', () {
+    final Vector2 direction = PlayerComponent.resolveThornKnockbackDirection(
+      playerCenter: Vector2(10, 10),
+      collisionMidpoint: Vector2(10, 10),
+      thornCenter: Vector2(10, 10),
+    );
+
+    expect(direction.x, closeTo(0, 0.000001));
+    expect(direction.y, closeTo(-1, 0.000001));
   });
 }
