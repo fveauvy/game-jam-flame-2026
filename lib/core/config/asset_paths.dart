@@ -28,6 +28,9 @@ abstract final class AssetPaths {
   static const String flyCacheKey = 'fly.png';
   static const String eggsCacheKey = 'eggs.png';
 
+  //texture Assets
+  static const String waterTexture = 'water_texture.png';
+
   static String frogSpriteAssetPath(int number) {
     return 'assets/images/gronouy/frog-$number.png';
   }
@@ -70,6 +73,7 @@ abstract final class AssetPaths {
       }
       return frogSpriteCacheKey(index + 1);
     }, growable: false).where((path) => path.isNotEmpty),
+    waterTexture,
   ];
 
   static List<String> get preloadAudioCacheKeys => <String>[splashAudioEffect];
