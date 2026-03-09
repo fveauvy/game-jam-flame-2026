@@ -8,7 +8,9 @@ abstract final class AssetPaths {
   static const String waterLilyAlt = 'assets/images/water_lily_1.png';
   static const String fly = 'assets/images/fly.png';
   static const String eggs = 'assets/images/eggs.png';
-  static const String thorns = 'assets/images/environment/thorns2.png';
+  static const String thorns1 = 'assets/images/environment/Ronces1.png';
+  static const String thorns2 = 'assets/images/environment/Ronces2.png';
+  static const String thorns3 = 'assets/images/environment/Ronces3.png';
 
   // HUD and overlay art.
   static const String uiTooltip = 'assets/images/ui/tooltip.png';
@@ -28,7 +30,15 @@ abstract final class AssetPaths {
   static const String waterLilyAltCacheKey = 'water_lily_1.png';
   static const String flyCacheKey = 'fly.png';
   static const String eggsCacheKey = 'eggs.png';
-  static const String thornsCacheKey = 'environment/thorns2.png';
+  static const String thorns1CacheKey = 'environment/Ronces1.png';
+  static const String thorns2CacheKey = 'environment/Ronces2.png';
+  static const String thorns3CacheKey = 'environment/Ronces3.png';
+
+  static List<String> get thornsAnimationCacheKeys => <String>[
+    thorns1CacheKey,
+    thorns2CacheKey,
+    thorns3CacheKey,
+  ];
 
   static String frogSpriteAssetPath(int number) {
     return 'assets/images/gronouy/frog-$number.png';
@@ -65,7 +75,7 @@ abstract final class AssetPaths {
     waterLilyAltCacheKey,
     flyCacheKey,
     eggsCacheKey,
-    thornsCacheKey,
+    ...thornsAnimationCacheKeys,
     ...animatedFrogSpriteId.expand((id) => frogAnimatedSpriteCacheKey(id)),
     ...List<String>.generate(GameplayTuning.frogSpriteCount, (int index) {
       if (animatedFrogSpriteId.contains(index + 1)) {
