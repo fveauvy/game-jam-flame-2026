@@ -97,6 +97,11 @@ class BirdEnemyComponent extends SpriteAnimationComponent
 
   @override
   Future<void> update(double dt) async {
+    if (game.phase.value != GamePhase.playing) {
+      super.update(dt);
+      return;
+    }
+
     if (_pendingRecreateShadowAndHitbox) {
       _pendingRecreateShadowAndHitbox = false;
       // Defer add until after this frame's update tree and collisionDetection.run()

@@ -27,18 +27,78 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   static const double _lilyGapBuffer = 20;
   static const double _minLilySpacing =
       2 * _maxLilyRadius + _playerBaseDiameter + _lilyGapBuffer;
+  static const double _candidateSafeZoneHalfSize = 260;
+  static const double _candidateSafeZoneLilyRadius = 36;
+  static const double _candidateSafeZoneRingRadius = 120;
+
+  static Vector2 candidateSafeZoneCenter({Vector2? preferredCenter}) {
+    final Vector2 center = (preferredCenter ?? GameConfig.playerSpawn).clone();
+    final double minX = _candidateSafeZoneHalfSize + _cellSize;
+    final double minY = _candidateSafeZoneHalfSize + _cellSize;
+    final double maxX =
+        GameConfig.worldSize.x - _candidateSafeZoneHalfSize - _cellSize;
+    final double maxY =
+        GameConfig.worldSize.y - _candidateSafeZoneHalfSize - _cellSize;
+    center.x = center.x.clamp(minX, maxX);
+    center.y = center.y.clamp(minY, maxY);
+    return center;
+  }
 
   static bool shouldSpawnInteriorThorn({
     required bool isWaterCell,
     required bool inSpawnZone,
+    required bool inCandidateSafeZone,
     required double thornNoiseValue,
     required double thornPatchRoll,
   }) {
     return !isWaterCell &&
         !inSpawnZone &&
+        !inCandidateSafeZone &&
         thornNoiseValue >= GameplayTuning.thornPatchThresholdMin &&
         thornNoiseValue <= GameplayTuning.thornPatchThresholdMax &&
         thornPatchRoll <= GameplayTuning.thornPatchSpawnChance;
+  }
+
+  static bool isInCandidateSafeZone({
+    required Vector2 position,
+    Vector2? safeZoneCenter,
+  }) {
+    final Vector2 center = candidateSafeZoneCenter(
+      preferredCenter: safeZoneCenter,
+    );
+    return position.x >= center.x - _candidateSafeZoneHalfSize &&
+        position.x <= center.x + _candidateSafeZoneHalfSize &&
+        position.y >= center.y - _candidateSafeZoneHalfSize &&
+        position.y <= center.y + _candidateSafeZoneHalfSize;
+  }
+
+  static List<Vector2> candidateSafeZoneSpawnPositions({
+    required int count,
+    Vector2? safeZoneCenter,
+  }) {
+    if (count <= 0) {
+      return <Vector2>[];
+    }
+
+    final Vector2 center = candidateSafeZoneCenter(
+      preferredCenter: safeZoneCenter,
+    );
+    final List<Vector2> positions = <Vector2>[center];
+    if (count == 1) {
+      return positions;
+    }
+
+    final int ringCount = count - 1;
+    for (int i = 0; i < ringCount; i++) {
+      final double angle = (-pi / 2) + ((2 * pi * i) / ringCount);
+      positions.add(
+        Vector2(
+          center.x + cos(angle) * _candidateSafeZoneRingRadius,
+          center.y + sin(angle) * _candidateSafeZoneRingRadius,
+        ),
+      );
+    }
+    return positions;
   }
 
   BiomeType computeBiome() {
@@ -87,6 +147,10 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     final thornNorm = _normalizeGrid(thornNoise, gridW, gridH);
 
     final spawn = GameConfig.playerSpawn;
+    final List<Vector2> candidateSafeZoneCenters =
+        candidateSafeZoneSpawnPositions(
+          count: GameplayTuning.menuCharacterCandidateCount,
+        );
     final lilyPositions = <Vector2>[];
     final cellSizeVec = Vector2(_cellSize, _cellSize);
 
@@ -102,6 +166,9 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             cellCenter.x <= spawn.x + _spawnZoneHalfSize &&
             cellCenter.y >= spawn.y - _spawnZoneHalfSize &&
             cellCenter.y <= spawn.y + _spawnZoneHalfSize;
+        final bool inCandidateSafeZone = isInCandidateSafeZone(
+          position: cellCenter,
+        );
 
         final h = humidityNorm[i][j];
         final v = vegetationNorm[i][j];
@@ -111,7 +178,9 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
 
         // Spawn area is always water so the player fits; elsewhere use humidity.
         final isWaterCell =
-            inSpawnZone || (h >= biome.humidity.min && h <= biome.humidity.max);
+            inSpawnZone ||
+            inCandidateSafeZone ||
+            (h >= biome.humidity.min && h <= biome.humidity.max);
 
         if (isWaterCell) {
           await add(
@@ -134,6 +203,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             shouldSpawnInteriorThorn(
               isWaterCell: isWaterCell,
               inSpawnZone: inSpawnZone,
+              inCandidateSafeZone: inCandidateSafeZone,
               thornNoiseValue: t,
               thornPatchRoll: random.nextDouble(),
             );
@@ -148,6 +218,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         }
 
         if (isWaterCell &&
+            !isThornCell &&
             !inSpawnZone &&
             v >= biome.vegetation.min &&
             v <= biome.vegetation.max) {
@@ -176,6 +247,18 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           }
         }
       }
+    }
+
+    for (final Vector2 center in candidateSafeZoneCenters) {
+      add(
+        WaterLilyComponent(
+          position: Vector2(
+            center.x - _candidateSafeZoneLilyRadius,
+            center.y - _candidateSafeZoneLilyRadius,
+          ),
+          radius: _candidateSafeZoneLilyRadius,
+        ),
+      );
     }
   }
 
