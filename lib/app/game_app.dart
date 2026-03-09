@@ -123,44 +123,6 @@ class _GameJamAppState extends State<GameJamApp> {
     );
   }
 
-  // ValueListenableBuilder<GamePhase>(
-  //         valueListenable: _game.phase,
-  //         builder: (_, GamePhase phase, _) {
-  //           return Stack(
-  //             children: [
-  //               GameWidget<MyGame>(
-  //                 game: _game,
-  //                 overlayBuilderMap: {
-  //                   AppOverlays.pause: (_, MyGame game) {
-  //                     return ValueListenableBuilder<CharacterProfile?>(
-  //                       valueListenable: game.characterState,
-  //                       builder: (_, CharacterProfile? characterProfile, _) {
-  //                         return PauseOverlay(
-  //                           onResume: game.togglePause,
-  //                           seedCode: game.characterSeedCode,
-  //                           characterProfile: characterProfile,
-  //                           currentHealth: game.playerRemainingHealth,
-  //                           maxHealth: game.playerMaxHealth,
-  //                         );
-  //                       },
-  //                     );
-  //                   },
-  //                   AppOverlays.gameOver: (_, MyGame game) {
-  //                     return GameOverOverlay(onRestart: game.startGame);
-  //                   },
-  //                   AppOverlays.touchControls: (_, MyGame game) {
-  //                     return TouchInputOverlay(
-  //                       input: game.inputState,
-  //                       touchController: game.touchController,
-  //                     );
-  //                   },
-  //                 },
-  //               ),
-  //             ],
-  //           );
-  //         },
-  //       )
-
   @override
   Widget build(BuildContext context) {
     final MyGame? game = _game;

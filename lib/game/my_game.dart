@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:math';
 
 import 'package:flame/components.dart';
@@ -76,8 +77,9 @@ class MyGame extends FlameGame<WorldRoot>
 
   Random get random => _randomSeeded;
 
-  late final PlayerComponent _player;
-  late final WaterRippleComponent _waterRipple;
+  late PlayerComponent _player;
+  late final List<PlayerComponent> _playerList;
+  late final List<WaterRippleComponent> _waterRipples;
   bool _isPlayerReady = false;
   late final GameCameraController _cameraController;
   late final GameState gameState;
@@ -97,29 +99,57 @@ class MyGame extends FlameGame<WorldRoot>
       _isPlayerReady ? _player.remainingHealth : null;
   int? get playerMaxHealth => _isPlayerReady ? _player.maxHealth : null;
 
+  List<PlayerComponent> get playerCandidates => _playerList;
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
     _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
 
+    _level = GeneratedLevel();
+
+    // Frogs generation
     final CharacterGenerationState initialState =
-        await _buildCharacterGenerationState(seedCode: _characterSeedCode);
+        await _buildCharacterListGenerationState(seedCode: _characterSeedCode);
+
     characterGenerationState.value = initialState;
     characterState.value = initialState.profile;
 
-    _level = GeneratedLevel();
-    _player = PlayerComponent(
-      speedMultiplier: initialState.profile.traits.speed ?? 1,
-      sizeMultiplier: initialState.profile.traits.size ?? 1,
-      startPosition: GameConfig.playerSpawn,
-      profile: initialState.profile,
-      inputState: inputState,
+    final Vector2 circleCenter = Vector2(
+      GameConfig.worldSize.x / 2,
+      GameConfig.worldSize.y / 2,
     );
-    _isPlayerReady = true;
 
-    _waterRipple = WaterRippleComponent(player: _player);
+    final double circleRadius =
+        math.min(GameConfig.worldSize.x, GameConfig.worldSize.y) * 0.25;
 
+    _playerList = List.generate(initialState.candidateProfiles.length, (index) {
+      final CharacterProfile profile = initialState.candidateProfiles[index];
+      final double angle =
+          (2 * math.pi * index) / initialState.candidateProfiles.length;
+      final Vector2 position = Vector2(
+        circleCenter.x + circleRadius * math.cos(angle),
+        circleCenter.y + circleRadius * math.sin(angle),
+      );
+      return PlayerComponent(
+        speedMultiplier: profile.traits.speed ?? 1,
+        sizeMultiplier: profile.traits.size ?? 1,
+        startPosition: position,
+        inputState: inputState,
+        profile: profile,
+      );
+    });
+
+    // Default selected player is the first candidate.
+    _player = _playerList.first;
+
+    // One water ripple component per player.
+    _waterRipples = _playerList
+        .map((player) => WaterRippleComponent(player: player))
+        .toList();
+
+    // Flies and eggs generation
     final flies = List.generate(
       GameplayTuning.initialFlyCount,
       (index) => FlyComponent(
@@ -144,15 +174,17 @@ class MyGame extends FlameGame<WorldRoot>
 
     await world.addAll([
       _level,
-      _waterRipple,
-      _player,
+      ..._waterRipples,
+      ..._playerList,
       SpawnSystem(),
       CollisionSystem(),
       ...flies,
       ...eggs,
     ]);
 
+    // Bind the initially selected player.
     world.bindPlayer(_player);
+    _isPlayerReady = true;
 
     await camera.viewport.add(HudComponent());
 
@@ -205,7 +237,7 @@ class MyGame extends FlameGame<WorldRoot>
     final String normalizedCode = SeedCode.normalize(seedCode);
     final int requestId = ++_profileRequestId;
     final CharacterGenerationState nextState =
-        await _buildCharacterGenerationState(seedCode: normalizedCode);
+        await _buildCharacterListGenerationState(seedCode: normalizedCode);
     if (requestId != _profileRequestId) {
       return;
     }
@@ -236,7 +268,7 @@ class MyGame extends FlameGame<WorldRoot>
     await setCharacterSeedCode(nextCode);
   }
 
-  Future<CharacterGenerationState> _buildCharacterGenerationState({
+  Future<CharacterGenerationState> _buildCharacterListGenerationState({
     required String seedCode,
   }) async {
     final String normalizedCode = SeedCode.normalize(seedCode);
@@ -345,6 +377,28 @@ class MyGame extends FlameGame<WorldRoot>
       _menuNavRepeatTimer = 0;
       _stepMenuCandidate(direction);
     }
+  }
+
+  /// Called when a player candidate frog is tapped in the menu.
+  void onPlayerTapped(PlayerComponent tapped) {
+    if (phase.value != GamePhase.menu) {
+      return;
+    }
+
+    final int index = _playerList.indexOf(tapped);
+    if (index == -1) {
+      return;
+    }
+
+    // Update the selected candidate in the generation state.
+    pointCharacterCandidate(index);
+
+    // Switch the active player reference.
+    _player = tapped;
+    world.bindPlayer(_player);
+
+    // Start the game with this selected player.
+    startGame();
   }
 
   @override
