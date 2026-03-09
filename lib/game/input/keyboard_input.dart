@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:game_jam/game/input/controler.dart';
+import 'package:game_jam/game/input/controller.dart';
 
 class KeyboardInput extends Controller {
   KeyboardInput(super.state);

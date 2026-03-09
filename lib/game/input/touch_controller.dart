@@ -1,4 +1,4 @@
-import 'package:game_jam/game/input/controler.dart';
+import 'package:game_jam/game/input/controller.dart';
 
 /// Controller for touch-based input.
 /// Handles virtual joystick and button input from the touch overlay.
