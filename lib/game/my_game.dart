@@ -555,9 +555,6 @@ class MyGame extends FlameGame<WorldRoot>
       ..add(AppOverlays.gameOver);
   }
 
-  @override
-  bool get debugMode => false;
-
   void restartToMenu() {
     if (phase.value != GamePhase.paused) {
       return;
