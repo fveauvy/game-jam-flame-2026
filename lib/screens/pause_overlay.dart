@@ -6,6 +6,7 @@ class PauseOverlay extends StatelessWidget {
   const PauseOverlay({
     super.key,
     required this.onResume,
+    required this.onRestart,
     required this.seedCode,
     required this.characterProfile,
     required this.currentHealth,
@@ -13,6 +14,7 @@ class PauseOverlay extends StatelessWidget {
   });
 
   final VoidCallback onResume;
+  final VoidCallback onRestart;
   final String seedCode;
   final CharacterProfile? characterProfile;
   final int? currentHealth;
@@ -149,6 +151,25 @@ class PauseOverlay extends StatelessWidget {
                           ),
                           child: const Text(
                             'Resume',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: onRestart,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFCE8A53),
+                            foregroundColor: panelTextColor,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 46,
+                              vertical: 14,
+                            ),
+                          ),
+                          child: const Text(
+                            'Restart',
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w700,

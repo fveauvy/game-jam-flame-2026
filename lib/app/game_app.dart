@@ -100,6 +100,7 @@ class _GameJamAppState extends State<GameJamApp> {
                     builder: (_, CharacterProfile? characterProfile, _) {
                       return PauseOverlay(
                         onResume: game.togglePause,
+                        onRestart: game.restartToMenu,
                         seedCode: game.characterSeedCode,
                         characterProfile: characterProfile,
                         currentHealth: game.playerRemainingHealth,
