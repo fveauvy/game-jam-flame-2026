@@ -116,21 +116,19 @@ class MyGame extends FlameGame<WorldRoot>
     characterGenerationState.value = initialState;
     characterState.value = initialState.profile;
 
-    final Vector2 circleCenter = Vector2(
-      GameConfig.worldSize.x / 2,
-      GameConfig.worldSize.y / 2,
-    );
-
-    final double circleRadius =
-        math.min(GameConfig.worldSize.x, GameConfig.worldSize.y) * 0.25;
+    // Place candidate frogs on a circle fully contained in the initial viewport.
+    final Vector2 viewportSize = camera.viewport.size;
+    final Vector2 circleSpawnCenter = viewportSize / 2;
+    final double circleSpawnRadius =
+        math.min(viewportSize.x, viewportSize.y) * 0.25;
 
     _playerList = List.generate(initialState.candidateProfiles.length, (index) {
       final CharacterProfile profile = initialState.candidateProfiles[index];
       final double angle =
           (2 * math.pi * index) / initialState.candidateProfiles.length;
       final Vector2 position = Vector2(
-        circleCenter.x + circleRadius * math.cos(angle),
-        circleCenter.y + circleRadius * math.sin(angle),
+        circleSpawnCenter.x + circleSpawnRadius * math.cos(angle),
+        circleSpawnCenter.y + circleSpawnRadius * math.sin(angle),
       );
       return PlayerComponent(
         speedMultiplier: profile.traits.speed ?? 1,
