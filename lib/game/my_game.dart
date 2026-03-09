@@ -178,7 +178,7 @@ class MyGame extends FlameGame<WorldRoot>
         startGame();
       },
       onReroll: () async {
-        await rerollCharacter();
+        await rerollAllCharacter();
       },
     );
     await camera.viewport.add(_menu);
@@ -222,11 +222,12 @@ class MyGame extends FlameGame<WorldRoot>
     }
   }
 
-  Future<void> rerollCharacter() async {
+  Future<void> rerollAllCharacter() async {
     if (phase.value != GamePhase.menu) {
       return;
     }
 
+    // pick a new base seed different from the current one
     String nextCode = _characterSeedCode;
     for (int i = 0; i < GameplayTuning.characterRerollAttempts; i++) {
       final String candidate = SeedCode.randomCode(_random);
@@ -235,7 +236,13 @@ class MyGame extends FlameGame<WorldRoot>
         break;
       }
     }
+
     await setCharacterSeedCode(nextCode);
+
+    // the generation state has changed, so rebuild the menu frogs on screen
+    if (isLoaded) {
+      await _rebuildMenuCandidates();
+    }
   }
 
   Future<CharacterGenerationState> _buildCharacterListGenerationState({
@@ -670,7 +677,7 @@ class MyGame extends FlameGame<WorldRoot>
     if (isLoaded) {
       // Reroll picks new profiles into characterGenerationState, then
       // _rebuildMenuCandidates spawns the full frog carousel from those profiles.
-      await rerollCharacter();
+      await rerollAllCharacter();
       await _rebuildMenuCandidates();
     }
   }
