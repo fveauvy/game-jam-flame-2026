@@ -7,9 +7,9 @@ import 'package:flame/game.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/audio/audio_settings.dart';
 import 'package:game_jam/audio/audio_settings_store.dart';
-import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
@@ -22,9 +22,10 @@ import 'package:game_jam/game/character/infra/seed_code.dart';
 import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
-import 'package:game_jam/game/components/allies/tadpole.dart';
+import 'package:game_jam/game/components/allies/egg_component.dart';
 import 'package:game_jam/game/components/enemies/bird_enemy_component.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
+import 'package:game_jam/game/components/environment/frog_house_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/player/water_ripple_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
@@ -65,7 +66,7 @@ class MyGame extends FlameGame<WorldRoot>
        );
 
   @override
-  bool get debugMode => false;
+  bool get debugMode => true;
 
   final InputState inputState = InputState();
   late final KeyboardInput keyboardInput;
@@ -160,6 +161,7 @@ class MyGame extends FlameGame<WorldRoot>
       CollisionSystem(),
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
+      _buildInitialWoodBoards(),
       bird,
     ]);
 
@@ -438,10 +440,17 @@ class MyGame extends FlameGame<WorldRoot>
     );
   }
 
-  List<Egg> _buildInitialEggs() {
-    return List<Egg>.generate(
+  FrogHouseComponent _buildInitialWoodBoards() {
+    return FrogHouseComponent(
+      position: GameConfig.playerSpawn - Vector2(100, 100),
+      size: Vector2(200, 200),
+    );
+  }
+
+  List<EggComponent> _buildInitialEggs() {
+    return List<EggComponent>.generate(
       GameplayTuning.initialEggCount,
-      (int index) => Egg(
+      (int index) => EggComponent(
         position: _randomEggPosition(),
         size: Vector2.all(GameplayTuning.worldPickupSize),
       ),
@@ -468,11 +477,13 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   Future<void> _resetWorldPopulation() async {
-    final List<Egg> eggs = world.children.whereType<Egg>().toList();
+    final List<EggComponent> eggs = world.children
+        .whereType<EggComponent>()
+        .toList();
     final List<FlyComponent> flies = world.children
         .whereType<FlyComponent>()
         .toList();
-    for (final Egg egg in eggs) {
+    for (final EggComponent egg in eggs) {
       egg.removeFromParent();
     }
     for (final FlyComponent fly in flies) {

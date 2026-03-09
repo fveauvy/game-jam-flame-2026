@@ -3,8 +3,8 @@ import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import 'package:game_jam/game/my_game.dart';
 
-class Egg extends SpriteComponent with HasGameReference<MyGame> {
-  Egg({required super.position, super.size})
+class EggComponent extends SpriteComponent with HasGameReference<MyGame> {
+  EggComponent({required super.position, super.size})
     : super(sprite: Sprite(Flame.images.fromCache('eggs.png')));
 
   @override

@@ -10,7 +10,7 @@ import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
-import 'package:game_jam/game/components/allies/tadpole.dart';
+import 'package:game_jam/game/components/allies/egg_component.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
@@ -78,6 +78,8 @@ class PlayerComponent extends SpriteAnimationComponent
   final Vector2 _thornKnockbackVelocity = Vector2.zero();
   double _thornInvincibilityRemaining = 0;
   double _thornFlickerElapsed = 0;
+
+  int eggsCollected = 0;
 
   bool get _isTouchingGround => _groundContacts > 0;
   bool get _isTouchingLily => _lilyContacts > 0;
@@ -595,7 +597,8 @@ class PlayerComponent extends SpriteAnimationComponent
       position += collisionNormal.scaled(separationDistance);
     }
 
-    if (other is Egg) {
+    if (other is EggComponent) {
+      eggsCollected++;
       debugPrint('Collected an egg!');
       other.collect();
     }
