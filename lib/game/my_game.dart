@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
@@ -109,6 +110,7 @@ class MyGame extends FlameGame<WorldRoot>
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await FlameAudio.bgm.play('mud-ambient.mp3', volume: .25);
 
     _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
 
