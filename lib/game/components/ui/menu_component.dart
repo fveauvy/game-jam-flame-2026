@@ -19,8 +19,8 @@ class MenuComponent extends PositionComponent
   Future<void> onLoad() async {
     await super.onLoad();
 
-    final menuWidth = game.camera.viewport.size.x * 0.3;
-    final menuHeight = game.camera.viewport.size.y * 0.3;
+    final menuWidth = game.camera.viewport.size.x * 0.2;
+    final menuHeight = game.camera.viewport.size.y * 0.2;
     final menuSize = Vector2(menuWidth, menuHeight);
 
     // Cap plank size to a maximum of 359x98 while still
@@ -32,16 +32,14 @@ class MenuComponent extends PositionComponent
     // 1. Add a semi-transparent background
     add(
       ColumnComponent(
-        gap: 1.0,
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        gap: 10.0,
+        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
         size: menuSize,
         anchor: Anchor.center,
         position: (game.camera.viewport.virtualSize / 2),
         children: [
           ColumnComponent(
-            gap: 1.0,
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
 
             children: [
@@ -72,7 +70,6 @@ class MenuComponent extends PositionComponent
             size: Vector2(plankWidth, plankHeight),
             onReroll: onReroll,
             onStart: onStart,
-            position: Vector2(menuSize.x / 2, menuSize.y / 1.5),
           ),
         ],
       ),

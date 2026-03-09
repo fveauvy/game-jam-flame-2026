@@ -24,6 +24,7 @@ abstract final class AssetPaths {
   static const String splashAudioEffect = 'sound_effects/whawhawhawhoua.wav';
 
   // Flame image cache keys.
+  static const String uiRefreshLogoCacheKey = 'ui/refresh_logo.png';
   static const String splashScreenCacheKey = 'splash_screen.png';
   static const String plankCacheKey = 'plank.png';
   static const String plankLightCacheKey = 'plank_light.png';
@@ -70,6 +71,7 @@ abstract final class AssetPaths {
     waterLilyAltCacheKey,
     flyCacheKey,
     eggsCacheKey,
+    uiRefreshLogoCacheKey,
     ...animatedFrogSpriteId.expand((id) => frogAnimatedSpriteCacheKey(id)),
     ...List<String>.generate(GameplayTuning.frogSpriteCount, (int index) {
       if (animatedFrogSpriteId.contains(index + 1)) {
@@ -85,7 +87,6 @@ abstract final class AssetPaths {
     splashScreen,
     uiTooltip,
     uiHeartLogo,
-    uiRefreshLogo,
     uiIntelligenceLogo,
     uiSpeedLogo,
     characterPools,

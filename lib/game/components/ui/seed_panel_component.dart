@@ -3,17 +3,17 @@ import 'package:flame/events.dart';
 import 'package:flame/experimental.dart';
 import 'package:flame/input.dart';
 import 'package:flutter/material.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class SeedPanelComponent extends SpriteButtonComponent
     with HasGameReference<MyGame>, HoverCallbacks, TapCallbacks {
   SeedPanelComponent({
-    Anchor anchor = Anchor.center,
-    required Vector2 position,
+    Anchor anchor = Anchor.topLeft,
     required this.onReroll,
     required this.onStart,
     required Vector2 size,
-  }) : super(anchor: anchor, size: size, position: position);
+  }) : super(anchor: anchor, size: size);
 
   late final TextComponent _seedText;
   final Future<void> Function() onReroll;
@@ -23,7 +23,7 @@ class SeedPanelComponent extends SpriteButtonComponent
   Future<void> onLoad() async {
     await super.onLoad();
 
-    button = Sprite(game.images.fromCache('plank.png'));
+    button = Sprite(game.images.fromCache(AssetPaths.plankCacheKey));
 
     _seedText = TextComponent(
       text: game.characterGenerationState.value?.seedCode ?? "-",
@@ -42,12 +42,10 @@ class SeedPanelComponent extends SpriteButtonComponent
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         size: size,
-        anchor: Anchor.center,
-        position: size / 2,
         children: [
           _seedText,
           SpriteComponent(
-            sprite: Sprite(game.images.fromCache('refresh_logo.png')),
+            sprite: Sprite(game.images.fromCache('ui/refresh_logo.png')),
             size: Vector2(16, 16),
             // buttonDown: (game.images.fromCache('refresh_logo_down.png')),
             anchor: Anchor.center,
