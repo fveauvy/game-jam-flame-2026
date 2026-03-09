@@ -10,7 +10,7 @@ class Egg extends SpriteComponent with HasGameReference<MyGame> {
 
   @override
   Future<void> onLoad() async {
-    add(CircleHitbox(radius: size.x));
+    add(CircleHitbox(radius: size.x / 2));
   }
 
   void collect() async {

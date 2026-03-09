@@ -7,11 +7,9 @@ import 'package:game_jam/app/startup/startup_asset_loader.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/ui_config.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
-import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/input/touch_input.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/screens/game_over_overlay.dart';
-import 'package:game_jam/screens/menu_screen.dart';
 import 'package:game_jam/screens/pause_overlay.dart';
 import 'package:game_jam/screens/startup_loading_screen.dart';
 import 'package:game_jam/screens/startup_splash_screen.dart';
@@ -120,28 +118,6 @@ class _GameJamAppState extends State<GameJamApp> {
                 },
               },
             ),
-            if (phase == GamePhase.menu)
-              Positioned.fromRelativeRect(
-                rect: const RelativeRect.fromLTRB(
-                  MenuUi.overlayInsetHorizontal,
-                  MenuUi.overlayInsetVertical,
-                  MenuUi.overlayInsetHorizontal,
-                  MenuUi.overlayInsetVertical,
-                ),
-                child: ValueListenableBuilder<CharacterGenerationState?>(
-                  valueListenable: game.characterGenerationState,
-                  builder: (_, CharacterGenerationState? generationState, _) {
-                    return MenuScreen(
-                      onStart: game.startGame,
-                      onReroll: () async {
-                        await game.rerollCharacter();
-                      },
-                      onPointCandidate: game.pointCharacterCandidate,
-                      generationState: generationState,
-                    );
-                  },
-                ),
-              ),
           ],
         );
       },
@@ -162,6 +138,7 @@ class _GameJamAppState extends State<GameJamApp> {
         ),
         useMaterial3: true,
       ),
+
       home: Scaffold(
         body: switch (_stage) {
           _StartupStage.splash => const StartupSplashScreen(),

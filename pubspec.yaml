@@ -62,6 +62,10 @@ flutter:
   assets:
     - assets/images/
     - assets/images/gronouy/
+    - assets/images/gronouy/frog-10/
+    - assets/images/gronouy/frog-11/
+    - assets/images/gronouy/frog-12/
+    - assets/images/gronouy/frog-13/
     - assets/images/gronouy/frog-14/
     - assets/images/ui/
     - assets/images/environment/

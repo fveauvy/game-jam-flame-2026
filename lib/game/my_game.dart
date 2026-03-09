@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
@@ -25,6 +26,7 @@ import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/player/water_ripple_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
+import 'package:game_jam/game/components/ui/menu_component.dart';
 import 'package:game_jam/game/game_state.dart';
 import 'package:game_jam/game/input/gamepad_input.dart';
 import 'package:game_jam/game/input/input_state.dart';
@@ -35,7 +37,7 @@ import 'package:game_jam/game/systems/spawn_system.dart';
 import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
-enum GamePhase { menu, playing, paused, gameOver }
+enum GamePhase { menu, playing, paused, gameOver, loading }
 
 class MyGame extends FlameGame<WorldRoot>
     with KeyboardEvents, HasGameReference<MyGame> {
@@ -67,7 +69,7 @@ class MyGame extends FlameGame<WorldRoot>
   late final TouchController touchController;
   late final GamepadInput gamepadInput;
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
-    GamePhase.menu,
+    GamePhase.loading,
   );
   final ValueNotifier<CharacterProfile?> characterState =
       ValueNotifier<CharacterProfile?>(null);
@@ -81,11 +83,12 @@ class MyGame extends FlameGame<WorldRoot>
 
   Random get random => _randomSeeded;
 
-  late final PlayerComponent _player;
-  late final WaterRippleComponent _waterRipple;
+  late PlayerComponent _player;
+  late final List<PlayerComponent> _playerList;
+  late final List<WaterRippleComponent> _waterRipples;
   bool _isPlayerReady = false;
   late final GameCameraController _cameraController;
-  final GameState gameState = GameState();
+  GameState gameState = GameState();
 
   int _profileRequestId = 0;
   String _characterSeedCode;
@@ -94,34 +97,44 @@ class MyGame extends FlameGame<WorldRoot>
 
   late GeneratedLevel _level;
 
+  late final MenuComponent _menu;
+
   String get characterSeedCode => _characterSeedCode;
   CharacterProfile? get generatedCharacterProfile => characterState.value;
   int? get playerRemainingHealth =>
       _isPlayerReady ? _player.remainingHealth : null;
   int? get playerMaxHealth => _isPlayerReady ? _player.maxHealth : null;
 
+  List<PlayerComponent> get playerCandidates => _playerList;
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await FlameAudio.bgm.play('mud-ambient.mp3', volume: .25);
 
     _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
 
+    _level = GeneratedLevel();
+
+    // Frogs generation
     final CharacterGenerationState initialState =
-        await _buildCharacterGenerationState(seedCode: _characterSeedCode);
+        await _buildCharacterListGenerationState(seedCode: _characterSeedCode);
+
     characterGenerationState.value = initialState;
     characterState.value = initialState.profile;
 
-    _level = GeneratedLevel();
-    _player = PlayerComponent(
-      inputState: inputState,
-      profile: initialState.profile,
-      startPosition: GameConfig.playerSpawn,
-      speedMultiplier: initialState.profile.traits.speed ?? 1,
-      sizeMultiplier: initialState.profile.traits.size ?? 1,
+    _playerList = _buildInitialFrogs(
+      initialState.candidateProfiles,
+      inputState,
     );
-    _isPlayerReady = true;
 
-    _waterRipple = WaterRippleComponent(player: _player);
+    // Default selected player is the first candidate.
+    _player = _playerList.first;
+
+    // One water ripple component per player.
+    _waterRipples = _playerList
+        .map((player) => WaterRippleComponent(player: player))
+        .toList();
 
     final bird = BirdEnemyComponent(
       initialPosition: Vector2(180, 920) + Vector2.all(200),
@@ -130,19 +143,25 @@ class MyGame extends FlameGame<WorldRoot>
 
     await world.add(_level);
     await world.addAll([
-      _waterRipple,
-      _player,
+      ..._waterRipples,
+      ..._playerList,
       SpawnSystem(),
       CollisionSystem(),
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
       bird,
     ]);
+
+    // Bind the initially selected player.
     world.bindPlayer(_player);
+    _isPlayerReady = true;
+
     await camera.viewport.add(HudComponent());
+
     keyboardInput = KeyboardInput(inputState);
     touchController = TouchController(inputState);
     gamepadInput = GamepadInput(inputState);
+
     // Initialize gamepad input
     await gamepadInput.initialize();
 
@@ -153,6 +172,20 @@ class MyGame extends FlameGame<WorldRoot>
       viewportSize: Vector2(GameConfig.baseWidth, GameConfig.baseHeight),
     );
     _cameraController.attach();
+
+    _menu = MenuComponent(
+      onStart: () async {
+        startGame();
+      },
+      onReroll: () async {
+        await rerollCharacter();
+      },
+    );
+    await camera.viewport.add(_menu);
+
+    phase.value = GamePhase.menu;
+
+    gameState = GameState();
   }
 
   Future<CharacterProfile> generateCharacterProfile({
@@ -174,7 +207,7 @@ class MyGame extends FlameGame<WorldRoot>
     final String normalizedCode = SeedCode.normalize(seedCode);
     final int requestId = ++_profileRequestId;
     final CharacterGenerationState nextState =
-        await _buildCharacterGenerationState(seedCode: normalizedCode);
+        await _buildCharacterListGenerationState(seedCode: normalizedCode);
     if (requestId != _profileRequestId) {
       return;
     }
@@ -205,7 +238,7 @@ class MyGame extends FlameGame<WorldRoot>
     await setCharacterSeedCode(nextCode);
   }
 
-  Future<CharacterGenerationState> _buildCharacterGenerationState({
+  Future<CharacterGenerationState> _buildCharacterListGenerationState({
     required String seedCode,
   }) async {
     final String normalizedCode = SeedCode.normalize(seedCode);
@@ -253,6 +286,36 @@ class MyGame extends FlameGame<WorldRoot>
         (seedInt + (index * GameplayTuning.menuCharacterCandidateSeedStep)) %
         SeedCode.maxValueExclusive;
     return SeedCode.encode(candidateSeed);
+  }
+
+  List<PlayerComponent> _buildInitialFrogs(
+    List<CharacterProfile> candidateProfiles,
+    InputState inputState,
+  ) {
+    final Vector2 viewportSize = camera.viewport.size;
+    final Vector2 circleSpawnCenter = viewportSize / 2;
+    final double circleSpawnRadius = min(viewportSize.x, viewportSize.y) * 0.25;
+
+    return List<PlayerComponent>.generate(
+      GameplayTuning.menuCharacterCandidateCount,
+      (int index) {
+        final CharacterProfile profile = candidateProfiles[index];
+        final double angle =
+            (2 * pi * index) / GameplayTuning.menuCharacterCandidateCount;
+        final Vector2 position = Vector2(
+          circleSpawnCenter.x + circleSpawnRadius * cos(angle),
+          circleSpawnCenter.y + circleSpawnRadius * sin(angle),
+        );
+
+        return PlayerComponent(
+          speedMultiplier: profile.traits.speed ?? 1,
+          sizeMultiplier: profile.traits.size ?? 1,
+          startPosition: position,
+          inputState: inputState,
+          profile: profile,
+        );
+      },
+    );
   }
 
   List<FlyComponent> _buildInitialFlies() {
@@ -380,6 +443,95 @@ class MyGame extends FlameGame<WorldRoot>
     }
   }
 
+  /// Rebuilds all menu candidate frogs and their water ripples from the
+  /// current [characterGenerationState]. Called when returning to the menu
+  /// after a play session, since [_cleanupMenuCandidates] removed all but the
+  /// active player.
+  Future<void> _rebuildMenuCandidates() async {
+    final CharacterGenerationState? state = characterGenerationState.value;
+    if (state == null) {
+      return;
+    }
+
+    // Drop whatever is left in the lists from the previous session.
+    for (final PlayerComponent p in List<PlayerComponent>.from(_playerList)) {
+      p.removeFromParent();
+    }
+    _playerList.clear();
+
+    for (final WaterRippleComponent r in List<WaterRippleComponent>.from(
+      _waterRipples,
+    )) {
+      r.removeFromParent();
+    }
+    _waterRipples.clear();
+
+    // Rebuild players and ripples from the freshly-generated profiles.
+    final List<PlayerComponent> newPlayers = _buildInitialFrogs(
+      state.candidateProfiles,
+      inputState,
+    );
+    final List<WaterRippleComponent> newRipples = newPlayers
+        .map((PlayerComponent p) => WaterRippleComponent(player: p))
+        .toList();
+
+    _playerList.addAll(newPlayers);
+    _waterRipples.addAll(newRipples);
+
+    _player = _playerList.first;
+    world.bindPlayer(_player);
+    _cameraController.target = _player;
+
+    await world.addAll([..._waterRipples, ..._playerList]);
+  }
+
+  /// Called when a player candidate frog is tapped in the menu.
+  void onPlayerTapped(PlayerComponent tapped) {
+    if (phase.value != GamePhase.menu) {
+      return;
+    }
+
+    final int index = _playerList.indexOf(tapped);
+    if (index == -1) {
+      return;
+    }
+
+    // Update the selected candidate in the generation state.
+    pointCharacterCandidate(index);
+
+    // Switch the active player reference and make the camera follow it.
+    _player = tapped;
+    world.bindPlayer(_player);
+    _cameraController.target = _player;
+
+    // Start the game with this selected player.
+    // startGame() will handle removing the other candidates.
+    startGame();
+  }
+
+  /// Removes all non-active player candidates and their water ripples from the
+  /// world. Called once when transitioning from menu to playing, regardless of
+  /// whether the game was started via tap or keyboard.
+  void _cleanupMenuCandidates() {
+    for (final PlayerComponent player in List<PlayerComponent>.from(
+      _playerList,
+    )) {
+      if (player != _player) {
+        player.removeFromParent();
+      }
+    }
+    _playerList.removeWhere((PlayerComponent p) => p != _player);
+
+    for (final WaterRippleComponent ripple in List<WaterRippleComponent>.from(
+      _waterRipples,
+    )) {
+      if (ripple.player != _player) {
+        ripple.removeFromParent();
+      }
+    }
+    _waterRipples.removeWhere((WaterRippleComponent r) => r.player != _player);
+  }
+
   @override
   KeyEventResult onKeyEvent(
     KeyEvent event,
@@ -412,6 +564,14 @@ class MyGame extends FlameGame<WorldRoot>
   void startGame() {
     if (phase.value != GamePhase.menu && phase.value != GamePhase.gameOver) {
       return;
+    }
+
+    // Hide the menu and remove non-selected candidates when the game starts.
+    if (phase.value == GamePhase.menu) {
+      if (isLoaded && _menu.parent != null) {
+        camera.viewport.remove(_menu);
+      }
+      _cleanupMenuCandidates();
     }
 
     final CharacterGenerationState? state = characterGenerationState.value;
@@ -465,8 +625,8 @@ class MyGame extends FlameGame<WorldRoot>
       ..add(AppOverlays.gameOver);
   }
 
-  void restartToMenu() {
-    if (phase.value != GamePhase.paused) {
+  Future<void> restartToMenu() async {
+    if (phase.value != GamePhase.paused && phase.value != GamePhase.gameOver) {
       return;
     }
 
@@ -479,8 +639,16 @@ class MyGame extends FlameGame<WorldRoot>
       ..remove(AppOverlays.touchControls)
       ..remove(AppOverlays.gameOver);
 
+    // Re-show the menu overlay.
+    if (isLoaded && _menu.parent == null) {
+      await camera.viewport.add(_menu);
+    }
+
     if (isLoaded) {
-      unawaited(rerollCharacter());
+      // Reroll picks new profiles into characterGenerationState, then
+      // _rebuildMenuCandidates spawns the full frog carousel from those profiles.
+      await rerollCharacter();
+      await _rebuildMenuCandidates();
     }
   }
 }
