@@ -35,6 +35,7 @@ import 'package:game_jam/game/input/touch_controller.dart';
 import 'package:game_jam/game/systems/collision_system.dart';
 import 'package:game_jam/game/systems/spawn_system.dart';
 import 'package:game_jam/game/world/generated_level.dart';
+import 'package:game_jam/game/world/world_mixin.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
 enum GamePhase { menu, playing, paused, gameOver, loading }
@@ -236,6 +237,9 @@ class MyGame extends FlameGame<WorldRoot>
       }
     }
     await setCharacterSeedCode(nextCode);
+    if (isLoaded) {
+      await _rebuildMenuCandidates();
+    }
   }
 
   Future<CharacterGenerationState> _buildCharacterListGenerationState({
@@ -292,20 +296,16 @@ class MyGame extends FlameGame<WorldRoot>
     List<CharacterProfile> candidateProfiles,
     InputState inputState,
   ) {
-    final Vector2 viewportSize = camera.viewport.size;
-    final Vector2 circleSpawnCenter = viewportSize / 2;
-    final double circleSpawnRadius = min(viewportSize.x, viewportSize.y) * 0.25;
+    final List<Vector2> safeSpawnPositions =
+        WorldMixin.candidateSafeZoneSpawnPositions(
+          count: GameplayTuning.menuCharacterCandidateCount,
+        );
 
     return List<PlayerComponent>.generate(
       GameplayTuning.menuCharacterCandidateCount,
       (int index) {
         final CharacterProfile profile = candidateProfiles[index];
-        final double angle =
-            (2 * pi * index) / GameplayTuning.menuCharacterCandidateCount;
-        final Vector2 position = Vector2(
-          circleSpawnCenter.x + circleSpawnRadius * cos(angle),
-          circleSpawnCenter.y + circleSpawnRadius * sin(angle),
-        );
+        final Vector2 position = safeSpawnPositions[index];
 
         return PlayerComponent(
           speedMultiplier: profile.traits.speed ?? 1,
@@ -395,8 +395,13 @@ class MyGame extends FlameGame<WorldRoot>
     );
     characterGenerationState.value = nextState;
     characterState.value = nextState.profile;
-    if (isLoaded) {
-      _player.applyProfile(nextState.profile);
+
+    if (isLoaded &&
+        phase.value == GamePhase.menu &&
+        index < _playerList.length) {
+      _player = _playerList[index];
+      world.bindPlayer(_player);
+      _cameraController.target = _player;
     }
   }
 
@@ -660,10 +665,8 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     if (isLoaded) {
-      // Reroll picks new profiles into characterGenerationState, then
-      // _rebuildMenuCandidates spawns the full frog carousel from those profiles.
+      // Reroll refreshes the full menu candidate carousel.
       await rerollCharacter();
-      await _rebuildMenuCandidates();
     }
   }
 }

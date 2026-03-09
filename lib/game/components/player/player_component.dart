@@ -428,6 +428,9 @@ class PlayerComponent extends SpriteAnimationComponent
   }
 
   Future<void> onHitGround(GroundComponent ground) async {
+    if (game.phase.value != GamePhase.playing) {
+      return;
+    }
     if (_isDamageTextVisible) return;
     Future.delayed(_damageTextDelay, () {
       _isDamageTextVisible = false;
@@ -555,6 +558,10 @@ class PlayerComponent extends SpriteAnimationComponent
     Set<Vector2> intersectionPoints,
     PositionComponent other,
   ) async {
+    if (game.phase.value != GamePhase.playing) {
+      super.onCollision(intersectionPoints, other);
+      return;
+    }
     if (other is GroundComponent) {
       await onHitGround(other);
       if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
@@ -644,6 +651,9 @@ class PlayerComponent extends SpriteAnimationComponent
   }
 
   void applyDamage(int damage) {
+    if (game.phase.value != GamePhase.playing) {
+      return;
+    }
     _remainingHealth = (_remainingHealth - damage).clamp(0, _maxHealth);
     if (_remainingHealth <= 0) {
       game.endGame();
