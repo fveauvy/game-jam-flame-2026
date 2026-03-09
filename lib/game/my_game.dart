@@ -130,6 +130,7 @@ class MyGame extends FlameGame<WorldRoot>
         circleSpawnCenter.x + circleSpawnRadius * math.cos(angle),
         circleSpawnCenter.y + circleSpawnRadius * math.sin(angle),
       );
+
       return PlayerComponent(
         speedMultiplier: profile.traits.speed ?? 1,
         sizeMultiplier: profile.traits.size ?? 1,
@@ -431,7 +432,9 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     // Hide the menu when the game starts (for example, when tapping the frog).
-    camera.viewport.remove(_menu);
+    if (phase.value == GamePhase.menu) {
+      camera.viewport.remove(_menu);
+    }
 
     final CharacterGenerationState? state = characterGenerationState.value;
     if (state != null) {
