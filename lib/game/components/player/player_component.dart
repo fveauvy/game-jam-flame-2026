@@ -56,7 +56,7 @@ class PlayerComponent extends SpriteAnimationComponent
   late double _sizeMultiplier;
   late int _maxHealth;
   late int _remainingHealth;
-
+  late double _hopTime;
   PlayerVerticalPosition get levelPosition => inputState.playerVerticalPosition;
   late PlayerVerticalPosition previousPosition;
   double get moveSpeed => PhysicsTuning.playerMoveSpeed;
@@ -258,11 +258,33 @@ class PlayerComponent extends SpriteAnimationComponent
         animation = idleAnimation(levelPosition);
       }
     }
-    _wasMoving = _isMoving;
     previousPosition = levelPosition;
 
+    if (_isMoving) {
+      if (!_wasMoving || previousPosition != levelPosition) {
+        animation = moveAnimation(levelPosition);
+      }
+    } else {
+      if (_wasMoving || previousPosition != levelPosition) {
+        animation = idleAnimation(levelPosition);
+      }
+    }
+    previousPosition = levelPosition;
+
+    if (!isInWater && _isMoving) {
+      _hopTime += dt;
+    } else {
+      _hopTime = 0.0;
+    }
+    final double hopScale = isInWater ? 1.0 : sin(_hopTime * 8.0).abs();
+
     position +=
-        velocity * PhysicsTuning.playerMoveSpeed * _speedMultiplier * dt;
+        velocity *
+        PhysicsTuning.playerMoveSpeed *
+        _speedMultiplier *
+        dt *
+        (hopScale * 1.5);
+    _wasMoving = _isMoving;
 
     final double targetAngle = velocity.screenAngle();
     if (velocity.x != 0 || velocity.y != 0) {
