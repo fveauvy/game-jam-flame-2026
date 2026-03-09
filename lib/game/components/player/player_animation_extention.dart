@@ -1,21 +1,23 @@
 import 'package:flame/components.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 
 extension PlayerAnimationExtension on PlayerComponent {
-  static const List<String> supportedSpritesId = ['frog-14'];
+  List<String> get _supportedSpritesId =>
+      AssetPaths.animatedFrogSpriteId.map((id) => 'frog-$id').toList();
 
-  static const String _jump1Name = 'Saut_1.png';
-  static const String _jump2Name = 'Saut_2.png';
+  static const String _jump1Name = 'Saut1.png';
+  static const String _jump2Name = 'Saut2.png';
 
-  static const String _idleLandName = 'ChillTerre.png';
-  static const String _idleWaterName = 'ChillEau.png';
+  static const String _idleLandName = 'Saut1.png';
+  static const String _idleWaterName = 'Chill.png';
 
-  static const String _swim1Name = 'Nage1eau.png';
-  static const String _swim2Name = 'Nage2eau.png';
+  static const String _swim1Name = 'Nage1.png';
+  static const String _swim2Name = 'Nage2.png';
 
   SpriteAnimation moveAnimation(PlayerVerticalPosition type) {
-    if (!supportedSpritesId.contains(profile.spriteId)) {
+    if (!_supportedSpritesId.contains(profile.spriteId)) {
       return SpriteAnimation.spriteList(
         [
           Sprite(
@@ -63,7 +65,7 @@ extension PlayerAnimationExtension on PlayerComponent {
   }
 
   SpriteAnimation idleAnimation(PlayerVerticalPosition type) {
-    if (!supportedSpritesId.contains(profile.spriteId)) {
+    if (!_supportedSpritesId.contains(profile.spriteId)) {
       return SpriteAnimation.spriteList(
         [
           Sprite(
