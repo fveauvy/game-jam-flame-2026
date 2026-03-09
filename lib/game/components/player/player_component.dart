@@ -351,10 +351,7 @@ class PlayerComponent extends SpriteAnimationComponent
       _isDamageTextVisible = false;
     });
     _isDamageTextVisible = true;
-    _remainingHealth = (_remainingHealth - ground.damage).clamp(0, _maxHealth);
-    if (_remainingHealth <= 0) {
-      game.endGame();
-    }
+    applyDamage(ground.damage);
     final damageText = SimpleTextComponent(
       color: Colors.red,
       text: '- ${ground.damage}',
@@ -465,5 +462,12 @@ class PlayerComponent extends SpriteAnimationComponent
     }
 
     super.onCollisionEnd(other);
+  }
+
+  void applyDamage(int damage) {
+    _remainingHealth = (_remainingHealth - damage).clamp(0, _maxHealth);
+    if (_remainingHealth <= 0) {
+      game.endGame();
+    }
   }
 }

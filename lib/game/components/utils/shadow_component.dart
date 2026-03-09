@@ -3,22 +3,17 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/game/my_game.dart';
 
-class GroundComponent extends RectangleComponent
+class ShadowComponent extends CircleComponent
     with HasGameReference<MyGame>, CollisionCallbacks {
-  int get damage => 1;
-  int get damageInterval => 1;
-
-  GroundComponent({required Vector2 position, required Vector2 size})
+  ShadowComponent({required Vector2 position, required double radius})
     : super(
         position: position,
-        size: size,
-        priority: 0,
-        paint: Paint()..color = Colors.brown,
+        radius: radius,
+        paint: Paint()..color = Colors.black.withValues(alpha: 0.5),
       );
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    add(RectangleHitbox(size: size));
   }
 }
