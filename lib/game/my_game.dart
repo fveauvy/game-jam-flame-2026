@@ -128,8 +128,8 @@ class MyGame extends FlameGame<WorldRoot>
       initialSize: Vector2.all(100),
     );
 
+    await world.add(_level);
     await world.addAll([
-      _level,
       _waterRipple,
       _player,
       SpawnSystem(),
@@ -272,19 +272,29 @@ class MyGame extends FlameGame<WorldRoot>
     return List<Egg>.generate(
       GameplayTuning.initialEggCount,
       (int index) => Egg(
-        position: Vector2(
-          (random.nextDouble() * GameConfig.worldSize.x).clamp(
-            PhysicsTuning.playerBaseSize,
-            GameConfig.worldSize.x - PhysicsTuning.playerBaseSize,
-          ),
-          (random.nextDouble() * GameConfig.worldSize.y).clamp(
-            PhysicsTuning.playerBaseSize,
-            GameConfig.worldSize.y - PhysicsTuning.playerBaseSize,
-          ),
-        ),
+        position: _randomEggPosition(),
         size: Vector2.all(GameplayTuning.worldPickupSize),
       ),
     );
+  }
+
+  Vector2 _randomEggPosition() {
+    for (int i = 0; i < GameplayTuning.eggSpawnMaxRetries; i++) {
+      final Vector2 candidate = Vector2(
+        (random.nextDouble() * GameConfig.worldSize.x).clamp(
+          PhysicsTuning.playerBaseSize,
+          GameConfig.worldSize.x - PhysicsTuning.playerBaseSize,
+        ),
+        (random.nextDouble() * GameConfig.worldSize.y).clamp(
+          PhysicsTuning.playerBaseSize,
+          GameConfig.worldSize.y - PhysicsTuning.playerBaseSize,
+        ),
+      );
+      if (!_level.isPositionOnThorn(candidate)) {
+        return candidate;
+      }
+    }
+    return GameConfig.playerSpawn.clone();
   }
 
   Future<void> _resetWorldPopulation() async {
