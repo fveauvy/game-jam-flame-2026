@@ -62,7 +62,7 @@ class MyGame extends FlameGame<WorldRoot>
        );
 
   @override
-  bool get debugMode => false;
+  bool get debugMode => true;
 
   final InputState inputState = InputState();
   late final KeyboardInput keyboardInput;
@@ -149,7 +149,6 @@ class MyGame extends FlameGame<WorldRoot>
       CollisionSystem(),
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
-      ..._playerList,
       bird,
     ]);
 
@@ -448,23 +447,37 @@ class MyGame extends FlameGame<WorldRoot>
     // Update the selected candidate in the generation state.
     pointCharacterCandidate(index);
 
-    // Make the other frogs vanish
-    for (final player in List<PlayerComponent>.from(_playerList)) {
-      if (player != tapped) {
-        player.removeFromParent();
-      }
-    }
-
-    // keep the list in sync without reassigning the late-final variable
-    _playerList.removeWhere((p) => p != tapped);
-
     // Switch the active player reference and make the camera follow it.
     _player = tapped;
     world.bindPlayer(_player);
     _cameraController.target = _player;
 
     // Start the game with this selected player.
+    // startGame() will handle removing the other candidates.
     startGame();
+  }
+
+  /// Removes all non-active player candidates and their water ripples from the
+  /// world. Called once when transitioning from menu to playing, regardless of
+  /// whether the game was started via tap or keyboard.
+  void _cleanupMenuCandidates() {
+    for (final PlayerComponent player in List<PlayerComponent>.from(
+      _playerList,
+    )) {
+      if (player != _player) {
+        player.removeFromParent();
+      }
+    }
+    _playerList.removeWhere((PlayerComponent p) => p != _player);
+
+    for (final WaterRippleComponent ripple in List<WaterRippleComponent>.from(
+      _waterRipples,
+    )) {
+      if (ripple.player != _player) {
+        ripple.removeFromParent();
+      }
+    }
+    _waterRipples.removeWhere((WaterRippleComponent r) => r.player != _player);
   }
 
   @override
@@ -501,9 +514,12 @@ class MyGame extends FlameGame<WorldRoot>
       return;
     }
 
-    // Hide the menu when the game starts (for example, when tapping the frog).
+    // Hide the menu and remove non-selected candidates when the game starts.
     if (phase.value == GamePhase.menu) {
-      camera.viewport.remove(_menu);
+      if (_menu.parent != null) {
+        camera.viewport.remove(_menu);
+      }
+      _cleanupMenuCandidates();
     }
 
     final CharacterGenerationState? state = characterGenerationState.value;
@@ -557,7 +573,7 @@ class MyGame extends FlameGame<WorldRoot>
       ..add(AppOverlays.gameOver);
   }
 
-  void restartToMenu() {
+  Future<void> restartToMenu() async {
     if (phase.value != GamePhase.paused) {
       return;
     }
@@ -571,8 +587,13 @@ class MyGame extends FlameGame<WorldRoot>
       ..remove(AppOverlays.touchControls)
       ..remove(AppOverlays.gameOver);
 
+    // Re-show the menu overlay.
+    if (_menu.parent == null) {
+      await camera.viewport.add(_menu);
+    }
+
     if (isLoaded) {
-      unawaited(rerollCharacter());
+      await rerollCharacter();
     }
   }
 }
