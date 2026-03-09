@@ -16,7 +16,6 @@ class GameCameraController {
   final Vector2 viewportSize;
 
   /// The current object the camera follows.
-  PositionComponent get target => _target;
   set target(PositionComponent t) => _target = t;
 
   void attach() {
