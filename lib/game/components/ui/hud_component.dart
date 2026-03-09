@@ -39,6 +39,7 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     text: 'Eggs: -',
     textRenderer: TextPaint(style: healthTextStyle),
   );
+
   late final TextComponent _fpsText = TextComponent(
     text: 'FPS: -',
     anchor: Anchor.topRight,

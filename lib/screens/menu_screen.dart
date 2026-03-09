@@ -1,3 +1,4 @@
+import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
@@ -8,16 +9,22 @@ import 'package:game_jam/game/character/model/character_profile.dart';
 class MenuScreen extends StatefulWidget {
   const MenuScreen({
     super.key,
-    required this.onStart,
-    required this.onReroll,
     required this.onPointCandidate,
     required this.generationState,
+    required this.inputController,
+    required this.onInputChange,
+    required this.viewPortSize,
+    required this.onReroll,
+    required this.onStart,
   });
 
-  final VoidCallback onStart;
-  final VoidCallback onReroll;
-  final ValueChanged<int> onPointCandidate;
   final CharacterGenerationState? generationState;
+  final TextEditingController inputController;
+  final ValueChanged<int> onPointCandidate;
+  final void Function(String)? onInputChange;
+  final VoidCallback onReroll;
+  final VoidCallback onStart;
+  final Vector2 viewPortSize;
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
