@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
+import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/utils/time_utils.dart';
 import 'package:game_jam/game/camera/camera_controller.dart';
 import 'package:game_jam/game/character/generator/character_generator.dart';
@@ -262,8 +263,14 @@ class MyGame extends FlameGame<WorldRoot>
       GameplayTuning.initialEggCount,
       (int index) => Egg(
         position: Vector2(
-          random.nextDouble() * GameConfig.worldSize.x,
-          random.nextDouble() * GameConfig.worldSize.y,
+          (random.nextDouble() * GameConfig.worldSize.x).clamp(
+            PhysicsTuning.playerBaseSize,
+            GameConfig.worldSize.x - PhysicsTuning.playerBaseSize,
+          ),
+          (random.nextDouble() * GameConfig.worldSize.y).clamp(
+            PhysicsTuning.playerBaseSize,
+            GameConfig.worldSize.y - PhysicsTuning.playerBaseSize,
+          ),
         ),
         size: Vector2.all(GameplayTuning.worldPickupSize),
       ),
@@ -374,6 +381,9 @@ class MyGame extends FlameGame<WorldRoot>
 
     if (inputState.pausePressed) {
       togglePause();
+    }
+    if (phase.value == GamePhase.playing) {
+      gameState.elapsedTimeInMs += (dt * 1000).toInt();
     }
     _cameraController.update();
     inputState.clearTransient();
