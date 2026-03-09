@@ -45,6 +45,11 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     anchor: Anchor.topRight,
     textRenderer: TextPaint(style: fpsTextStyle),
   );
+  late final TextComponent _chronometerText = TextComponent(
+    text: 'Time: -',
+    anchor: Anchor.topRight,
+    textRenderer: TextPaint(style: healthTextStyle),
+  );
 
   double _fpsElapsed = 0;
   int _fpsFrames = 0;
@@ -52,7 +57,13 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await addAll([_nameText, _healthText, _eggsText, _fpsText]);
+    await addAll([
+      _nameText,
+      _healthText,
+      _eggsText,
+      _fpsText,
+      _chronometerText,
+    ]);
     game.characterState.addListener(_syncCharacterText);
     _syncCharacterText();
   }
@@ -68,6 +79,7 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     if (_fpsElapsed < GameplayTuning.hudFpsSampleWindowSeconds) {
       _syncHealthText();
       _syncEggsText();
+      _syncChronometerText();
       _layoutText();
       return;
     }
@@ -116,13 +128,24 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     _eggsText.text = 'Eggs: $savedEggs';
   }
 
+  void _syncChronometerText() {
+    final int elapsedTimeInMs = game.gameState.elapsedTimeInMs;
+    final String formattedTime =
+        "${(elapsedTimeInMs / 1000 / 60).round()}:${(elapsedTimeInMs / 1000 % 60).round().toString().padLeft(2, '0')}";
+    _chronometerText.text = 'Time: $formattedTime';
+  }
+
   void _layoutText() {
     _healthText.position = Vector2(0, _nameText.size.y + 4);
     _eggsText.position = Vector2(
       0,
       _healthText.position.y + _healthText.size.y + 4,
     );
-    _fpsText.position = Vector2(game.size.x - 16, 16);
+    _chronometerText.position = Vector2(game.size.x - 16, 4);
+    _fpsText.position = Vector2(
+      game.size.x - 16,
+      _chronometerText.position.y + _chronometerText.size.y + 4,
+    );
   }
 
   static Color fpsColor(double fps) {

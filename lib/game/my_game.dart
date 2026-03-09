@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flame/components.dart';
@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
+import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/utils/time_utils.dart';
 import 'package:game_jam/game/camera/camera_controller.dart';
 import 'package:game_jam/game/character/generator/character_generator.dart';
@@ -82,7 +83,7 @@ class MyGame extends FlameGame<WorldRoot>
   late final List<WaterRippleComponent> _waterRipples;
   bool _isPlayerReady = false;
   late final GameCameraController _cameraController;
-  late final GameState gameState;
+  GameState gameState = GameState();
 
   int _profileRequestId = 0;
   String _characterSeedCode;
@@ -119,16 +120,15 @@ class MyGame extends FlameGame<WorldRoot>
     // Place candidate frogs on a circle fully contained in the initial viewport.
     final Vector2 viewportSize = camera.viewport.size;
     final Vector2 circleSpawnCenter = viewportSize / 2;
-    final double circleSpawnRadius =
-        math.min(viewportSize.x, viewportSize.y) * 0.25;
+    final double circleSpawnRadius = min(viewportSize.x, viewportSize.y) * 0.25;
 
     _playerList = List.generate(initialState.candidateProfiles.length, (index) {
       final CharacterProfile profile = initialState.candidateProfiles[index];
       final double angle =
-          (2 * math.pi * index) / initialState.candidateProfiles.length;
+          (2 * pi * index) / initialState.candidateProfiles.length;
       final Vector2 position = Vector2(
-        circleSpawnCenter.x + circleSpawnRadius * math.cos(angle),
-        circleSpawnCenter.y + circleSpawnRadius * math.sin(angle),
+        circleSpawnCenter.x + circleSpawnRadius * cos(angle),
+        circleSpawnCenter.y + circleSpawnRadius * sin(angle),
       );
 
       return PlayerComponent(
@@ -148,37 +148,14 @@ class MyGame extends FlameGame<WorldRoot>
         .map((player) => WaterRippleComponent(player: player))
         .toList();
 
-    // Flies and eggs generation
-    final flies = List.generate(
-      GameplayTuning.initialFlyCount,
-      (index) => FlyComponent(
-        position: Vector2(
-          game.random.nextDouble() * GameConfig.worldSize.x,
-          game.random.nextDouble() * GameConfig.worldSize.y,
-        ),
-        size: Vector2.all(GameplayTuning.worldPickupSize),
-      ),
-    );
-
-    final eggs = List.generate(
-      GameplayTuning.initialEggCount,
-      (index) => Egg(
-        position: Vector2(
-          game.random.nextDouble() * GameConfig.worldSize.x,
-          game.random.nextDouble() * GameConfig.worldSize.y,
-        ),
-        size: Vector2.all(GameplayTuning.worldPickupSize),
-      ),
-    );
-
     await world.addAll([
       _level,
       ..._waterRipples,
       ..._playerList,
       SpawnSystem(),
       CollisionSystem(),
-      ...flies,
-      ...eggs,
+      ..._buildInitialFlies(),
+      ..._buildInitialEggs(),
     ]);
 
     // Bind the initially selected player.
@@ -317,6 +294,60 @@ class MyGame extends FlameGame<WorldRoot>
     return SeedCode.encode(candidateSeed);
   }
 
+  List<FlyComponent> _buildInitialFlies() {
+    return List<FlyComponent>.generate(
+      GameplayTuning.initialFlyCount,
+      (int index) => FlyComponent(
+        position: Vector2(
+          random.nextDouble() * GameConfig.worldSize.x,
+          random.nextDouble() * GameConfig.worldSize.y,
+        ),
+        size: Vector2.all(GameplayTuning.worldPickupSize),
+      ),
+    );
+  }
+
+  List<Egg> _buildInitialEggs() {
+    return List<Egg>.generate(
+      GameplayTuning.initialEggCount,
+      (int index) => Egg(
+        position: Vector2(
+          (random.nextDouble() * GameConfig.worldSize.x).clamp(
+            PhysicsTuning.playerBaseSize,
+            GameConfig.worldSize.x - PhysicsTuning.playerBaseSize,
+          ),
+          (random.nextDouble() * GameConfig.worldSize.y).clamp(
+            PhysicsTuning.playerBaseSize,
+            GameConfig.worldSize.y - PhysicsTuning.playerBaseSize,
+          ),
+        ),
+        size: Vector2.all(GameplayTuning.worldPickupSize),
+      ),
+    );
+  }
+
+  Future<void> _resetWorldPopulation() async {
+    final List<Egg> eggs = world.children.whereType<Egg>().toList();
+    final List<FlyComponent> flies = world.children
+        .whereType<FlyComponent>()
+        .toList();
+    for (final Egg egg in eggs) {
+      egg.removeFromParent();
+    }
+    for (final FlyComponent fly in flies) {
+      fly.removeFromParent();
+    }
+    await world.addAll([..._buildInitialFlies(), ..._buildInitialEggs()]);
+  }
+
+  void _resetRunState() {
+    gameState.reset();
+    world.reset();
+    if (isLoaded) {
+      unawaited(_resetWorldPopulation());
+    }
+  }
+
   void pointCharacterCandidate(int index) {
     final CharacterGenerationState? state = characterGenerationState.value;
     if (state == null || index < 0 || index >= state.candidateProfiles.length) {
@@ -422,6 +453,9 @@ class MyGame extends FlameGame<WorldRoot>
     if (inputState.pausePressed) {
       togglePause();
     }
+    if (phase.value == GamePhase.playing) {
+      gameState.elapsedTimeInMs += (dt * 1000).toInt();
+    }
     _cameraController.update();
     inputState.clearTransient();
   }
@@ -446,7 +480,7 @@ class MyGame extends FlameGame<WorldRoot>
       }
     }
 
-    world.reset();
+    _resetRunState();
     phase.value = GamePhase.playing;
     resumeEngine();
 
@@ -489,4 +523,23 @@ class MyGame extends FlameGame<WorldRoot>
 
   @override
   bool get debugMode => false;
+
+  void restartToMenu() {
+    if (phase.value != GamePhase.paused) {
+      return;
+    }
+
+    phase.value = GamePhase.menu;
+    inputState.clearPausePressed();
+    _resetRunState();
+    resumeEngine();
+    overlays
+      ..remove(AppOverlays.pause)
+      ..remove(AppOverlays.touchControls)
+      ..remove(AppOverlays.gameOver);
+
+    if (isLoaded) {
+      unawaited(rerollCharacter());
+    }
+  }
 }
