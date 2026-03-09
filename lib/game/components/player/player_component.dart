@@ -85,7 +85,10 @@ class PlayerComponent extends SpriteAnimationComponent
 
   @override
   void onTapDown(TapDownEvent event) {
-    game.startGame();
+    // In the menu, tapping a frog selects it and starts the game.
+    if (game.phase.value == GamePhase.menu) {
+      game.onPlayerTapped(this);
+    }
     super.onTapDown(event);
   }
 
