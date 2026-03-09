@@ -20,4 +20,16 @@ abstract final class PhysicsTuning {
   static const double landOpacity = 1.0;
   static const double waterOpacity = 0.7;
   static const double underwaterOpacity = 0.4;
+
+  // Bird enemy component.
+  static const double birdEnemySpeed = 200;
+  static const double birdEnemyDirectionChangeInterval = 2;
+  static const double birdEnemyMargin = 60;
+  static const double birdEnemyFacingFlipDeadZone = 8;
+  static const double birdEnemyScaleUpDistance = 400;
+  static const double birdEnemyDamageInterval = 1;
+  static const double birdEnemyDamageRange = 80;
+  static const int birdEnemyDamageAmount = 10;
+  static const double birdEnemyDescentDuration = 1;
+  static const double birdEnemyDescentHeight = 140;
 }

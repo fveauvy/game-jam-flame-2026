@@ -20,6 +20,7 @@ import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/allies/tadpole.dart';
+import 'package:game_jam/game/components/enemies/bird_enemy_component.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/player/water_ripple_component.dart';
@@ -38,7 +39,7 @@ import 'package:game_jam/game/world/world_root.dart';
 enum GamePhase { menu, playing, paused, gameOver, loading }
 
 class MyGame extends FlameGame<WorldRoot>
-    with KeyboardEvents, HasGameReference<MyGame>, HasCollisionDetection {
+    with KeyboardEvents, HasGameReference<MyGame> {
   MyGame({
     CharacterGenerator? characterGenerator,
     CharacterPoolsRepository? characterPoolsRepository,
@@ -58,6 +59,9 @@ class MyGame extends FlameGame<WorldRoot>
            height: GameConfig.baseHeight,
          ),
        );
+
+  @override
+  bool get debugMode => false;
 
   final InputState inputState = InputState();
   late final KeyboardInput keyboardInput;
@@ -130,6 +134,11 @@ class MyGame extends FlameGame<WorldRoot>
         .map((player) => WaterRippleComponent(player: player))
         .toList();
 
+    final bird = BirdEnemyComponent(
+      initialPosition: Vector2(180, 920) + Vector2.all(200),
+      initialSize: Vector2.all(100),
+    );
+
     await world.addAll([
       _level,
       ..._waterRipples,
@@ -139,6 +148,7 @@ class MyGame extends FlameGame<WorldRoot>
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
       ..._playerList,
+      bird,
     ]);
 
     // Bind the initially selected player.
