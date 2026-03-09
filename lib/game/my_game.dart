@@ -92,8 +92,8 @@ class MyGame extends FlameGame<WorldRoot>
 
   int _profileRequestId = 0;
   String _characterSeedCode;
-  int _menuNavDirection = 0;
-  double _menuNavRepeatTimer = 0;
+  // int _menuNavDirection = 0;
+  // double _menuNavRepeatTimer = 0;
 
   late GeneratedLevel _level;
 
@@ -373,66 +373,68 @@ class MyGame extends FlameGame<WorldRoot>
     }
   }
 
-  void pointCharacterCandidate(int index) {
-    final CharacterGenerationState? state = characterGenerationState.value;
-    if (state == null || index < 0 || index >= state.candidateProfiles.length) {
-      return;
-    }
-    if (index == state.selectedIndex) {
-      return;
-    }
-    final CharacterGenerationState nextState = state.copyWith(
-      selectedIndex: index,
-    );
-    characterGenerationState.value = nextState;
-    characterState.value = nextState.profile;
-    if (isLoaded) {
-      _player.applyProfile(nextState.profile);
-    }
-  }
+  // Keep these functions commented for future menu selection mechanic
 
-  void _stepMenuCandidate(int delta) {
-    final CharacterGenerationState? state = characterGenerationState.value;
-    if (state == null || state.candidateProfiles.isEmpty) {
-      return;
-    }
-    final int count = state.candidateProfiles.length;
-    final int next = (state.selectedIndex + delta) % count;
-    pointCharacterCandidate(next < 0 ? next + count : next);
-  }
+  // void pointCharacterCandidate(int index) {
+  //   final CharacterGenerationState? state = characterGenerationState.value;
+  //   if (state == null || index < 0 || index >= state.candidateProfiles.length) {
+  //     return;
+  //   }
+  //   if (index == state.selectedIndex) {
+  //     return;
+  //   }
+  //   final CharacterGenerationState nextState = state.copyWith(
+  //     selectedIndex: index,
+  //   );
+  //   characterGenerationState.value = nextState;
+  //   characterState.value = nextState.profile;
+  //   if (isLoaded) {
+  //     _player.applyProfile(nextState.profile);
+  //   }
+  // }
 
-  void _updateMenuNavigation(double dt) {
-    final double x = inputState.moveAxisX;
-    final double y = inputState.moveAxisY;
-    int direction = 0;
-    if (x >= GameplayTuning.menuNavigationAxisThreshold ||
-        y <= -GameplayTuning.menuNavigationAxisThreshold) {
-      direction = 1;
-    } else if (x <= -GameplayTuning.menuNavigationAxisThreshold ||
-        y >= GameplayTuning.menuNavigationAxisThreshold) {
-      direction = -1;
-    }
+  // void _stepMenuCandidate(int delta) {
+  //   final CharacterGenerationState? state = characterGenerationState.value;
+  //   if (state == null || state.candidateProfiles.isEmpty) {
+  //     return;
+  //   }
+  //   final int count = state.candidateProfiles.length;
+  //   final int next = (state.selectedIndex + delta) % count;
+  //   pointCharacterCandidate(next < 0 ? next + count : next);
+  // }
 
-    if (direction == 0) {
-      _menuNavDirection = 0;
-      _menuNavRepeatTimer = 0;
-      return;
-    }
+  // void _updateMenuNavigation(double dt) {
+  //   final double x = inputState.moveAxisX;
+  //   final double y = inputState.moveAxisY;
+  //   int direction = 0;
+  //   if (x >= GameplayTuning.menuNavigationAxisThreshold ||
+  //       y <= -GameplayTuning.menuNavigationAxisThreshold) {
+  //     direction = 1;
+  //   } else if (x <= -GameplayTuning.menuNavigationAxisThreshold ||
+  //       y >= GameplayTuning.menuNavigationAxisThreshold) {
+  //     direction = -1;
+  //   }
 
-    if (direction != _menuNavDirection) {
-      _menuNavDirection = direction;
-      _menuNavRepeatTimer = 0;
-      _stepMenuCandidate(direction);
-      return;
-    }
+  //   if (direction == 0) {
+  //     _menuNavDirection = 0;
+  //     _menuNavRepeatTimer = 0;
+  //     return;
+  //   }
 
-    _menuNavRepeatTimer += dt;
-    if (_menuNavRepeatTimer >=
-        GameplayTuning.menuNavigationRepeatIntervalSeconds) {
-      _menuNavRepeatTimer = 0;
-      _stepMenuCandidate(direction);
-    }
-  }
+  //   if (direction != _menuNavDirection) {
+  //     _menuNavDirection = direction;
+  //     _menuNavRepeatTimer = 0;
+  //     _stepMenuCandidate(direction);
+  //     return;
+  //   }
+
+  //   _menuNavRepeatTimer += dt;
+  //   if (_menuNavRepeatTimer >=
+  //       GameplayTuning.menuNavigationRepeatIntervalSeconds) {
+  //     _menuNavRepeatTimer = 0;
+  //     _stepMenuCandidate(direction);
+  //   }
+  // }
 
   /// Called when a player candidate frog is tapped in the menu.
   void onPlayerTapped(PlayerComponent tapped) {
@@ -444,9 +446,6 @@ class MyGame extends FlameGame<WorldRoot>
     if (index == -1) {
       return;
     }
-
-    // Update the selected candidate in the generation state.
-    pointCharacterCandidate(index);
 
     // Make the other frogs vanish
     for (final player in List<PlayerComponent>.from(_playerList)) {
@@ -480,7 +479,6 @@ class MyGame extends FlameGame<WorldRoot>
     super.update(clampDeltaTime(dt, GameConfig.maxDeltaTime));
 
     if (phase.value == GamePhase.menu) {
-      _updateMenuNavigation(dt);
       if (inputState.confirmPressed) {
         startGame();
       }
