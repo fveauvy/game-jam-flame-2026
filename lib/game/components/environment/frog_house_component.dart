@@ -1,6 +1,7 @@
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/game/components/allies/egg_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -14,8 +15,8 @@ class FrogHouseComponent extends SpriteComponent
   Future<void> onLoad() async {
     await super.onLoad();
     final hitbox = RectangleHitbox(
-      size: size + Vector2.all(20),
-      position: Vector2(-10, -10),
+      size: size,
+      position: Vector2.zero(),
       priority: 0,
     );
     add(hitbox);
@@ -24,6 +25,13 @@ class FrogHouseComponent extends SpriteComponent
 
   @override
   Future<void> update(double dt) async {
+    final savedEggs = children
+        .whereType<EggComponent>()
+        .where((egg) => egg.isInSafeHouse)
+        .length;
+    if (savedEggs == GameplayTuning.initialEggCount) {
+      game.winGame();
+    }
     super.update(dt);
   }
 

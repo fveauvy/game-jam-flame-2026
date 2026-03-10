@@ -48,4 +48,8 @@ abstract final class PhysicsTuning {
   static const double thornParticleSpeedMin = 70;
   static const double thornParticleSpeedMax = 240;
   static const double thornParticleAlpha = 0.8;
+
+  /// Frog House
+  static const double frogHouseSize = 200;
+  static const double frogHousePositionOffset = 100;
 }

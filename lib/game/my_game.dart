@@ -41,7 +41,7 @@ import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_mixin.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
-enum GamePhase { menu, playing, paused, gameOver, loading }
+enum GamePhase { menu, playing, paused, gameOver, loading, win }
 
 class MyGame extends FlameGame<WorldRoot>
     with KeyboardEvents, HasGameReference<MyGame> {
@@ -66,7 +66,7 @@ class MyGame extends FlameGame<WorldRoot>
        );
 
   @override
-  bool get debugMode => true;
+  bool get debugMode => false;
 
   final InputState inputState = InputState();
   late final KeyboardInput keyboardInput;
@@ -442,8 +442,10 @@ class MyGame extends FlameGame<WorldRoot>
 
   FrogHouseComponent _buildInitialWoodBoards() {
     return FrogHouseComponent(
-      position: GameConfig.playerSpawn - Vector2(100, 100),
-      size: Vector2(200, 200),
+      position:
+          GameConfig.playerSpawn -
+          Vector2.all(PhysicsTuning.frogHousePositionOffset),
+      size: Vector2.all(PhysicsTuning.frogHouseSize),
     );
   }
 
@@ -490,6 +492,15 @@ class MyGame extends FlameGame<WorldRoot>
     for (final FlyComponent fly in flies) {
       fly.removeFromParent();
     }
+
+    final frogHouse = world.children
+        .whereType<FrogHouseComponent>()
+        .firstOrNull;
+    for (final egg
+        in frogHouse?.children.whereType<EggComponent>() ?? <EggComponent>[]) {
+      egg.removeFromParent();
+    }
+
     await world.addAll([..._buildInitialFlies(), ..._buildInitialEggs()]);
   }
 
@@ -766,6 +777,17 @@ class MyGame extends FlameGame<WorldRoot>
       ..add(AppOverlays.gameOver);
   }
 
+  void winGame() {
+    phase.value = GamePhase.win;
+    _applyAudioSettings();
+    pauseEngine();
+    overlays
+      ..remove(AppOverlays.pause)
+      ..remove(AppOverlays.audioQuickControls)
+      ..remove(AppOverlays.touchControls)
+      ..add(AppOverlays.winOverlay);
+  }
+
   Future<void> restartToMenu() async {
     if (phase.value != GamePhase.paused && phase.value != GamePhase.gameOver) {
       return;
@@ -780,7 +802,8 @@ class MyGame extends FlameGame<WorldRoot>
       ..remove(AppOverlays.pause)
       ..remove(AppOverlays.audioQuickControls)
       ..remove(AppOverlays.touchControls)
-      ..remove(AppOverlays.gameOver);
+      ..remove(AppOverlays.gameOver)
+      ..remove(AppOverlays.winOverlay);
 
     // Re-show the menu overlay.
     if (isLoaded && _menu.parent == null) {

@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:game_jam/audio/audio_settings.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/app/startup/startup_asset_loader.dart';
+import 'package:game_jam/audio/audio_settings.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/ui_config.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
@@ -15,6 +15,7 @@ import 'package:game_jam/screens/in_game_audio_controls.dart';
 import 'package:game_jam/screens/pause_overlay.dart';
 import 'package:game_jam/screens/startup_loading_screen.dart';
 import 'package:game_jam/screens/startup_splash_screen.dart';
+import 'package:game_jam/screens/you_win_overlay.dart';
 
 class GameJamApp extends StatefulWidget {
   const GameJamApp({super.key});
@@ -151,6 +152,9 @@ class _GameJamAppState extends State<GameJamApp> {
                     input: game.inputState,
                     touchController: game.touchController,
                   );
+                },
+                AppOverlays.winOverlay: (_, MyGame game) {
+                  return YouWinOverlay(onRestart: game.restartToMenu);
                 },
               },
             ),
