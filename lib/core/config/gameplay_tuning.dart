@@ -21,6 +21,7 @@ abstract final class GameplayTuning {
 
   // Shared input thresholds.
   static const double gamepadButtonPressedValue = 1;
+  static const bool gamepadDebugLogs = false;
 
   // Thorn world generation.
   static const double thornPatchNoiseFrequency = 0.12;

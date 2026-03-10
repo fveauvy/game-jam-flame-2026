@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 
 enum GamepadButton {
@@ -34,20 +32,15 @@ enum GamepadButton {
     if (kIsWeb || kIsWasm) {
       return GamepadBindings.controllerChrome[buttonName];
     }
-    if (Platform.isMacOS) {
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
       // Try DS5 mapping first, then Pro Controller mapping
       return GamepadBindings.dS5controllerMacOs[buttonName] ??
           GamepadBindings.proControllerMacOs[buttonName];
     }
 
-    final testMapping =
-        GamepadBindings.controllerChrome[buttonName] ??
+    return GamepadBindings.controllerChrome[buttonName] ??
         GamepadBindings.dS5controllerMacOs[buttonName] ??
         GamepadBindings.proControllerMacOs[buttonName];
-    if (testMapping != null) {
-      debugPrint('Unhandled gamepad input: $buttonName');
-    }
-    return testMapping;
   }
 }
 
@@ -93,6 +86,10 @@ abstract final class GamepadBindings {
 
     "dpad - xAxis": GamepadButton.dpadXAxis,
     "dpad - yAxis": GamepadButton.dpadYAxis,
+    "dpad.left": GamepadButton.dpadLeft,
+    "dpad.right": GamepadButton.dpadRight,
+    "dpad.up": GamepadButton.dpadUp,
+    "dpad.down": GamepadButton.dpadDown,
 
     "b.circle": GamepadButton.southButton, // B on Pro Controller
     "a.circle": GamepadButton.eastButton, // A on Pro Controller
@@ -111,6 +108,8 @@ abstract final class GamepadBindings {
         GamepadButton.shareButton, // screenshot on Pro Controller
 
     "l.joystick.down": GamepadButton.leftStickClick,
+    "l.joystick.press.down": GamepadButton.leftStickClick,
+    "r.joystick.down": GamepadButton.rightStickClick,
     "r.joystick.press.down": GamepadButton.rightStickClick,
   };
 
@@ -145,5 +144,10 @@ abstract final class GamepadBindings {
 
     "button 16": GamepadButton.homeButton, // home on Pro Controller
     "button 17": GamepadButton.shareButton, // screenshot on Pro Controller
+    // Browser aliases seen across mappings/devices.
+    "axis 0": GamepadButton.leftStickXAxis,
+    "axis 1": GamepadButton.leftStickYAxis,
+    "axis 2": GamepadButton.rightStickXAxis,
+    "axis 3": GamepadButton.rightStickYAxis,
   };
 }

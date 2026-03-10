@@ -11,7 +11,6 @@ class StartupAssetLoader {
     for (final String imageCacheKey in AssetPaths.preloadImageCacheKeys) {
       try {
         await Flame.images.load(imageCacheKey);
-        debugPrint('[startup] image ok: $imageCacheKey');
       } catch (error, stackTrace) {
         throw StartupPreloadException(
           asset: imageCacheKey,
@@ -25,7 +24,6 @@ class StartupAssetLoader {
     for (final String audioCacheKey in AssetPaths.preloadAudioCacheKeys) {
       try {
         await FlameAudio.audioCache.load(audioCacheKey);
-        debugPrint('[startup] audio ok: $audioCacheKey');
       } catch (error, stackTrace) {
         throw StartupPreloadException(
           asset: audioCacheKey,
@@ -39,7 +37,6 @@ class StartupAssetLoader {
     for (final String bundleAsset in AssetPaths.preloadBundleAssets) {
       try {
         await rootBundle.load(bundleAsset);
-        debugPrint('[startup] bundle ok: $bundleAsset');
       } catch (error, stackTrace) {
         throw StartupPreloadException(
           asset: bundleAsset,

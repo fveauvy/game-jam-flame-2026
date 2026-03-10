@@ -169,12 +169,6 @@ class BirdEnemyComponent extends SpriteAnimationComponent
     super.onCollisionStart(intersectionPoints, other);
   }
 
-  @override
-  void onCollisionEnd(PositionComponent other) {
-    debugPrint('onCollisionEnd: $other');
-    super.onCollisionEnd(other);
-  }
-
   void _updateShadowOnly(double dt) {
     paint = Paint()..color = Colors.transparent;
     _updateMovingShadow(dt);

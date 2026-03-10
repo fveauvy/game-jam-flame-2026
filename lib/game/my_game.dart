@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame_audio/flame_audio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
@@ -101,6 +102,8 @@ class MyGame extends FlameGame<WorldRoot>
   int _menuNavDirection = 0;
   double _menuNavRepeatTimer = 0;
   bool _bgmStarted = false;
+  bool _awaitingWebAudioGesture = false;
+  bool _webAudioAutoplayWarningLogged = false;
   AudioPlayer? _gameplayMusicPlayer;
   final AudioSettingsStore _audioSettingsStore = AudioSettingsStore();
   static const String _menuBgmAsset = 'mud-ambient.mp3';
@@ -256,6 +259,9 @@ class MyGame extends FlameGame<WorldRoot>
       await FlameAudio.bgm.play(_menuBgmAsset, volume: volume).catchError((
         error,
       ) {
+        if (_handleWebAutoplayError(error)) {
+          return;
+        }
         debugPrint('[audio] bgm sync failed: $error');
       });
       return;
@@ -280,6 +286,9 @@ class MyGame extends FlameGame<WorldRoot>
           volume: volume,
         );
       } catch (error) {
+        if (_handleWebAutoplayError(error)) {
+          return;
+        }
         debugPrint('[audio] gameplay music start failed: $error');
       }
       return;
@@ -296,6 +305,41 @@ class MyGame extends FlameGame<WorldRoot>
     await player.stop();
     await player.dispose();
     _gameplayMusicPlayer = null;
+  }
+
+  bool _handleWebAutoplayError(Object error) {
+    if (!kIsWeb) {
+      return false;
+    }
+    final String value = error.toString().toLowerCase();
+    final bool isAutoplayBlock =
+        value.contains('audiocontext') ||
+        value.contains('notallowederror') ||
+        value.contains('user gesture') ||
+        value.contains('autoplay');
+    if (!isAutoplayBlock) {
+      return false;
+    }
+
+    _awaitingWebAudioGesture = true;
+    if (!_webAudioAutoplayWarningLogged) {
+      _webAudioAutoplayWarningLogged = true;
+      debugPrint('[audio] autoplay blocked, retry on first user gesture');
+    }
+    return true;
+  }
+
+  void notifyUserGesture() {
+    if (!isLoaded) {
+      return;
+    }
+    unawaited(gamepadInput.notifyUserGesture());
+    if (!_awaitingWebAudioGesture) {
+      return;
+    }
+    _awaitingWebAudioGesture = false;
+    _webAudioAutoplayWarningLogged = false;
+    _applyAudioSettings();
   }
 
   Future<CharacterProfile> generateCharacterProfile({
