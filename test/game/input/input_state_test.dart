@@ -18,13 +18,10 @@ void main() {
     expect(inputState.jumpPressed, isTrue);
   });
 
-  test('defaults to water-level vertical position', () {
+  test('defaults to land vertical position', () {
     final InputState inputState = InputState();
 
-    expect(
-      inputState.playerVerticalPosition,
-      PlayerVerticalPosition.waterLevel,
-    );
+    expect(inputState.playerVerticalPosition, PlayerVerticalPosition.land);
   });
 
   test('clearTransient resets jump and dive flags', () {

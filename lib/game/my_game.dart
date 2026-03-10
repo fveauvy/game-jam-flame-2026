@@ -7,9 +7,9 @@ import 'package:flame/game.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/audio/audio_settings.dart';
 import 'package:game_jam/audio/audio_settings_store.dart';
-import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
@@ -22,9 +22,10 @@ import 'package:game_jam/game/character/infra/seed_code.dart';
 import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
-import 'package:game_jam/game/components/allies/tadpole.dart';
+import 'package:game_jam/game/components/allies/egg_component.dart';
 import 'package:game_jam/game/components/enemies/bird_enemy_component.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
+import 'package:game_jam/game/components/environment/frog_house_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/player/water_ripple_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
@@ -40,7 +41,7 @@ import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_mixin.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
-enum GamePhase { menu, playing, paused, gameOver, loading }
+enum GamePhase { menu, playing, paused, gameOver, loading, win }
 
 class MyGame extends FlameGame<WorldRoot>
     with KeyboardEvents, HasGameReference<MyGame> {
@@ -160,6 +161,7 @@ class MyGame extends FlameGame<WorldRoot>
       CollisionSystem(),
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
+      _buildInitialWoodBoards(),
       bird,
     ]);
 
@@ -438,10 +440,20 @@ class MyGame extends FlameGame<WorldRoot>
     );
   }
 
-  List<Egg> _buildInitialEggs() {
-    return List<Egg>.generate(
+  FrogHouseComponent _buildInitialWoodBoards() {
+    return FrogHouseComponent(
+      position:
+          GameConfig.playerSpawn -
+          Vector2.all(PhysicsTuning.frogHousePositionOffset),
+      size: Vector2.all(PhysicsTuning.frogHouseSize),
+    );
+  }
+
+  List<EggComponent> _buildInitialEggs() {
+    return List<EggComponent>.generate(
       GameplayTuning.initialEggCount,
-      (int index) => Egg(
+      (int index) => EggComponent(
+        isInSafeHouse: false,
         position: _randomEggPosition(),
         size: Vector2.all(GameplayTuning.worldPickupSize),
       ),
@@ -468,16 +480,27 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   Future<void> _resetWorldPopulation() async {
-    final List<Egg> eggs = world.children.whereType<Egg>().toList();
+    final List<EggComponent> eggs = world.children
+        .whereType<EggComponent>()
+        .toList();
     final List<FlyComponent> flies = world.children
         .whereType<FlyComponent>()
         .toList();
-    for (final Egg egg in eggs) {
+    for (final EggComponent egg in eggs) {
       egg.removeFromParent();
     }
     for (final FlyComponent fly in flies) {
       fly.removeFromParent();
     }
+
+    final frogHouse = world.children
+        .whereType<FrogHouseComponent>()
+        .firstOrNull;
+    for (final egg
+        in frogHouse?.children.whereType<EggComponent>() ?? <EggComponent>[]) {
+      egg.removeFromParent();
+    }
+
     await world.addAll([..._buildInitialFlies(), ..._buildInitialEggs()]);
   }
 
@@ -754,6 +777,17 @@ class MyGame extends FlameGame<WorldRoot>
       ..add(AppOverlays.gameOver);
   }
 
+  void winGame() {
+    phase.value = GamePhase.win;
+    _applyAudioSettings();
+    pauseEngine();
+    overlays
+      ..remove(AppOverlays.pause)
+      ..remove(AppOverlays.audioQuickControls)
+      ..remove(AppOverlays.touchControls)
+      ..add(AppOverlays.winOverlay);
+  }
+
   Future<void> restartToMenu() async {
     if (phase.value != GamePhase.paused && phase.value != GamePhase.gameOver) {
       return;
@@ -768,7 +802,8 @@ class MyGame extends FlameGame<WorldRoot>
       ..remove(AppOverlays.pause)
       ..remove(AppOverlays.audioQuickControls)
       ..remove(AppOverlays.touchControls)
-      ..remove(AppOverlays.gameOver);
+      ..remove(AppOverlays.gameOver)
+      ..remove(AppOverlays.winOverlay);
 
     // Re-show the menu overlay.
     if (isLoaded && _menu.parent == null) {
