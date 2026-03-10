@@ -31,7 +31,7 @@ enum GamepadButton {
   touchPadYAxis;
 
   static GamepadButton? getFromString(String buttonName) {
-    if (kIsWeb) {
+    if (kIsWeb || kIsWasm) {
       return GamepadBindings.controllerChrome[buttonName];
     }
     if (Platform.isMacOS) {
@@ -45,9 +45,7 @@ enum GamepadButton {
         GamepadBindings.dS5controllerMacOs[buttonName] ??
         GamepadBindings.proControllerMacOs[buttonName];
     if (testMapping != null) {
-      debugPrint(
-        'Unhandled gamepad platform ${Platform.operatingSystem} input: $buttonName',
-      );
+      debugPrint('Unhandled gamepad input: $buttonName');
     }
     return testMapping;
   }
