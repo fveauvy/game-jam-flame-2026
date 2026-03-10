@@ -180,17 +180,25 @@ class _GameJamAppState extends State<GameJamApp> {
       ),
 
       home: Scaffold(
-        body: switch (_stage) {
-          _StartupStage.splash => const StartupSplashScreen(),
-          _StartupStage.loading => const StartupLoadingScreen(isLoading: true),
-          _StartupStage.failed => StartupLoadingScreen(
-            isLoading: false,
-            errorMessage: _startupError,
-            onRetry: _retryStartup,
-          ),
-          _StartupStage.ready when game != null => _buildGameStack(game),
-          _ => const StartupLoadingScreen(isLoading: true),
-        },
+        body: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (_) {
+            game?.notifyUserGesture();
+          },
+          child: switch (_stage) {
+            _StartupStage.splash => const StartupSplashScreen(),
+            _StartupStage.loading => const StartupLoadingScreen(
+              isLoading: true,
+            ),
+            _StartupStage.failed => StartupLoadingScreen(
+              isLoading: false,
+              errorMessage: _startupError,
+              onRetry: _retryStartup,
+            ),
+            _StartupStage.ready when game != null => _buildGameStack(game),
+            _ => const StartupLoadingScreen(isLoading: true),
+          },
+        ),
       ),
     );
   }
