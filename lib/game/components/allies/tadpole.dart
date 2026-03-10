@@ -1,7 +1,6 @@
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
-import 'package:flame_audio/flame_audio.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class Egg extends SpriteComponent with HasGameReference<MyGame> {
@@ -17,6 +16,6 @@ class Egg extends SpriteComponent with HasGameReference<MyGame> {
     // Logic for when the player collects the Egg
     game.gameState.savedEggs += 1;
     removeFromParent();
-    await FlameAudio.play('sound_effects/whawhawhawhoua.wav');
+    await game.playSfx('sound_effects/whawhawhawhoua.wav');
   }
 }

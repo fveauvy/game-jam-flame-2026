@@ -7,6 +7,8 @@ import 'package:flame/game.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:game_jam/audio/audio_settings.dart';
+import 'package:game_jam/audio/audio_settings_store.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
@@ -76,6 +78,8 @@ class MyGame extends FlameGame<WorldRoot>
       ValueNotifier<CharacterProfile?>(null);
   final ValueNotifier<CharacterGenerationState?> characterGenerationState =
       ValueNotifier<CharacterGenerationState?>(null);
+  final ValueNotifier<AudioSettings> audioSettings =
+      ValueNotifier<AudioSettings>(AudioSettings.defaults);
 
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
@@ -96,6 +100,10 @@ class MyGame extends FlameGame<WorldRoot>
   int _menuNavDirection = 0;
   double _menuNavRepeatTimer = 0;
   bool _bgmStarted = false;
+  AudioPlayer? _gameplayMusicPlayer;
+  final AudioSettingsStore _audioSettingsStore = AudioSettingsStore();
+  static const String _menuBgmAsset = 'mud-ambient.mp3';
+  static const String _gameplayBgmAsset = 'music.mp3';
 
   late GeneratedLevel _level;
 
@@ -106,12 +114,14 @@ class MyGame extends FlameGame<WorldRoot>
   int? get playerRemainingHealth =>
       _isPlayerReady ? _player.remainingHealth : null;
   int? get playerMaxHealth => _isPlayerReady ? _player.maxHealth : null;
+  AudioSettings get currentAudioSettings => audioSettings.value;
 
   List<PlayerComponent> get playerCandidates => _playerList;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await _loadAudioSettings();
 
     _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
 
@@ -185,8 +195,105 @@ class MyGame extends FlameGame<WorldRoot>
     await camera.viewport.add(_menu);
 
     phase.value = GamePhase.menu;
+    _startBgmIfNeeded();
 
     gameState = GameState();
+  }
+
+  Future<void> _loadAudioSettings() async {
+    final AudioSettings settings = await _audioSettingsStore.load();
+    audioSettings.value = settings;
+    _applyAudioSettings();
+  }
+
+  Future<void> toggleMute() async {
+    await _setAudioSettings(
+      audioSettings.value.copyWith(muted: !audioSettings.value.muted),
+    );
+  }
+
+  Future<void> setMasterVolume(double value) async {
+    await _setAudioSettings(audioSettings.value.copyWith(masterVolume: value));
+  }
+
+  Future<void> setMusicVolume(double value) async {
+    await _setAudioSettings(audioSettings.value.copyWith(musicVolume: value));
+  }
+
+  Future<void> setSfxVolume(double value) async {
+    await _setAudioSettings(audioSettings.value.copyWith(sfxVolume: value));
+  }
+
+  Future<void> _setAudioSettings(AudioSettings settings) async {
+    audioSettings.value = settings;
+    _applyAudioSettings();
+    await _audioSettingsStore.save(settings);
+  }
+
+  Future<void> playSfx(String asset, {double volume = 1.0}) async {
+    final double effectiveVolume =
+        (audioSettings.value.effectiveSfxVolume * volume).clamp(0.0, 1.0);
+    if (effectiveVolume <= 0) {
+      return;
+    }
+    await FlameAudio.play(asset, volume: effectiveVolume);
+  }
+
+  void _applyAudioSettings() {
+    if (!_bgmStarted) {
+      return;
+    }
+
+    final double volume = audioSettings.value.effectiveMusicVolume;
+    unawaited(_syncAmbientBgm(volume));
+    unawaited(_syncGameplayMusic(volume));
+  }
+
+  Future<void> _syncAmbientBgm(double volume) async {
+    if (!FlameAudio.bgm.isPlaying) {
+      await FlameAudio.bgm.play(_menuBgmAsset, volume: volume).catchError((
+        error,
+      ) {
+        debugPrint('[audio] bgm sync failed: $error');
+      });
+      return;
+    }
+
+    await FlameAudio.bgm.audioPlayer.setVolume(volume);
+  }
+
+  Future<void> _syncGameplayMusic(double volume) async {
+    final bool shouldKeepGameplayMusic =
+        phase.value == GamePhase.playing || phase.value == GamePhase.paused;
+    if (!shouldKeepGameplayMusic || volume <= 0) {
+      await _stopGameplayMusic();
+      return;
+    }
+
+    final AudioPlayer? player = _gameplayMusicPlayer;
+    if (player == null) {
+      try {
+        _gameplayMusicPlayer = await FlameAudio.loopLongAudio(
+          _gameplayBgmAsset,
+          volume: volume,
+        );
+      } catch (error) {
+        debugPrint('[audio] gameplay music start failed: $error');
+      }
+      return;
+    }
+
+    await player.setVolume(volume);
+  }
+
+  Future<void> _stopGameplayMusic() async {
+    final AudioPlayer? player = _gameplayMusicPlayer;
+    if (player == null) {
+      return;
+    }
+    await player.stop();
+    await player.dispose();
+    _gameplayMusicPlayer = null;
   }
 
   Future<CharacterProfile> generateCharacterProfile({
@@ -593,11 +700,13 @@ class MyGame extends FlameGame<WorldRoot>
 
     _resetRunState();
     phase.value = GamePhase.playing;
+    _applyAudioSettings();
     resumeEngine();
 
     overlays
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.pause)
+      ..add(AppOverlays.audioQuickControls)
       ..add(AppOverlays.touchControls);
   }
 
@@ -606,12 +715,7 @@ class MyGame extends FlameGame<WorldRoot>
       return;
     }
     _bgmStarted = true;
-    unawaited(
-      FlameAudio.bgm.play('mud-ambient.mp3', volume: .25).catchError((error) {
-        _bgmStarted = false;
-        debugPrint('[audio] bgm start failed: $error');
-      }),
-    );
+    _applyAudioSettings();
   }
 
   void togglePause() {
@@ -624,23 +728,28 @@ class MyGame extends FlameGame<WorldRoot>
       pauseEngine();
       overlays
         ..add(AppOverlays.pause)
+        ..remove(AppOverlays.audioQuickControls)
         ..remove(AppOverlays.touchControls);
       return;
     }
 
     phase.value = GamePhase.playing;
+    _applyAudioSettings();
     inputState.clearPausePressed();
     resumeEngine();
     overlays
       ..remove(AppOverlays.pause)
+      ..add(AppOverlays.audioQuickControls)
       ..add(AppOverlays.touchControls);
   }
 
   void endGame() {
     phase.value = GamePhase.gameOver;
+    _applyAudioSettings();
     pauseEngine();
     overlays
       ..remove(AppOverlays.pause)
+      ..remove(AppOverlays.audioQuickControls)
       ..remove(AppOverlays.touchControls)
       ..add(AppOverlays.gameOver);
   }
@@ -651,11 +760,13 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     phase.value = GamePhase.menu;
+    _applyAudioSettings();
     inputState.clearPausePressed();
     _resetRunState();
     resumeEngine();
     overlays
       ..remove(AppOverlays.pause)
+      ..remove(AppOverlays.audioQuickControls)
       ..remove(AppOverlays.touchControls)
       ..remove(AppOverlays.gameOver);
 

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:game_jam/audio/audio_settings.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/app/startup/startup_asset_loader.dart';
 import 'package:game_jam/core/config/game_config.dart';
@@ -10,6 +11,7 @@ import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/input/touch_input.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/screens/game_over_overlay.dart';
+import 'package:game_jam/screens/in_game_audio_controls.dart';
 import 'package:game_jam/screens/pause_overlay.dart';
 import 'package:game_jam/screens/startup_loading_screen.dart';
 import 'package:game_jam/screens/startup_splash_screen.dart';
@@ -96,13 +98,47 @@ class _GameJamAppState extends State<GameJamApp> {
                   return ValueListenableBuilder<CharacterProfile?>(
                     valueListenable: game.characterState,
                     builder: (_, CharacterProfile? characterProfile, _) {
-                      return PauseOverlay(
-                        onResume: game.togglePause,
-                        onRestart: game.restartToMenu,
-                        seedCode: game.characterSeedCode,
-                        characterProfile: characterProfile,
-                        currentHealth: game.playerRemainingHealth,
-                        maxHealth: game.playerMaxHealth,
+                      return ValueListenableBuilder<AudioSettings>(
+                        valueListenable: game.audioSettings,
+                        builder: (_, AudioSettings settings, _) {
+                          return PauseOverlay(
+                            onResume: game.togglePause,
+                            onRestart: game.restartToMenu,
+                            onToggleMute: () {
+                              unawaited(game.toggleMute());
+                            },
+                            onMasterVolumeChanged: (value) {
+                              unawaited(game.setMasterVolume(value));
+                            },
+                            onMusicVolumeChanged: (value) {
+                              unawaited(game.setMusicVolume(value));
+                            },
+                            onSfxVolumeChanged: (value) {
+                              unawaited(game.setSfxVolume(value));
+                            },
+                            seedCode: game.characterSeedCode,
+                            characterProfile: characterProfile,
+                            currentHealth: game.playerRemainingHealth,
+                            maxHealth: game.playerMaxHealth,
+                            muted: settings.muted,
+                            masterVolume: settings.masterVolume,
+                            musicVolume: settings.musicVolume,
+                            sfxVolume: settings.sfxVolume,
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+                AppOverlays.audioQuickControls: (_, MyGame game) {
+                  return ValueListenableBuilder<AudioSettings>(
+                    valueListenable: game.audioSettings,
+                    builder: (_, AudioSettings settings, _) {
+                      return InGameAudioControls(
+                        muted: settings.muted,
+                        onToggleMute: () {
+                          unawaited(game.toggleMute());
+                        },
                       );
                     },
                   );
