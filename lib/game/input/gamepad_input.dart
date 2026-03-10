@@ -30,7 +30,7 @@ class GamepadInput extends Controller {
     _gamepadSubscription = Gamepads.events.listen(_handleGamepadEvent);
 
     // Also try immediately in case gamepads are already connected
-    _checkForGamepads();
+    await _checkForGamepads();
   }
 
   Future<void> _checkForGamepads() async {
@@ -47,12 +47,12 @@ class GamepadInput extends Controller {
     }
   }
 
-  void _handleGamepadEvent(GamepadEvent event) {
+  Future<void> _handleGamepadEvent(GamepadEvent event) async {
     if (_disposed) return;
 
     // Ensure we have a controller reference
     if (_currentController == null) {
-      _checkForGamepads();
+      await _checkForGamepads();
     }
 
     bool axisMoved = false;

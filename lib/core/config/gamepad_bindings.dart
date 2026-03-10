@@ -46,7 +46,7 @@ enum GamepadButton {
         GamepadBindings.proControllerMacOs[buttonName];
     if (testMapping != null) {
       debugPrint(
-        'Unhandled gamepad platform ${Platform.operatingSystem} input: ${buttonName}',
+        'Unhandled gamepad platform ${Platform.operatingSystem} input: $buttonName',
       );
     }
     return testMapping;
