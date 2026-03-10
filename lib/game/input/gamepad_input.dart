@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
@@ -67,7 +68,8 @@ class GamepadInput extends Controller {
       case GamepadButton.leftStickYAxis:
       case GamepadButton.rightStickYAxis:
       case GamepadButton.dpadYAxis:
-        moveAxis.y = -event.value; // Invert Y axis for typical game controls
+        moveAxis.y = event.value;
+
         axisMoved = true;
         break;
       case GamepadButton.southButton:
@@ -123,6 +125,10 @@ class GamepadInput extends Controller {
     }
 
     if (axisMoved) {
+      // Invert Y axis for macos
+      if (Platform.isMacOS) {
+        moveAxis.y = -moveAxis.y;
+      }
       setMoveAxis(moveAxis.x, moveAxis.y);
     }
   }
