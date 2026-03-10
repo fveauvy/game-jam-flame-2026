@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flame/extensions.dart';
+import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
 import 'package:game_jam/core/config/gamepad_bindings.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
@@ -20,58 +22,114 @@ class GamepadInput extends Controller {
   StreamSubscription<GamepadEvent>? _gamepadSubscription;
 
   /// Initialize gamepad listening.
-
-  /// Initialize gamepad listening.
   Future<void> initialize() async {
     if (_disposed) return;
 
-    // Get list of connected gamepads and use the first one if available
+    // For web, gamepads require user interaction first (security restriction)
+    // Listen for events which will trigger gamepad availability on first interaction
+    _gamepadSubscription = Gamepads.events.listen(_handleGamepadEvent);
+
+    // Also try immediately in case gamepads are already connected
+    await _checkForGamepads();
+  }
+
+  Future<void> _checkForGamepads() async {
+    if (_disposed) return;
+
     final controllers = await Gamepads.list();
-    if (controllers.isNotEmpty && !_disposed) {
+    if (controllers.isNotEmpty && !_disposed && _currentController == null) {
       debugPrint(
         'Gamepad connected: ${controllers.map((c) => c.name).join(", ")}',
       );
       _currentController = controllers[0];
+    } else if (controllers.isEmpty && !_disposed) {
+      debugPrint('No gamepads detected yet');
+    }
+  }
 
-      _gamepadSubscription = Gamepads.events.listen((event) {
-        bool axisMoved = false;
-        switch (event.key) {
-          case GamepadBindings.leftStickXAxis:
-          case GamepadBindings.rightStickXAxis:
-          case GamepadBindings.dpadXAxis:
-            moveAxis.x = event.value;
-            axisMoved = true;
-            break;
-          case GamepadBindings.leftStickYAxis:
-          case GamepadBindings.rightStickYAxis:
-          case GamepadBindings.dpadYAxis:
-            moveAxis.y =
-                -event.value; // Invert Y axis for typical game controls
-            axisMoved = true;
-            break;
-          case GamepadBindings.aCircle:
-          case GamepadBindings.xboxButtonA:
-          case GamepadBindings.buttonA:
-          case GamepadBindings.buttonSouth:
-            if (event.value == GameplayTuning.gamepadButtonPressedValue) {
-              confirm();
-              moveUpLayer();
-            }
-            break;
-          case GamepadBindings.bCircle:
-            if (event.value == GameplayTuning.gamepadButtonPressedValue) {
-              moveDownLayer();
-            }
-            break;
-          default:
-            debugPrint(
-              'Unhandled gamepad input: ${event.type} - ${event.key} : ${event.value}',
-            );
+  Future<void> _handleGamepadEvent(GamepadEvent event) async {
+    if (_disposed) return;
+
+    // Ensure we have a controller reference
+    if (_currentController == null) {
+      await _checkForGamepads();
+    }
+
+    bool axisMoved = false;
+    debugPrint('gamepad input: ${event.type} - ${event.key} : ${event.value}');
+    final buttonPressed = GamepadButton.getFromString(event.key);
+    switch (buttonPressed) {
+      case GamepadButton.leftStickXAxis:
+      case GamepadButton.rightStickXAxis:
+      case GamepadButton.dpadXAxis:
+        moveAxis.x = event.value;
+        axisMoved = true;
+        break;
+      case GamepadButton.leftStickYAxis:
+      case GamepadButton.rightStickYAxis:
+      case GamepadButton.dpadYAxis:
+        moveAxis.y = event.value;
+
+        axisMoved = true;
+        break;
+      case GamepadButton.southButton:
+        if (event.value == GameplayTuning.gamepadButtonPressedValue) {
+          confirm();
+          moveUpLayer();
         }
-        if (axisMoved) {
-          setMoveAxis(moveAxis.x, moveAxis.y);
+        break;
+      case GamepadButton.eastButton:
+        if (event.value == GameplayTuning.gamepadButtonPressedValue) {
+          moveDownLayer();
         }
-      });
+        break;
+      case GamepadButton.dpadLeft:
+        moveAxis.x = -event.value;
+        axisMoved = true;
+        break;
+      case GamepadButton.dpadRight:
+        moveAxis.x = event.value;
+        axisMoved = true;
+        break;
+      case GamepadButton.dpadUp:
+        moveAxis.y = -event.value;
+        axisMoved = true;
+        break;
+      case GamepadButton.dpadDown:
+        moveAxis.y = event.value;
+        axisMoved = true;
+        break;
+      case GamepadButton.startButton:
+        pause();
+        break;
+      case GamepadButton.northButton:
+      case GamepadButton.westButton:
+      case GamepadButton.selectButton:
+      case GamepadButton.shareButton:
+      case GamepadButton.homeButton:
+      case GamepadButton.leftTrigger:
+      case GamepadButton.rightTrigger:
+      case GamepadButton.leftBumper:
+      case GamepadButton.rightBumper:
+      case GamepadButton.leftStickClick:
+      case GamepadButton.rightStickClick:
+      case GamepadButton.touchPadXAxis:
+      case GamepadButton.touchPadYAxis:
+        // Unhandled buttons
+        break;
+      case null:
+        debugPrint(
+          'Unknown gamepad input: ${event.key}, value: ${event.value}',
+        );
+        break;
+    }
+
+    if (axisMoved) {
+      // Invert Y axis for macos
+      if (Platform.isMacOS) {
+        moveAxis.y = -moveAxis.y;
+      }
+      setMoveAxis(moveAxis.x, moveAxis.y);
     }
   }
 
