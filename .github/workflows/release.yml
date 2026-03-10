@@ -1,6 +1,9 @@
 name: Release
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       notes:
@@ -39,7 +42,7 @@ jobs:
       - name: Generate changelog
         env:
           TAG: ${{ steps.meta.outputs.tag }}
-          EXTRA_NOTES: ${{ inputs.notes }}
+          EXTRA_NOTES: ${{ github.event.inputs.notes || '' }}
         run: |
           set -euo pipefail
           git fetch --tags --force
