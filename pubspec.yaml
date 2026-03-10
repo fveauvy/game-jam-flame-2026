@@ -36,6 +36,7 @@ dependencies:
   gamepads: ^0.1.9
   collection: ^1.19.1
   fast_noise: ^2.0.0
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
