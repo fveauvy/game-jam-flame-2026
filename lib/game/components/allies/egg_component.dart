@@ -4,8 +4,13 @@ import 'package:flame/flame.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class EggComponent extends SpriteComponent with HasGameReference<MyGame> {
-  EggComponent({required super.position, super.size})
-    : super(sprite: Sprite(Flame.images.fromCache('eggs.png')));
+  final bool isInSafeHouse;
+
+  EggComponent({
+    required super.position,
+    super.size,
+    required this.isInSafeHouse,
+  }) : super(sprite: Sprite(Flame.images.fromCache('eggs.png')));
 
   @override
   Future<void> onLoad() async {
@@ -13,9 +18,10 @@ class EggComponent extends SpriteComponent with HasGameReference<MyGame> {
   }
 
   void collect() async {
+    if (isInSafeHouse) return;
     // Logic for when the player collects the Egg
     game.gameState.savedEggs += 1;
     removeFromParent();
-    await game.playSfx('sound_effects/whawhawhawhoua.wav');
+    // await FlameAudio.play('sound_effects/whawhawhawhoua.wav');
   }
 }

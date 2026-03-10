@@ -451,6 +451,7 @@ class MyGame extends FlameGame<WorldRoot>
     return List<EggComponent>.generate(
       GameplayTuning.initialEggCount,
       (int index) => EggComponent(
+        isInSafeHouse: false,
         position: _randomEggPosition(),
         size: Vector2.all(GameplayTuning.worldPickupSize),
       ),
