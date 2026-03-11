@@ -531,13 +531,13 @@ class MyGame extends FlameGame<WorldRoot>
     final List<FlyComponent> flies = world.children
         .whereType<FlyComponent>()
         .toList();
+
     for (final EggComponent egg in eggs) {
       egg.removeFromParent();
     }
     for (final FlyComponent fly in flies) {
       fly.removeFromParent();
     }
-
     final frogHouse = world.children
         .whereType<FrogHouseComponent>()
         .firstOrNull;
