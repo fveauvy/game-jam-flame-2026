@@ -23,9 +23,8 @@ class StartupSplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isFullyLoaded =
+    final bool isLoadingComplete =
         isLoading && totalAssets > 0 && loadedAssets >= totalAssets;
-    final bool showOverlay = !isFullyLoaded;
 
     return ColoredBox(
       color: const Color(0xFF3F7D73),
@@ -50,7 +49,7 @@ class StartupSplashScreen extends StatelessWidget {
               },
             ),
           ),
-          if (showOverlay)
+          if (!isLoadingComplete)
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
