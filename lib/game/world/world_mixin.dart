@@ -5,6 +5,8 @@ import 'package:flame/components.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/entities/biome_type.dart';
+import 'package:game_jam/game/character/infra/seed_code.dart';
+import 'package:game_jam/game/components/environment/cloud_shadow_component.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
@@ -260,6 +262,10 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         ),
       );
     }
+
+    await add(
+      CloudShadowComponent(seed: SeedCode.decode(game.characterSeedCode)),
+    );
   }
 
   List<List<double>> _normalizeGrid(List<List<double>> grid, int w, int h) {
