@@ -11,8 +11,10 @@ class FishEnemyComponent extends SpriteAnimationComponent
     with HasGameReference<MyGame>, CollisionCallbacks {
   Vector2 initialPosition;
   Vector2 initialSize;
-
+  PositionComponent? target;
   bool isEating = false;
+  double timeSinceStartingEat = 0;
+
   FishEnemyComponent({required this.initialPosition, required this.initialSize})
     : super(
         priority: 0,
@@ -30,24 +32,48 @@ class FishEnemyComponent extends SpriteAnimationComponent
   }
 
   @override
-  void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
-    super.onCollision(intersectionPoints, other);
-    if (other is FlyComponent) {
-      eat(other);
+  void update(double dt) {
+    super.update(dt);
+    if (!isEating && timeSinceStartingEat != 0) {
+      timeSinceStartingEat = 0;
     }
-    if (other is PlayerComponent) {
-      eat(other);
+    if (isEating) {
+      timeSinceStartingEat += dt;
+    }
+    if (timeSinceStartingEat >= deathTimeInS && target != null) {
+      if (target is PlayerComponent) {
+        (target as PlayerComponent).applyDamage(50);
+      } else {
+        target?.removeFromParent();
+      }
+      target = null;
     }
   }
 
-  void eat(PositionComponent other) {
+  @override
+  void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
+    super.onCollision(intersectionPoints, other);
+    if (game.phase.value != GamePhase.playing) return;
+    if (other is FlyComponent || other is PlayerComponent) {
+      startEating();
+      target = other;
+    }
+  }
+
+  @override
+  void onCollisionEnd(PositionComponent other) {
+    super.onCollisionEnd(other);
+    if (other == target) {
+      target = null;
+    }
+  }
+
+  void startEating() async {
+    if (isEating) return;
     isEating = true;
     animation = eatAnimation;
     paint.blendMode = BlendMode.srcOver;
-    Future.delayed(Duration(milliseconds: (deathTimeInS * 1000).toInt()), () {
-      other.removeFromParent();
-    });
-    Future.delayed(
+    await Future.delayed(
       Duration(milliseconds: (animationsTimeInS * 1000).toInt()),
       () {
         animation = idleAnimation;
@@ -65,7 +91,7 @@ class FishEnemyComponent extends SpriteAnimationComponent
   static const double _stepTimeInS = 3 / totalFrames;
 
   static const double animationsTimeInS = _stepTimeInS * totalFrames;
-  static const double deathTimeInS = closingMouthFrame / totalFrames;
+  static const double deathTimeInS = closingMouthFrame * _stepTimeInS;
 
   List<Sprite> get spriteList =>
       List<Sprite>.generate(AssetPaths.croqueAnimationFrames, (index) {
