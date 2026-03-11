@@ -114,6 +114,7 @@ class MyGame extends FlameGame<WorldRoot>
   late final MenuComponent _menu;
 
   String get characterSeedCode => _characterSeedCode;
+  GeneratedLevel get level => _level;
   CharacterProfile? get generatedCharacterProfile => characterState.value;
   int? get playerRemainingHealth =>
       _isPlayerReady ? _player.remainingHealth : null;
