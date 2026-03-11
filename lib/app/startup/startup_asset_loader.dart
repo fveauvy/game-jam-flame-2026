@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
 
 class StartupAssetLoader {
+  static const int _maxConcurrentLoads = 8;
+
   Future<void> preloadAll({
     void Function(StartupPreloadProgress progress)? onProgress,
   }) async {
@@ -33,65 +35,82 @@ class StartupAssetLoader {
 
     emitProgress(category: 'startup', asset: 'prepare', loaded: loadedAssets);
 
-    for (final String imageCacheKey in AssetPaths.preloadImageCacheKeys) {
-      try {
-        await Flame.images.load(imageCacheKey);
-        loadedAssets += 1;
-        emitProgress(
+    final List<_PreloadTask> tasks = <_PreloadTask>[
+      ...AssetPaths.preloadImageCacheKeys.map(
+        (String imageCacheKey) => _PreloadTask(
           category: 'image',
           asset: imageCacheKey,
-          loaded: loadedAssets,
-        );
-      } catch (error, stackTrace) {
-        throw StartupPreloadException(
-          asset: imageCacheKey,
-          category: 'image',
-          error: error,
-          stackTrace: stackTrace,
-        );
+          load: () async {
+            await Flame.images.load(imageCacheKey);
+          },
+        ),
+      ),
+      ...AssetPaths.preloadAudioCacheKeys.map(
+        (String audioCacheKey) => _PreloadTask(
+          category: 'audio',
+          asset: audioCacheKey,
+          load: () async {
+            await FlameAudio.audioCache.load(audioCacheKey);
+          },
+        ),
+      ),
+      ...AssetPaths.preloadBundleAssets.map(
+        (String bundleAsset) => _PreloadTask(
+          category: 'bundle',
+          asset: bundleAsset,
+          load: () async {
+            await rootBundle.load(bundleAsset);
+          },
+        ),
+      ),
+    ];
+
+    int nextIndex = 0;
+
+    Future<void> worker() async {
+      while (nextIndex < tasks.length) {
+        final _PreloadTask task = tasks[nextIndex++];
+        try {
+          await task.load();
+          loadedAssets += 1;
+          emitProgress(
+            category: task.category,
+            asset: task.asset,
+            loaded: loadedAssets,
+          );
+        } catch (error, stackTrace) {
+          throw StartupPreloadException(
+            asset: task.asset,
+            category: task.category,
+            error: error,
+            stackTrace: stackTrace,
+          );
+        }
       }
     }
 
-    for (final String audioCacheKey in AssetPaths.preloadAudioCacheKeys) {
-      try {
-        await FlameAudio.audioCache.load(audioCacheKey);
-        loadedAssets += 1;
-        emitProgress(
-          category: 'audio',
-          asset: audioCacheKey,
-          loaded: loadedAssets,
-        );
-      } catch (error, stackTrace) {
-        throw StartupPreloadException(
-          asset: audioCacheKey,
-          category: 'audio',
-          error: error,
-          stackTrace: stackTrace,
-        );
-      }
-    }
-
-    for (final String bundleAsset in AssetPaths.preloadBundleAssets) {
-      try {
-        await rootBundle.load(bundleAsset);
-        loadedAssets += 1;
-        emitProgress(
-          category: 'bundle',
-          asset: bundleAsset,
-          loaded: loadedAssets,
-        );
-      } catch (error, stackTrace) {
-        throw StartupPreloadException(
-          asset: bundleAsset,
-          category: 'bundle',
-          error: error,
-          stackTrace: stackTrace,
-        );
-      }
-    }
+    final int workerCount = tasks.length < _maxConcurrentLoads
+        ? tasks.length
+        : _maxConcurrentLoads;
+    await Future.wait(
+      List<Future<void>>.generate(workerCount, (_) => worker()),
+      eagerError: true,
+    );
 
     debugPrint('[startup] preload complete');
   }
+}
+
+class _PreloadTask {
+  const _PreloadTask({
+    required this.category,
+    required this.asset,
+    required this.load,
+  });
+
+  final String category;
+  final String asset;
+  final Future<void> Function() load;
 }
 
 class StartupPreloadException implements Exception {
