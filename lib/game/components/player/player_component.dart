@@ -384,10 +384,16 @@ class PlayerComponent extends SpriteAnimationComponent
     position.y = position.y.clamp(0, maxY);
     position.x = position.x.clamp(0, maxX);
 
+    bool effectiveInWater = isInWater;
+    if (!effectiveInWater &&
+        levelPosition == PlayerVerticalPosition.underwater) {
+      effectiveInWater = game.level.isPositionInWater(absoluteCenter);
+    }
+
     inputState.playerVerticalPosition = resolveVerticalPosition(
       current: levelPosition,
       isInWater:
-          isInWater ||
+          effectiveInWater ||
           (levelPosition == PlayerVerticalPosition.underwater &&
               _underwaterSurfaceGraceRemaining > 0),
       jumpPressed: inputState.jumpPressed,
@@ -636,7 +642,7 @@ class PlayerComponent extends SpriteAnimationComponent
     if (other is EggComponent) {
       eggsCollected++;
       debugPrint('Collected an egg!');
-      other.collect();
+      await other.collect();
     }
     super.onCollision(intersectionPoints, other);
   }

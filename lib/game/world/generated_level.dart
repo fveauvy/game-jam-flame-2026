@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:game_jam/core/entities/biome_type.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
+import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/game/world/world_mixin.dart';
 
@@ -29,6 +30,21 @@ class GeneratedLevel extends Component
       final bool insideY =
           position.y >= thorn.position.y &&
           position.y <= thorn.position.y + thorn.size.y;
+      if (insideX && insideY) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool isPositionInWater(Vector2 position) {
+    for (final WaterComponent water in children.whereType<WaterComponent>()) {
+      final bool insideX =
+          position.x >= water.position.x &&
+          position.x <= water.position.x + water.size.x;
+      final bool insideY =
+          position.y >= water.position.y &&
+          position.y <= water.position.y + water.size.y;
       if (insideX && insideY) {
         return true;
       }
