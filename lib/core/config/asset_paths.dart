@@ -27,6 +27,7 @@ abstract final class AssetPaths {
   // Data and audio assets.
   static const String characterPools = 'assets/data/character_pools.json';
   static const String splashAudioEffect = 'sound_effects/whawhawhawhoua.wav';
+  static const String victoryMusic = 'victory.mp3';
 
   // Flame image cache keys.
   static const String uiRefreshLogoCacheKey = 'ui/refresh_logo.png';
@@ -104,7 +105,10 @@ abstract final class AssetPaths {
     waterTexture,
   ];
 
-  static List<String> get preloadAudioCacheKeys => <String>[splashAudioEffect];
+  static List<String> get preloadAudioCacheKeys => <String>[
+    splashAudioEffect,
+    victoryMusic,
+  ];
 
   static List<String> get preloadBundleAssets => <String>[
     splashScreen,
