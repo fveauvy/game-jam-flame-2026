@@ -522,7 +522,7 @@ class PlayerComponent extends SpriteAnimationComponent
     }
   }
 
-  Future<void> _runThornFlashEffect() async {
+  Future<void> runDamageFlashEffect() async {
     await add(
       SequenceEffect([
         OpacityEffect.to(
@@ -580,7 +580,7 @@ class PlayerComponent extends SpriteAnimationComponent
     _thornInvincibilityRemaining = PhysicsTuning.thornInvincibilitySeconds;
     _thornFlickerElapsed = 0;
     applyDamage(PhysicsTuning.thornDamageAmount);
-    await _runThornFlashEffect();
+    await runDamageFlashEffect();
     await _spawnThornParticles(_resolveCollisionMidpoint(intersectionPoints));
   }
 
@@ -727,5 +727,18 @@ class PlayerComponent extends SpriteAnimationComponent
     if (_remainingHealth <= 0) {
       game.endGame();
     }
+  }
+
+  Future<void> applyDamageWithInvincibilityDelay(
+    int damage,
+    double delay,
+  ) async {
+    if (_thornInvincibilityRemaining > 0) {
+      return;
+    }
+    _thornInvincibilityRemaining = delay;
+    _thornFlickerElapsed = 0;
+    applyDamage(damage);
+    await runDamageFlashEffect();
   }
 }

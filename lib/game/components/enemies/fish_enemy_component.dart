@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flame/collisions.dart';
@@ -39,7 +40,7 @@ class FishEnemyComponent extends SpriteAnimationComponent
   }
 
   @override
-  void update(double dt) {
+  void update(double dt) async {
     super.update(dt);
     if (!isEating && timeSinceStartingEat != 0) {
       timeSinceStartingEat = 0;
@@ -51,7 +52,10 @@ class FishEnemyComponent extends SpriteAnimationComponent
         target != null &&
         timeSinceStartingEat <= deathTimeInS + 0.6) {
       if (target is PlayerComponent) {
-        (target as PlayerComponent).applyDamage(50);
+        await (target as PlayerComponent).applyDamageWithInvincibilityDelay(
+          50,
+          1.0,
+        );
       } else {
         target?.removeFromParent();
       }
