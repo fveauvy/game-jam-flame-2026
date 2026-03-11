@@ -6,10 +6,15 @@ abstract final class AssetPaths {
   static const String plank = 'assets/images/plank.png';
   static const String plankLight = 'assets/images/plank_light.png';
   static const String plankDark = 'assets/images/plank_dark.png';
+  static const String plankPanel1CacheKey = 'planks_panel_1.png';
+  static const String plankPanel2CacheKey = 'planks_panel_2.png';
   static const String waterLily = 'assets/images/water_lily.png';
   static const String waterLilyAlt = 'assets/images/water_lily_1.png';
   static const String fly = 'assets/images/fly.png';
   static const String eggs = 'assets/images/eggs.png';
+  static const String thorns1 = 'assets/images/environment/Ronces1.png';
+  static const String thorns2 = 'assets/images/environment/Ronces2.png';
+  static const String thorns3 = 'assets/images/environment/Ronces3.png';
 
   // HUD and overlay art.
   static const String uiTooltip = 'assets/images/ui/tooltip.png';
@@ -33,6 +38,18 @@ abstract final class AssetPaths {
   static const String waterLilyAltCacheKey = 'water_lily_1.png';
   static const String flyCacheKey = 'fly.png';
   static const String eggsCacheKey = 'eggs.png';
+  static const String thorns1CacheKey = 'environment/Ronces1.png';
+  static const String thorns2CacheKey = 'environment/Ronces2.png';
+  static const String thorns3CacheKey = 'environment/Ronces3.png';
+
+  static List<String> get thornsAnimationCacheKeys => <String>[
+    thorns1CacheKey,
+    thorns2CacheKey,
+    thorns3CacheKey,
+  ];
+
+  //texture Assets
+  static const String waterTexture = 'water_texture.png';
 
   static String frogSpriteAssetPath(int number) {
     return 'assets/images/gronouy/frog-$number.png';
@@ -44,12 +61,14 @@ abstract final class AssetPaths {
 
   static List<String> frogAnimatedSpriteCacheKey(int number) {
     return [
-      'gronouy/frog-$number/Saut_1.png',
-      'gronouy/frog-$number/Saut_2.png',
-      'gronouy/frog-$number/ChillTerre.png',
-      'gronouy/frog-$number/ChillEau.png',
-      'gronouy/frog-$number/Nage1eau.png',
-      'gronouy/frog-$number/Nage2eau.png',
+      'gronouy/frog-$number/Saut1.png',
+      'gronouy/frog-$number/Saut2.png',
+      'gronouy/frog-$number/Chill.png',
+      'gronouy/frog-$number/Nage1.png',
+      'gronouy/frog-$number/Nage2.png',
+      if (number == 14) 'gronouy/frog-$number/Chillsousleau.png',
+      if (number == 14) 'gronouy/frog-$number/Nage1sousleau.png',
+      if (number == 14) 'gronouy/frog-$number/Nage2sousleau.png',
     ];
   }
 
@@ -61,16 +80,19 @@ abstract final class AssetPaths {
     return path;
   }
 
-  static List<int> animatedFrogSpriteId = [14];
+  static List<int> animatedFrogSpriteId = [10, 11, 12, 13, 14];
 
   static List<String> get preloadImageCacheKeys => <String>[
     plankCacheKey,
     plankLightCacheKey,
     plankDarkCacheKey,
+    plankPanel1CacheKey,
+    plankPanel2CacheKey,
     waterLilyCacheKey,
     waterLilyAltCacheKey,
     flyCacheKey,
     eggsCacheKey,
+    ...thornsAnimationCacheKeys,
     uiRefreshLogoCacheKey,
     ...animatedFrogSpriteId.expand((id) => frogAnimatedSpriteCacheKey(id)),
     ...List<String>.generate(GameplayTuning.frogSpriteCount, (int index) {
@@ -79,6 +101,7 @@ abstract final class AssetPaths {
       }
       return frogSpriteCacheKey(index + 1);
     }, growable: false).where((path) => path.isNotEmpty),
+    waterTexture,
   ];
 
   static List<String> get preloadAudioCacheKeys => <String>[splashAudioEffect];

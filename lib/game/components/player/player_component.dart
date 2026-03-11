@@ -4,13 +4,16 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
+import 'package:flame/particles.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
-import 'package:game_jam/game/components/allies/tadpole.dart';
+import 'package:game_jam/game/components/allies/egg_component.dart';
+import 'package:game_jam/game/components/environment/frog_house_component.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
+import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
 import 'package:game_jam/game/components/player/player_animation_extention.dart';
@@ -34,7 +37,7 @@ class PlayerComponent extends SpriteAnimationComponent
          position: startPosition.clone(),
          size: Vector2.all(PhysicsTuning.playerBaseSize),
          anchor: Anchor.center,
-         priority: 10,
+         priority: 110,
        ) {
     _applyStatsFromProfile();
     previousPosition = inputState.playerVerticalPosition;
@@ -68,14 +71,22 @@ class PlayerComponent extends SpriteAnimationComponent
   bool _isDamageTextVisible = false;
   bool isInWater = false;
   int _waterContacts = 0;
+  int _frogHouseContacts = 0;
   int _groundContacts = 0;
   int _lilyContacts = 0;
   bool _jumpActive = false;
   double _jumpElapsed = 0;
+  double _underwaterSurfaceGraceRemaining = 0;
   Vector2 _jumpDirection = Vector2.zero();
+  final Vector2 _thornKnockbackVelocity = Vector2.zero();
+  double _thornInvincibilityRemaining = 0;
+  double _thornFlickerElapsed = 0;
+
+  int eggsCollected = 0;
 
   bool get _isTouchingGround => _groundContacts > 0;
   bool get _isTouchingLily => _lilyContacts > 0;
+  bool get _isTouchingFrogHouse => _frogHouseContacts > 0;
 
   bool get _isMoving => velocity.length2 > 0;
   bool _wasMoving = false;
@@ -98,6 +109,10 @@ class PlayerComponent extends SpriteAnimationComponent
     paint = Paint()
       ..color = Colors.white.withAlpha((_spriteOpacity * 255).toInt());
     _hitbox = CircleHitbox(radius: size.x / 2);
+    // Players always spawn on land; initialise the shared input state so that
+    // the correct animation, size and physics are applied from frame 1.
+    inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+    previousPosition = PlayerVerticalPosition.land;
     animation = idleAnimation(levelPosition);
     await add(_hitbox!);
   }
@@ -171,6 +186,41 @@ class PlayerComponent extends SpriteAnimationComponent
     return intelligence >= 1.7;
   }
 
+  static double nextThornInvincibilityRemaining({
+    required double current,
+    required double dt,
+  }) {
+    return (current - dt).clamp(0.0, PhysicsTuning.thornInvincibilitySeconds);
+  }
+
+  static bool shouldUseThornFlickerLowOpacity({
+    required double thornInvincibilityRemaining,
+    required double thornFlickerElapsed,
+  }) {
+    if (thornInvincibilityRemaining <= 0) {
+      return false;
+    }
+    return (thornFlickerElapsed / PhysicsTuning.thornFlickerStepSeconds)
+        .floor()
+        .isEven;
+  }
+
+  static Vector2 resolveThornKnockbackDirection({
+    required Vector2 playerCenter,
+    required Vector2 collisionMidpoint,
+    Vector2? thornCenter,
+  }) {
+    final Vector2 collisionNormal = playerCenter - collisionMidpoint;
+    if (collisionNormal.length2 == 0 && thornCenter != null) {
+      collisionNormal.setFrom(playerCenter - thornCenter);
+    }
+    if (collisionNormal.length2 == 0) {
+      collisionNormal.setValues(0, -1);
+    }
+    collisionNormal.normalize();
+    return collisionNormal;
+  }
+
   static PlayerVerticalPosition resolveVerticalPosition({
     required PlayerVerticalPosition current,
     required bool isInWater,
@@ -182,7 +232,6 @@ class PlayerComponent extends SpriteAnimationComponent
     if (jumpActive) {
       return PlayerVerticalPosition.land;
     }
-
     if (current == PlayerVerticalPosition.land) {
       if (isInWater && !canStayOnLand) {
         return PlayerVerticalPosition.waterLevel;
@@ -239,7 +288,8 @@ class PlayerComponent extends SpriteAnimationComponent
     if (_jumpElapsed >= PhysicsTuning.jumpDurationSeconds) {
       _jumpActive = false;
       _jumpElapsed = 0;
-      inputState.playerVerticalPosition = (_isTouchingGround || _isTouchingLily)
+      inputState.playerVerticalPosition =
+          (_isTouchingGround || _isTouchingLily || _isTouchingFrogHouse)
           ? PlayerVerticalPosition.land
           : PlayerVerticalPosition.waterLevel;
     }
@@ -248,6 +298,19 @@ class PlayerComponent extends SpriteAnimationComponent
   @override
   void update(double dt) {
     super.update(dt);
+    if (isInWater) {
+      _underwaterSurfaceGraceRemaining =
+          PhysicsTuning.underwaterSurfaceGraceSeconds;
+    } else {
+      _underwaterSurfaceGraceRemaining = (_underwaterSurfaceGraceRemaining - dt)
+          .clamp(0.0, PhysicsTuning.underwaterSurfaceGraceSeconds);
+    }
+    _thornInvincibilityRemaining = nextThornInvincibilityRemaining(
+      current: _thornInvincibilityRemaining,
+      dt: dt,
+    );
+    _thornFlickerElapsed += dt;
+
     if (game.phase.value != GamePhase.playing) {
       return;
     }
@@ -287,6 +350,15 @@ class PlayerComponent extends SpriteAnimationComponent
         _speedMultiplier *
         dt *
         (hopScale * 1.5);
+    position += _thornKnockbackVelocity * dt;
+    _thornKnockbackVelocity.scale(
+      (1 - (PhysicsTuning.thornKnockbackDrag * dt)).clamp(0.0, 1.0),
+    );
+    if (_thornKnockbackVelocity.length2 <=
+        PhysicsTuning.thornKnockbackMinSpeed *
+            PhysicsTuning.thornKnockbackMinSpeed) {
+      _thornKnockbackVelocity.setZero();
+    }
     _wasMoving = _isMoving;
 
     final double targetAngle = velocity.screenAngle();
@@ -312,43 +384,80 @@ class PlayerComponent extends SpriteAnimationComponent
     position.y = position.y.clamp(0, maxY);
     position.x = position.x.clamp(0, maxX);
 
+    bool effectiveInWater = isInWater;
+    if (!effectiveInWater &&
+        levelPosition == PlayerVerticalPosition.underwater) {
+      effectiveInWater = game.level.isPositionInWater(absoluteCenter);
+    }
+
     inputState.playerVerticalPosition = resolveVerticalPosition(
       current: levelPosition,
-      isInWater: isInWater,
+      isInWater:
+          effectiveInWater ||
+          (levelPosition == PlayerVerticalPosition.underwater &&
+              _underwaterSurfaceGraceRemaining > 0),
       jumpPressed: inputState.jumpPressed,
       divePressed: inputState.divePressed,
-      canStayOnLand: _isTouchingGround || _isTouchingLily,
+      canStayOnLand:
+          _isTouchingGround || _isTouchingLily || _isTouchingFrogHouse,
       jumpActive: _jumpActive,
     );
 
     switch (levelPosition) {
       case PlayerVerticalPosition.land:
         _spriteOpacity = PhysicsTuning.landOpacity;
+        priority = 110;
         size = Vector2.all(
           PhysicsTuning.playerBaseSize * _sizeMultiplier * 1.1,
         );
         break;
       case PlayerVerticalPosition.waterLevel:
         _spriteOpacity = PhysicsTuning.waterOpacity;
+        priority = 110;
         size = Vector2.all(PhysicsTuning.playerBaseSize * _sizeMultiplier);
         break;
       case PlayerVerticalPosition.underwater:
         _spriteOpacity = PhysicsTuning.underwaterOpacity;
+        priority = 50;
         size = Vector2.all(
           PhysicsTuning.playerBaseSize * _sizeMultiplier * 0.9,
         );
         break;
     }
-    paint.color = Colors.white.withValues(alpha: _spriteOpacity);
+    final bool isFlickerLow = shouldUseThornFlickerLowOpacity(
+      thornInvincibilityRemaining: _thornInvincibilityRemaining,
+      thornFlickerElapsed: _thornFlickerElapsed,
+    );
+    final double targetOpacity = isFlickerLow
+        ? PhysicsTuning.thornFlickerLowOpacity
+        : _spriteOpacity;
+    paint.color = Colors.white.withValues(alpha: targetOpacity);
     _syncHitbox();
   }
 
   void reset() {
     position.setFrom(_startPosition);
     _remainingHealth = _maxHealth;
+    _thornKnockbackVelocity.setZero();
+    _thornInvincibilityRemaining = 0;
+    _thornFlickerElapsed = 0;
+    _waterContacts = 0;
+    _groundContacts = 0;
+    _lilyContacts = 0;
+    isInWater = false;
+    _jumpActive = false;
+    _jumpElapsed = 0;
+    _underwaterSurfaceGraceRemaining = 0;
+    _hopTime = 0;
+    // Reset the vertical position to land, matching the spawn tile.
+    inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+    previousPosition = PlayerVerticalPosition.land;
   }
 
   Future<void> onHitGround(GroundComponent ground) async {
+    if (game.phase.value != GamePhase.playing) {
+      return;
+    }
     if (_isDamageTextVisible) return;
     Future.delayed(_damageTextDelay, () {
       _isDamageTextVisible = false;
@@ -377,11 +486,109 @@ class PlayerComponent extends SpriteAnimationComponent
     });
   }
 
+  Vector2 _resolveCollisionMidpoint(Set<Vector2> intersectionPoints) {
+    if (intersectionPoints.isEmpty) {
+      return absoluteCenter.clone();
+    }
+    Vector2 sum = Vector2.zero();
+    for (final Vector2 point in intersectionPoints) {
+      sum += point;
+    }
+    return sum / intersectionPoints.length.toDouble();
+  }
+
+  void _applyThornImpact(
+    Set<Vector2> intersectionPoints,
+    ThornComponent thorn,
+  ) {
+    final Vector2 collisionMid = _resolveCollisionMidpoint(intersectionPoints);
+    final Vector2 collisionNormal = resolveThornKnockbackDirection(
+      playerCenter: absoluteCenter,
+      collisionMidpoint: collisionMid,
+      thornCenter: thorn.absoluteCenter,
+    );
+    _thornKnockbackVelocity.setFrom(
+      collisionNormal.scaled(PhysicsTuning.thornKnockbackSpeed),
+    );
+
+    final double separationDistance =
+        (size.x / 2) - absoluteCenter.distanceTo(collisionMid);
+    if (separationDistance > 0) {
+      position += collisionNormal.scaled(separationDistance);
+    }
+  }
+
+  Future<void> _runThornFlashEffect() async {
+    await add(
+      SequenceEffect([
+        OpacityEffect.to(
+          PhysicsTuning.thornFlickerLowOpacity,
+          EffectController(duration: PhysicsTuning.thornFlashStepSeconds),
+        ),
+        OpacityEffect.to(
+          1,
+          EffectController(duration: PhysicsTuning.thornFlashStepSeconds),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _spawnThornParticles(Vector2 impactPoint) async {
+    final Paint particlePaint = Paint()
+      ..color = Colors.lightGreenAccent.withValues(
+        alpha: PhysicsTuning.thornParticleAlpha,
+      );
+    await game.world.add(
+      ParticleSystemComponent(
+        position: impactPoint,
+        priority: priority + 1,
+        particle: Particle.generate(
+          count: PhysicsTuning.thornParticleCount,
+          lifespan: PhysicsTuning.thornParticleLifespanSeconds,
+          generator: (int index) {
+            final double direction = game.random.nextDouble() * pi * 2;
+            final double speed =
+                PhysicsTuning.thornParticleSpeedMin +
+                game.random.nextDouble() *
+                    (PhysicsTuning.thornParticleSpeedMax -
+                        PhysicsTuning.thornParticleSpeedMin);
+            return AcceleratedParticle(
+              speed: Vector2(cos(direction), sin(direction)) * speed,
+              child: CircleParticle(
+                radius: PhysicsTuning.thornParticleRadius,
+                paint: particlePaint,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onThornCollision(
+    Set<Vector2> intersectionPoints,
+    ThornComponent thorn,
+  ) async {
+    _applyThornImpact(intersectionPoints, thorn);
+    if (_thornInvincibilityRemaining > 0) {
+      return;
+    }
+    _thornInvincibilityRemaining = PhysicsTuning.thornInvincibilitySeconds;
+    _thornFlickerElapsed = 0;
+    applyDamage(PhysicsTuning.thornDamageAmount);
+    await _runThornFlashEffect();
+    await _spawnThornParticles(_resolveCollisionMidpoint(intersectionPoints));
+  }
+
   @override
   Future<void> onCollision(
     Set<Vector2> intersectionPoints,
     PositionComponent other,
   ) async {
+    if (game.phase.value != GamePhase.playing) {
+      super.onCollision(intersectionPoints, other);
+      return;
+    }
     if (other is GroundComponent) {
       await onHitGround(other);
       if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
@@ -400,6 +607,9 @@ class PlayerComponent extends SpriteAnimationComponent
         }
       }
     }
+    if (other is ThornComponent) {
+      await _onThornCollision(intersectionPoints, other);
+    }
     if (other is WaterLilyComponent &&
         levelPosition == PlayerVerticalPosition.waterLevel) {
       if (intersectionPoints.length != 2) return;
@@ -411,10 +621,28 @@ class PlayerComponent extends SpriteAnimationComponent
       collisionNormal.normalize();
       position += collisionNormal.scaled(separationDistance);
     }
+    if (other is FrogHouseComponent) {
+      if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
+        if (intersectionPoints.length == 2) {
+          final mid =
+              (intersectionPoints.elementAt(0) +
+                  intersectionPoints.elementAt(1)) /
+              2;
+          final collisionNormal = absoluteCenter - mid;
+          final separationDistance = (size.x / 2) - collisionNormal.length;
+          collisionNormal.normalize();
+          final double moveDot = velocity.dot(collisionNormal);
+          if (moveDot < 0 || separationDistance > 1.5) {
+            position += collisionNormal.scaled(separationDistance);
+          }
+        }
+      }
+    }
 
-    if (other is Egg) {
+    if (other is EggComponent) {
+      eggsCollected++;
       debugPrint('Collected an egg!');
-      other.collect();
+      await other.collect();
     }
     super.onCollision(intersectionPoints, other);
   }
@@ -428,8 +656,22 @@ class PlayerComponent extends SpriteAnimationComponent
       _waterContacts++;
       isInWater = _waterContacts > 0;
       if (isInWater) {
+        _underwaterSurfaceGraceRemaining =
+            PhysicsTuning.underwaterSurfaceGraceSeconds;
+      }
+      if (isInWater) {
         removeAll(children.whereType<SimpleTextComponent>());
       }
+    }
+    if (other is FrogHouseComponent) {
+      _frogHouseContacts++;
+      if (_jumpActive) {
+        _jumpActive = false;
+        _jumpElapsed = 0;
+        inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+      }
+      super.onCollisionStart(intersectionPoints, other);
+      return;
     }
     if (other is GroundComponent) {
       _groundContacts++;
@@ -438,6 +680,8 @@ class PlayerComponent extends SpriteAnimationComponent
         _jumpElapsed = 0;
         inputState.playerVerticalPosition = PlayerVerticalPosition.land;
       }
+      super.onCollisionStart(intersectionPoints, other);
+      return;
     }
     if (other is WaterLilyComponent) {
       _lilyContacts++;
@@ -446,8 +690,9 @@ class PlayerComponent extends SpriteAnimationComponent
         _jumpElapsed = 0;
         inputState.playerVerticalPosition = PlayerVerticalPosition.land;
       }
+      super.onCollisionStart(intersectionPoints, other);
+      return;
     }
-    super.onCollisionStart(intersectionPoints, other);
   }
 
   @override
@@ -463,11 +708,17 @@ class PlayerComponent extends SpriteAnimationComponent
     if (other is WaterLilyComponent) {
       _lilyContacts = (_lilyContacts - 1).clamp(0, 999999);
     }
+    if (other is FrogHouseComponent) {
+      _frogHouseContacts = (_frogHouseContacts - 1).clamp(0, 999999);
+    }
 
     super.onCollisionEnd(other);
   }
 
   void applyDamage(int damage) {
+    if (game.phase.value != GamePhase.playing) {
+      return;
+    }
     _remainingHealth = (_remainingHealth - damage).clamp(0, _maxHealth);
     if (_remainingHealth <= 0) {
       game.endGame();
