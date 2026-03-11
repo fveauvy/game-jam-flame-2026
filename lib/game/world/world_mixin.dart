@@ -31,7 +31,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       2 * _maxLilyRadius + _playerBaseDiameter + _lilyGapBuffer;
   static const double _candidateSafeZoneHalfSize = 260;
   static const double _candidateSafeZoneLilyRadius = 36;
-  static const double _candidateSafeZoneRingRadius = 120;
+  static const double _candidateSafeZoneRingRadius = 240;
 
   static Vector2 candidateSafeZoneCenter({Vector2? preferredCenter}) {
     final Vector2 center = (preferredCenter ?? GameConfig.playerSpawn).clone();
@@ -85,12 +85,13 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     final Vector2 center = candidateSafeZoneCenter(
       preferredCenter: safeZoneCenter,
     );
-    final List<Vector2> positions = <Vector2>[center];
+
+    final List<Vector2> positions = <Vector2>[];
     if (count == 1) {
       return positions;
     }
 
-    final int ringCount = count - 1;
+    final int ringCount = count;
     for (int i = 0; i < ringCount; i++) {
       final double angle = (-pi / 2) + ((2 * pi * i) / ringCount);
       positions.add(
