@@ -166,7 +166,6 @@ class MyGame extends FlameGame<WorldRoot>
       CollisionSystem(),
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
-      ..._buildInitialFishEnemies(),
       _buildInitialWoodBoards(),
       bird,
     ]);
@@ -507,19 +506,6 @@ class MyGame extends FlameGame<WorldRoot>
     );
   }
 
-  List<FishEnemyComponent> _buildInitialFishEnemies() {
-    return List<FishEnemyComponent>.generate(
-      5,
-      (int index) => FishEnemyComponent(
-        initialPosition: Vector2(
-          random.nextDouble() * GameConfig.worldSize.x,
-          random.nextDouble() * GameConfig.worldSize.y,
-        ),
-        initialSize: Vector2(200, 200),
-      ),
-    );
-  }
-
   Vector2 _randomEggPosition() {
     for (int i = 0; i < GameplayTuning.eggSpawnMaxRetries; i++) {
       final Vector2 candidate = Vector2(
@@ -546,11 +532,17 @@ class MyGame extends FlameGame<WorldRoot>
     final List<FlyComponent> flies = world.children
         .whereType<FlyComponent>()
         .toList();
+    final List<FishEnemyComponent> fishEnemies = world.children
+        .whereType<FishEnemyComponent>()
+        .toList();
     for (final EggComponent egg in eggs) {
       egg.removeFromParent();
     }
     for (final FlyComponent fly in flies) {
       fly.removeFromParent();
+    }
+    for (final FishEnemyComponent fish in fishEnemies) {
+      fish.removeFromParent();
     }
 
     final frogHouse = world.children

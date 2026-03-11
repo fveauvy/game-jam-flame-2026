@@ -6,6 +6,7 @@ import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/entities/biome_type.dart';
 import 'package:game_jam/game/character/infra/seed_code.dart';
+import 'package:game_jam/game/components/enemies/fish_enemy_component.dart';
 import 'package:game_jam/game/components/environment/cloud_shadow_component.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
@@ -32,6 +33,12 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   static const double _candidateSafeZoneHalfSize = 260;
   static const double _candidateSafeZoneLilyRadius = 36;
   static const double _candidateSafeZoneRingRadius = 120;
+
+  // Fish enemy spawning.
+  static const int _fishEnemyCount = 3;
+  static const double _fishEnemySize = 150;
+  static const double _fishMinSpawnDistance = 600;
+  static const double _minFishSpacing = 400;
 
   static Vector2 candidateSafeZoneCenter({Vector2? preferredCenter}) {
     final Vector2 center = (preferredCenter ?? GameConfig.playerSpawn).clone();
@@ -159,6 +166,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           count: GameplayTuning.menuCharacterCandidateCount,
         );
     final lilyPositions = <Vector2>[];
+    final fishCandidates = <Vector2>[];
     final cellSizeVec = Vector2(_cellSize, _cellSize);
 
     for (var i = 0; i < gridW; i++) {
@@ -227,6 +235,14 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         if (isWaterCell &&
             !isThornCell &&
             !inSpawnZone &&
+            !inCandidateSafeZone &&
+            cellCenter.distanceTo(spawn) >= _fishMinSpawnDistance) {
+          fishCandidates.add(cellCenter.clone());
+        }
+
+        if (isWaterCell &&
+            !isThornCell &&
+            !inSpawnZone &&
             v >= biome.vegetation.min &&
             v <= biome.vegetation.max) {
           final radius =
@@ -255,6 +271,25 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             }
           }
         }
+      }
+    }
+
+    // Spawn fish enemies on water cells far from the player spawn.
+    fishCandidates.shuffle(random);
+    final spawnedFishPositions = <Vector2>[];
+    for (final pos in fishCandidates) {
+      if (spawnedFishPositions.length >= _fishEnemyCount) break;
+      final tooClose = spawnedFishPositions.any(
+        (p) => p.distanceTo(pos) < _minFishSpacing,
+      );
+      if (!tooClose) {
+        spawnedFishPositions.add(pos.clone());
+        await game.world.add(
+          FishEnemyComponent(
+            initialPosition: pos - Vector2.all(_fishEnemySize / 2),
+            initialSize: Vector2.all(_fishEnemySize),
+          ),
+        );
       }
     }
 
