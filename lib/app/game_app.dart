@@ -13,7 +13,6 @@ import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/screens/game_over_overlay.dart';
 import 'package:game_jam/screens/in_game_audio_controls.dart';
 import 'package:game_jam/screens/pause_overlay.dart';
-import 'package:game_jam/screens/startup_loading_screen.dart';
 import 'package:game_jam/screens/startup_splash_screen.dart';
 import 'package:game_jam/screens/you_win_overlay.dart';
 
@@ -29,6 +28,7 @@ class _GameJamAppState extends State<GameJamApp> {
   MyGame? _game;
   _StartupStage _stage = _StartupStage.splash;
   String? _startupError;
+  StartupPreloadProgress? _startupProgress;
 
   @override
   void initState() {
@@ -38,22 +38,33 @@ class _GameJamAppState extends State<GameJamApp> {
 
   Future<void> _runStartupFlow() async {
     debugPrint('[startup] splash begin');
-    await Future<void>.delayed(UiTiming.splashScreenDuration);
-    if (!mounted) {
-      return;
-    }
-
-    await _retryStartup();
-  }
-
-  Future<void> _retryStartup() async {
     setState(() {
-      _stage = _StartupStage.loading;
+      _stage = _StartupStage.splash;
       _startupError = null;
+      _startupProgress = const StartupPreloadProgress(
+        loaded: 0,
+        total: 1,
+        category: 'startup',
+        asset: 'prepare',
+      );
     });
 
+    final Future<void> minSplashDelay = Future<void>.delayed(
+      UiTiming.splashScreenDuration,
+    );
+
     try {
-      await _startupAssetLoader.preloadAll();
+      await _startupAssetLoader.preloadAll(
+        onProgress: (progress) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _startupProgress = progress;
+          });
+        },
+      );
+      await minSplashDelay;
       if (!mounted) {
         return;
       }
@@ -64,6 +75,7 @@ class _GameJamAppState extends State<GameJamApp> {
       });
       debugPrint('[startup] game ready');
     } on StartupPreloadException catch (error) {
+      await minSplashDelay;
       debugPrint('[startup] preload failure: $error');
       debugPrintStack(stackTrace: error.stackTrace);
       if (!mounted) {
@@ -74,6 +86,7 @@ class _GameJamAppState extends State<GameJamApp> {
         _startupError = '${error.category}: ${error.asset}';
       });
     } catch (error, stackTrace) {
+      await minSplashDelay;
       debugPrint('[startup] unexpected preload failure: $error');
       debugPrintStack(stackTrace: stackTrace);
       if (!mounted) {
@@ -186,17 +199,22 @@ class _GameJamAppState extends State<GameJamApp> {
             game?.notifyUserGesture();
           },
           child: switch (_stage) {
-            _StartupStage.splash => const StartupSplashScreen(),
-            _StartupStage.loading => const StartupLoadingScreen(
+            _StartupStage.splash => StartupSplashScreen(
               isLoading: true,
+              progress: _startupProgress?.fraction ?? 0,
+              loadedAssets: _startupProgress?.loaded ?? 0,
+              totalAssets: _startupProgress?.total ?? 0,
+              statusLabel: _startupProgress == null
+                  ? null
+                  : '${_startupProgress!.category}: ${_startupProgress!.asset}',
             ),
-            _StartupStage.failed => StartupLoadingScreen(
+            _StartupStage.failed => StartupSplashScreen(
               isLoading: false,
               errorMessage: _startupError,
-              onRetry: _retryStartup,
+              onRetry: _runStartupFlow,
             ),
             _StartupStage.ready when game != null => _buildGameStack(game),
-            _ => const StartupLoadingScreen(isLoading: true),
+            _ => const SizedBox.shrink(),
           },
         ),
       ),
@@ -204,4 +222,4 @@ class _GameJamAppState extends State<GameJamApp> {
   }
 }
 
-enum _StartupStage { splash, loading, failed, ready }
+enum _StartupStage { splash, failed, ready }
