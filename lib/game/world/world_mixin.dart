@@ -114,6 +114,11 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   }
 
   Future<void> generateLevel(BiomeType biome) async {
+    for (final WaterLilyComponent lily
+        in game.world.children.whereType<WaterLilyComponent>().toList()) {
+      lily.removeFromParent();
+    }
+
     final worldSize = GameConfig.worldSize;
     final gridW = (worldSize.x / _cellSize).ceil();
     final gridH = (worldSize.y / _cellSize).ceil();
@@ -244,7 +249,9 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             );
             if (!tooClose) {
               lilyPositions.add(lilyCenter.clone());
-              add(WaterLilyComponent(position: lilyPos, radius: radius));
+              await game.world.add(
+                WaterLilyComponent(position: lilyPos, radius: radius),
+              );
             }
           }
         }
@@ -252,7 +259,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     }
 
     for (final Vector2 center in candidateSafeZoneCenters) {
-      add(
+      await game.world.add(
         WaterLilyComponent(
           position: Vector2(
             center.x - _candidateSafeZoneLilyRadius,

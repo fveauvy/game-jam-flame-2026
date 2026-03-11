@@ -37,7 +37,7 @@ class PlayerComponent extends SpriteAnimationComponent
          position: startPosition.clone(),
          size: Vector2.all(PhysicsTuning.playerBaseSize),
          anchor: Anchor.center,
-         priority: 10,
+         priority: 110,
        ) {
     _applyStatsFromProfile();
     previousPosition = inputState.playerVerticalPosition;
@@ -76,6 +76,7 @@ class PlayerComponent extends SpriteAnimationComponent
   int _lilyContacts = 0;
   bool _jumpActive = false;
   double _jumpElapsed = 0;
+  double _underwaterSurfaceGraceRemaining = 0;
   Vector2 _jumpDirection = Vector2.zero();
   final Vector2 _thornKnockbackVelocity = Vector2.zero();
   double _thornInvincibilityRemaining = 0;
@@ -297,6 +298,13 @@ class PlayerComponent extends SpriteAnimationComponent
   @override
   void update(double dt) {
     super.update(dt);
+    if (isInWater) {
+      _underwaterSurfaceGraceRemaining =
+          PhysicsTuning.underwaterSurfaceGraceSeconds;
+    } else {
+      _underwaterSurfaceGraceRemaining = (_underwaterSurfaceGraceRemaining - dt)
+          .clamp(0.0, PhysicsTuning.underwaterSurfaceGraceSeconds);
+    }
     _thornInvincibilityRemaining = nextThornInvincibilityRemaining(
       current: _thornInvincibilityRemaining,
       dt: dt,
@@ -378,7 +386,10 @@ class PlayerComponent extends SpriteAnimationComponent
 
     inputState.playerVerticalPosition = resolveVerticalPosition(
       current: levelPosition,
-      isInWater: isInWater,
+      isInWater:
+          isInWater ||
+          (levelPosition == PlayerVerticalPosition.underwater &&
+              _underwaterSurfaceGraceRemaining > 0),
       jumpPressed: inputState.jumpPressed,
       divePressed: inputState.divePressed,
       canStayOnLand:
@@ -389,16 +400,19 @@ class PlayerComponent extends SpriteAnimationComponent
     switch (levelPosition) {
       case PlayerVerticalPosition.land:
         _spriteOpacity = PhysicsTuning.landOpacity;
+        priority = 110;
         size = Vector2.all(
           PhysicsTuning.playerBaseSize * _sizeMultiplier * 1.1,
         );
         break;
       case PlayerVerticalPosition.waterLevel:
         _spriteOpacity = PhysicsTuning.waterOpacity;
+        priority = 110;
         size = Vector2.all(PhysicsTuning.playerBaseSize * _sizeMultiplier);
         break;
       case PlayerVerticalPosition.underwater:
         _spriteOpacity = PhysicsTuning.underwaterOpacity;
+        priority = 50;
         size = Vector2.all(
           PhysicsTuning.playerBaseSize * _sizeMultiplier * 0.9,
         );
@@ -427,6 +441,7 @@ class PlayerComponent extends SpriteAnimationComponent
     isInWater = false;
     _jumpActive = false;
     _jumpElapsed = 0;
+    _underwaterSurfaceGraceRemaining = 0;
     _hopTime = 0;
     // Reset the vertical position to land, matching the spawn tile.
     inputState.playerVerticalPosition = PlayerVerticalPosition.land;
@@ -634,6 +649,10 @@ class PlayerComponent extends SpriteAnimationComponent
     if (other is WaterComponent) {
       _waterContacts++;
       isInWater = _waterContacts > 0;
+      if (isInWater) {
+        _underwaterSurfaceGraceRemaining =
+            PhysicsTuning.underwaterSurfaceGraceSeconds;
+      }
       if (isInWater) {
         removeAll(children.whereType<SimpleTextComponent>());
       }
