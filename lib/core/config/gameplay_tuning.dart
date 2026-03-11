@@ -31,4 +31,10 @@ abstract final class GameplayTuning {
 
   // Thorn animation.
   static const double thornAnimationFrameSeconds = 0.2;
+
+  // Fish enemy spawning.
+  static const int fishEnemyCount = 3;
+  static const double fishEnemySize = 150;
+  static const double fishMinSpawnDistance = 600;
+  static const double minFishSpacing = 400;
 }
