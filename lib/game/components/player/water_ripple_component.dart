@@ -51,7 +51,7 @@ class WaterRippleComponent extends PositionComponent {
   void _spawnRippleSet() {
     final faceX = sin(player.angle);
     final faceY = -cos(player.angle);
-    final backOffset = player.size.x * 0.6;
+    final backOffset = player.size.x * 0.6 * player.velocity.length;
 
     // Position mondiale directe (pas besoin de conversion locale)
     final spawnPos = Vector2(
