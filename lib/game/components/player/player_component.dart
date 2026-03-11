@@ -108,7 +108,11 @@ class PlayerComponent extends SpriteAnimationComponent
     super.onMount();
     paint = Paint()
       ..color = Colors.white.withAlpha((_spriteOpacity * 255).toInt());
-    _hitbox = CircleHitbox(radius: size.x / 2);
+    _hitbox = CircleHitbox(
+      radius: (size.x / 3),
+      position: Vector2(size.x / 2, size.y / 2),
+      anchor: Anchor.center,
+    );
     // Players always spawn on land; initialise the shared input state so that
     // the correct animation, size and physics are applied from frame 1.
     inputState.playerVerticalPosition = PlayerVerticalPosition.land;
