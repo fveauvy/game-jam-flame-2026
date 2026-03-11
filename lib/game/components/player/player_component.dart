@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flame/collisions.dart';
@@ -6,6 +7,7 @@ import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flame/particles.dart';
 import 'package:flutter/material.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
@@ -81,6 +83,9 @@ class PlayerComponent extends SpriteAnimationComponent
   final Vector2 _thornKnockbackVelocity = Vector2.zero();
   double _thornInvincibilityRemaining = 0;
   double _thornFlickerElapsed = 0;
+  SpriteAnimation? _boundAnimationForMoveSfx;
+  int _lastMoveFrameIndex = -1;
+  bool _seenLastMoveFrameInCurrentRun = false;
 
   int eggsCollected = 0;
 
@@ -114,6 +119,7 @@ class PlayerComponent extends SpriteAnimationComponent
     inputState.playerVerticalPosition = PlayerVerticalPosition.land;
     previousPosition = PlayerVerticalPosition.land;
     animation = idleAnimation(levelPosition);
+    _onAnimationChanged();
     await add(_hitbox!);
   }
 
@@ -141,6 +147,7 @@ class PlayerComponent extends SpriteAnimationComponent
     _profile = profile;
     _applyStatsFromProfile();
     animation = idleAnimation(levelPosition);
+    _onAnimationChanged();
   }
 
   void _applyStatsFromProfile() {
@@ -268,6 +275,107 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     _jumpDirection.normalize();
     inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+    _playRandomJumpSfx();
+  }
+
+  void _playRandomJumpSfx() {
+    final String asset = game.random.nextBool()
+        ? AssetPaths.jumpSfx1
+        : AssetPaths.jumpSfx2;
+    unawaited(game.playSfx(asset, volume: 0.65));
+  }
+
+  void _playWaterSplashSfx() {
+    unawaited(game.playSfx(AssetPaths.waterSplashMidSfx, volume: 0.8));
+  }
+
+  bool _shouldPlayWaterSplash({
+    required PlayerVerticalPosition from,
+    required PlayerVerticalPosition to,
+  }) {
+    return from == PlayerVerticalPosition.land &&
+        to == PlayerVerticalPosition.waterLevel;
+  }
+
+  bool _canPlayMoveCycleSfxNow() {
+    return game.phase.value == GamePhase.playing &&
+        _isMoving &&
+        !_jumpActive &&
+        levelPosition != PlayerVerticalPosition.underwater;
+  }
+
+  void _handleMoveAnimationFrame(int frameIndex) {
+    final SpriteAnimation? currentAnimation = animation;
+    if (currentAnimation == null) {
+      return;
+    }
+
+    final int frameCount = currentAnimation.frames.length;
+    if (frameCount <= 1) {
+      _lastMoveFrameIndex = frameIndex;
+      return;
+    }
+
+    final int lastFrame = frameCount - 1;
+    if (frameIndex == lastFrame) {
+      _seenLastMoveFrameInCurrentRun = true;
+    }
+
+    final bool isLoopWrap =
+        _lastMoveFrameIndex == lastFrame &&
+        frameIndex == 0 &&
+        _seenLastMoveFrameInCurrentRun;
+    _lastMoveFrameIndex = frameIndex;
+
+    if (!isLoopWrap || !_canPlayMoveCycleSfxNow()) {
+      return;
+    }
+    _playRandomJumpSfx();
+  }
+
+  void _bindMoveCycleSfxTicker() {
+    final ticker = animationTicker;
+    if (ticker == null) {
+      return;
+    }
+    ticker.onFrame = _handleMoveAnimationFrame;
+  }
+
+  void _onAnimationChanged() {
+    final SpriteAnimation? currentAnimation = animation;
+    if (identical(_boundAnimationForMoveSfx, currentAnimation)) {
+      return;
+    }
+
+    _boundAnimationForMoveSfx = currentAnimation;
+    _lastMoveFrameIndex = -1;
+    _seenLastMoveFrameInCurrentRun = false;
+
+    final ticker = animationTicker;
+    if (ticker == null) {
+      return;
+    }
+    ticker.onFrame = null;
+    if (!_isMoving || currentAnimation == null) {
+      return;
+    }
+    _bindMoveCycleSfxTicker();
+  }
+
+  void _syncMovementAnimation() {
+    final PlayerVerticalPosition currentLevelPosition = levelPosition;
+    if (_isMoving) {
+      if (!_wasMoving || previousPosition != currentLevelPosition) {
+        animation = moveAnimation(currentLevelPosition);
+        _onAnimationChanged();
+      }
+    } else {
+      if (_wasMoving || previousPosition != currentLevelPosition) {
+        animation = idleAnimation(currentLevelPosition);
+        _onAnimationChanged();
+      }
+    }
+    previousPosition = currentLevelPosition;
   }
 
   void _resolveJump(double dt) {
@@ -315,27 +423,7 @@ class PlayerComponent extends SpriteAnimationComponent
       return;
     }
 
-    if (_isMoving) {
-      if (!_wasMoving || previousPosition != levelPosition) {
-        animation = moveAnimation(levelPosition);
-      }
-    } else {
-      if (_wasMoving || previousPosition != levelPosition) {
-        animation = idleAnimation(levelPosition);
-      }
-    }
-    previousPosition = levelPosition;
-
-    if (_isMoving) {
-      if (!_wasMoving || previousPosition != levelPosition) {
-        animation = moveAnimation(levelPosition);
-      }
-    } else {
-      if (_wasMoving || previousPosition != levelPosition) {
-        animation = idleAnimation(levelPosition);
-      }
-    }
-    previousPosition = levelPosition;
+    _syncMovementAnimation();
 
     if (!isInWater && _isMoving) {
       _hopTime += dt;
@@ -390,6 +478,7 @@ class PlayerComponent extends SpriteAnimationComponent
       effectiveInWater = game.level.isPositionInWater(absoluteCenter);
     }
 
+    final PlayerVerticalPosition previousVerticalPosition = levelPosition;
     inputState.playerVerticalPosition = resolveVerticalPosition(
       current: levelPosition,
       isInWater:
@@ -402,6 +491,13 @@ class PlayerComponent extends SpriteAnimationComponent
           _isTouchingGround || _isTouchingLily || _isTouchingFrogHouse,
       jumpActive: _jumpActive,
     );
+    final PlayerVerticalPosition nextVerticalPosition = levelPosition;
+    if (_shouldPlayWaterSplash(
+      from: previousVerticalPosition,
+      to: nextVerticalPosition,
+    )) {
+      _playWaterSplashSfx();
+    }
 
     switch (levelPosition) {
       case PlayerVerticalPosition.land:
@@ -449,6 +545,13 @@ class PlayerComponent extends SpriteAnimationComponent
     _jumpElapsed = 0;
     _underwaterSurfaceGraceRemaining = 0;
     _hopTime = 0;
+    _boundAnimationForMoveSfx = null;
+    _lastMoveFrameIndex = -1;
+    _seenLastMoveFrameInCurrentRun = false;
+    final ticker = animationTicker;
+    if (ticker != null) {
+      ticker.onFrame = null;
+    }
     // Reset the vertical position to land, matching the spawn tile.
     inputState.playerVerticalPosition = PlayerVerticalPosition.land;
     previousPosition = PlayerVerticalPosition.land;
