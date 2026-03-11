@@ -126,6 +126,13 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       lily.removeFromParent();
     }
 
+    final List<FishEnemyComponent> fishEnemies = game.world.children
+        .whereType<FishEnemyComponent>()
+        .toList();
+    for (final FishEnemyComponent fish in fishEnemies) {
+      fish.removeFromParent();
+    }
+
     final worldSize = GameConfig.worldSize;
     final gridW = (worldSize.x / _cellSize).ceil();
     final gridH = (worldSize.y / _cellSize).ceil();

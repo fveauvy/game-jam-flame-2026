@@ -21,6 +21,7 @@ class FishEnemyComponent extends SpriteAnimationComponent
         size: initialSize,
         position: initialPosition,
         autoResize: false,
+        anchor: Anchor.center,
         paint: Paint()..blendMode = BlendMode.screen,
       );
 
@@ -28,7 +29,13 @@ class FishEnemyComponent extends SpriteAnimationComponent
   Future<void> onLoad() async {
     await super.onLoad();
     animation = idleAnimation;
-    add(CircleHitbox());
+    add(
+      CircleHitbox(
+        radius: (initialSize.x / 3),
+        position: Vector2(initialSize.x / 2, initialSize.y / 2),
+        anchor: Anchor.center,
+      ),
+    );
   }
 
   @override
@@ -40,7 +47,9 @@ class FishEnemyComponent extends SpriteAnimationComponent
     if (isEating) {
       timeSinceStartingEat += dt;
     }
-    if (timeSinceStartingEat >= deathTimeInS && target != null) {
+    if (timeSinceStartingEat >= deathTimeInS &&
+        target != null &&
+        timeSinceStartingEat <= deathTimeInS + 0.6) {
       if (target is PlayerComponent) {
         (target as PlayerComponent).applyDamage(50);
       } else {

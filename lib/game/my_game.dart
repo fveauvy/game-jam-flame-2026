@@ -25,7 +25,6 @@ import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/allies/egg_component.dart';
 import 'package:game_jam/game/components/enemies/bird_enemy_component.dart';
-import 'package:game_jam/game/components/enemies/fish_enemy_component.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/environment/frog_house_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
@@ -68,7 +67,7 @@ class MyGame extends FlameGame<WorldRoot>
        );
 
   @override
-  bool get debugMode => false;
+  bool get debugMode => true;
 
   final InputState inputState = InputState();
   late final KeyboardInput keyboardInput;
@@ -532,19 +531,13 @@ class MyGame extends FlameGame<WorldRoot>
     final List<FlyComponent> flies = world.children
         .whereType<FlyComponent>()
         .toList();
-    final List<FishEnemyComponent> fishEnemies = world.children
-        .whereType<FishEnemyComponent>()
-        .toList();
+
     for (final EggComponent egg in eggs) {
       egg.removeFromParent();
     }
     for (final FlyComponent fly in flies) {
       fly.removeFromParent();
     }
-    for (final FishEnemyComponent fish in fishEnemies) {
-      fish.removeFromParent();
-    }
-
     final frogHouse = world.children
         .whereType<FrogHouseComponent>()
         .firstOrNull;
