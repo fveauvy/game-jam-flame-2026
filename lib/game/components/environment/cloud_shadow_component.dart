@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:game_jam/core/config/cloud_tuning.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/game/my_game.dart';
 
@@ -21,13 +22,6 @@ class CloudShadowComponent extends PositionComponent
   static const int _speedSalt = 0x3C7D8E;
   static const int _shapeSalt = 0x4D8E9F;
 
-  static const int _minCloudCount = 6;
-  static const int _maxCloudCount = 12;
-  static const double _minSpeed = 34;
-  static const double _maxSpeed = 78;
-  static const double _minOpacity = 0.05;
-  static const double _maxOpacity = 0.11;
-
   late final Vector2 _windDirection;
   late final double _windSpeed;
   late final Random _shapeRandom;
@@ -42,12 +36,16 @@ class CloudShadowComponent extends PositionComponent
 
   static int cloudCountFromSeed(int seed) {
     final Random random = Random(seed ^ _densitySalt);
-    return _minCloudCount + random.nextInt(_maxCloudCount - _minCloudCount + 1);
+    return CloudTuning.minCloudCount +
+        random.nextInt(
+          CloudTuning.maxCloudCount - CloudTuning.minCloudCount + 1,
+        );
   }
 
   static double windSpeedFromSeed(int seed) {
     final Random random = Random(seed ^ _speedSalt);
-    return _minSpeed + random.nextDouble() * (_maxSpeed - _minSpeed);
+    return CloudTuning.minSpeed +
+        random.nextDouble() * (CloudTuning.maxSpeed - CloudTuning.minSpeed);
   }
 
   @override
@@ -92,11 +90,20 @@ class CloudShadowComponent extends PositionComponent
   }
 
   _CloudShadow _spawnCloud({required bool randomizeAlong}) {
-    final double width = 420 + _shapeRandom.nextDouble() * 380;
-    final double height = width * (0.38 + _shapeRandom.nextDouble() * 0.22);
-    final double radius = max(width, height) * 0.7;
+    final double width =
+        CloudTuning.minWidth +
+        _shapeRandom.nextDouble() *
+            (CloudTuning.maxWidth - CloudTuning.minWidth);
+    final double height =
+        width *
+        (CloudTuning.minHeightRatio +
+            _shapeRandom.nextDouble() *
+                (CloudTuning.maxHeightRatio - CloudTuning.minHeightRatio));
+    final double radius = max(width, height) * CloudTuning.collisionRadiusScale;
     final double opacity =
-        _minOpacity + _shapeRandom.nextDouble() * (_maxOpacity - _minOpacity);
+        CloudTuning.minOpacity +
+        _shapeRandom.nextDouble() *
+            (CloudTuning.maxOpacity - CloudTuning.minOpacity);
 
     final double along = randomizeAlong
         ? (_bounds.minAlong - radius) +
@@ -116,7 +123,7 @@ class CloudShadowComponent extends PositionComponent
       across: across,
       radius: radius,
       opacity: opacity,
-      blurSigma: height * 0.06,
+      blurSigma: height * CloudTuning.blurSigmaScale,
       width: width,
       height: height,
       lobes: lobes,
@@ -127,17 +134,29 @@ class CloudShadowComponent extends PositionComponent
     required double width,
     required double height,
   }) {
-    final int lobeCount = 4 + _shapeRandom.nextInt(3);
+    const List<_CloudLobeTemplate> templates = <_CloudLobeTemplate>[
+      _CloudLobeTemplate(x: -0.34, y: 0.01, w: 0.36, h: 0.72),
+      _CloudLobeTemplate(x: -0.2, y: -0.1, w: 0.34, h: 0.76),
+      _CloudLobeTemplate(x: 0.0, y: -0.13, w: 0.36, h: 0.8),
+      _CloudLobeTemplate(x: 0.2, y: -0.1, w: 0.34, h: 0.76),
+      _CloudLobeTemplate(x: 0.34, y: 0.01, w: 0.36, h: 0.72),
+      _CloudLobeTemplate(x: 0.0, y: 0.08, w: 0.98, h: 0.52),
+    ];
+
+    assert(templates.length == CloudTuning.lobeTemplateCount);
     final List<_CloudLobe> lobes = <_CloudLobe>[];
 
-    for (int i = 0; i < lobeCount; i++) {
-      final double t = lobeCount == 1 ? 0.5 : i / (lobeCount - 1);
-      final double x = (t - 0.5) * width * 0.95;
-      final double y =
-          (-height * 0.14) + _shapeRandom.nextDouble() * height * 0.28;
-      final double lobeWidth = width * (0.28 + _shapeRandom.nextDouble() * 0.2);
-      final double lobeHeight =
-          height * (0.55 + _shapeRandom.nextDouble() * 0.35);
+    for (final _CloudLobeTemplate template in templates) {
+      final double jitterX =
+          (_shapeRandom.nextDouble() * 2 - 1) * CloudTuning.lobeCenterJitterX;
+      final double jitterY =
+          (_shapeRandom.nextDouble() * 2 - 1) * CloudTuning.lobeCenterJitterY;
+      final double sizeJitter =
+          (_shapeRandom.nextDouble() * 2 - 1) * CloudTuning.lobeSizeJitter;
+      final double x = width * (template.x + jitterX);
+      final double y = height * (template.y + jitterY);
+      final double lobeWidth = width * template.w * (1 + sizeJitter);
+      final double lobeHeight = height * template.h * (1 + sizeJitter);
       lobes.add(
         _CloudLobe(offset: Vector2(x, y), width: lobeWidth, height: lobeHeight),
       );
@@ -151,11 +170,27 @@ class CloudShadowComponent extends PositionComponent
     required _CloudShadow cloud,
     required Vector2 center,
   }) {
-    final Paint paint = Paint()
-      ..color = const Color(0xFF6E6E6E).withValues(alpha: cloud.opacity)
-      ..blendMode = BlendMode.multiply
+    final Paint basePaint = Paint()
+      ..color = CloudTuning.baseColor.withValues(alpha: cloud.opacity)
+      ..blendMode = CloudTuning.baseBlendMode
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, cloud.blurSigma);
+    final Paint overlayPaint = Paint()
+      ..color = CloudTuning.overlayColor.withValues(
+        alpha: cloud.opacity * CloudTuning.overlayOpacityFactor,
+      )
+      ..blendMode = CloudTuning.overlayBlendMode
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, cloud.blurSigma);
 
+    _drawCloudBody(canvas, cloud: cloud, center: center, paint: basePaint);
+    _drawCloudBody(canvas, cloud: cloud, center: center, paint: overlayPaint);
+  }
+
+  void _drawCloudBody(
+    Canvas canvas, {
+    required _CloudShadow cloud,
+    required Vector2 center,
+    required Paint paint,
+  }) {
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(center.x, center.y),
@@ -273,4 +308,18 @@ class _CloudLobe {
   final Vector2 offset;
   final double width;
   final double height;
+}
+
+class _CloudLobeTemplate {
+  const _CloudLobeTemplate({
+    required this.x,
+    required this.y,
+    required this.w,
+    required this.h,
+  });
+
+  final double x;
+  final double y;
+  final double w;
+  final double h;
 }
