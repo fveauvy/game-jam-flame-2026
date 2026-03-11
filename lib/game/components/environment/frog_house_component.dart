@@ -24,7 +24,7 @@ class FrogHouseComponent extends SpriteComponent
   }
 
   @override
-  Future<void> update(double dt) async {
+  void update(double dt) {
     final savedEggs = children
         .whereType<EggComponent>()
         .where((egg) => egg.isInSafeHouse)

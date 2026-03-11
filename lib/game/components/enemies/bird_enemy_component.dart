@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flame/collisions.dart';
@@ -35,6 +36,8 @@ class BirdEnemyComponent extends SpriteAnimationComponent
     : super(priority: 100, size: minSize, position: initialPosition);
 
   PositionComponent? _target;
+  ShadowComponent? _shadow;
+  CircleHitbox? _hitbox;
   bool _isScaled = false;
 
   /// When true, only the shadow is visible and moves; bird appears when player hovers.
@@ -60,6 +63,9 @@ class BirdEnemyComponent extends SpriteAnimationComponent
   static const double _damageInterval = PhysicsTuning.birdEnemyDamageInterval;
   static const double _damageRange = PhysicsTuning.birdEnemyDamageRange;
   static const int _damageAmount = PhysicsTuning.birdEnemyDamageAmount;
+  static final Paint _transparentPaint = Paint()..color = Colors.transparent;
+  final Paint _birdPaint = Paint()..color = Colors.white;
+  final Paint _shadowPaint = Paint()..color = Colors.black;
 
   static bool shouldRunForPhase(GamePhase phase) {
     return phase == GamePhase.playing;
@@ -78,18 +84,16 @@ class BirdEnemyComponent extends SpriteAnimationComponent
     );
     _pickNewDirection();
 
-    add(
-      CircleHitbox(
-        radius: initialSize.x,
-        position: Vector2(initialSize.x, initialSize.y),
-      ),
+    _hitbox = CircleHitbox(
+      radius: initialSize.x,
+      position: Vector2(initialSize.x, initialSize.y),
     );
-    add(
-      ShadowComponent(
-        position: _shadowPositionFor(size: initialSize, facingRight: true),
-        radius: initialSize.x,
-      ),
+    _shadow = ShadowComponent(
+      position: _shadowPositionFor(size: initialSize, facingRight: true),
+      radius: initialSize.x,
     );
+    add(_hitbox!);
+    add(_shadow!);
 
     await super.onLoad();
   }
@@ -100,7 +104,7 @@ class BirdEnemyComponent extends SpriteAnimationComponent
   }
 
   @override
-  Future<void> update(double dt) async {
+  void update(double dt) {
     if (!shouldRunForPhase(game.phase.value)) {
       super.update(dt);
       return;
@@ -110,8 +114,7 @@ class BirdEnemyComponent extends SpriteAnimationComponent
       _pendingRecreateShadowAndHitbox = false;
       // Defer add until after this frame's update tree and collisionDetection.run()
       // so the collision system sees the pair as ended before the new hitbox exists.
-      // ignore: unawaited_futures
-      Future.microtask(_recreateShadowAndHitboxForShadowOnly);
+      unawaited(Future<void>.microtask(_recreateShadowAndHitboxForShadowOnly));
     }
 
     final target = _target;
@@ -170,7 +173,7 @@ class BirdEnemyComponent extends SpriteAnimationComponent
   }
 
   void _updateShadowOnly(double dt) {
-    paint = Paint()..color = Colors.transparent;
+    paint = _transparentPaint;
     _updateMovingShadow(dt);
     _animateShadowPulse(dt);
   }
@@ -211,7 +214,7 @@ class BirdEnemyComponent extends SpriteAnimationComponent
     followComponent(_speed, dt, target);
     _scaleUpComponent(target);
     _scaleDownShadow(target);
-    final shadow = children.whereType<ShadowComponent>().firstOrNull;
+    final ShadowComponent? shadow = _shadow;
     if (shadow != null) {
       shadow.position = _shadowPositionFor(size: size);
     }
@@ -256,26 +259,29 @@ class BirdEnemyComponent extends SpriteAnimationComponent
     final verticalOffset = _descentHeight * (1 - t);
     final birdCenter = mergeCenter + Vector2(0, -verticalOffset);
     position = birdCenter - size / 2;
-    paint = Paint()..color = Colors.white.withValues(alpha: t);
+    _birdPaint.color = Colors.white.withValues(alpha: t);
+    paint = _birdPaint;
 
-    final shadow = children.whereType<ShadowComponent>().firstOrNull;
+    final ShadowComponent? shadow = _shadow;
     if (shadow != null) {
       shadow.position = mergeCenter - position;
       shadow.scale = Vector2.all(1 - t);
-      shadow.paint = Paint()
-        ..color = Colors.black.withValues(alpha: (1 - t).clamp(0.0, 0.5));
+      _shadowPaint.color = Colors.black.withValues(
+        alpha: (1 - t).clamp(0.0, 0.5),
+      );
+      shadow.paint = _shadowPaint;
     }
   }
 
   void _finishDescent() {
     _isScaled = true;
     _descentProgress = null;
-    final shadow = children.whereType<ShadowComponent>().firstOrNull;
+    final ShadowComponent? shadow = _shadow;
     if (shadow != null) {
       shadow.position = _shadowPositionFor(size: initialSize);
       shadow.scale = Vector2.all(1);
     }
-    final hitbox = children.whereType<CircleHitbox>().firstOrNull;
+    final CircleHitbox? hitbox = _hitbox;
     if (hitbox != null) {
       hitbox.position = initialSize / 2;
     }
@@ -302,28 +308,26 @@ class BirdEnemyComponent extends SpriteAnimationComponent
   /// Removes shadow and hitbox so the collision system can clear the active
   /// pair (bird hitbox, player). Called when finishing ascend.
   void _removeShadowAndHitbox() {
-    final shadow = children.whereType<ShadowComponent>().firstOrNull;
-    final hitbox = children.whereType<CircleHitbox>().firstOrNull;
-    shadow?.removeFromParent();
-    hitbox?.removeFromParent();
+    _shadow?.removeFromParent();
+    _hitbox?.removeFromParent();
+    _shadow = null;
+    _hitbox = null;
   }
 
   /// Re-adds shadow and hitbox. Called at the start of the next frame after
   /// _removeShadowAndHitbox so Flame's collision run sees the pair ended
   /// before the new hitbox exists (fixes "collision only once").
   Future<void> _recreateShadowAndHitboxForShadowOnly() async {
-    add(
-      CircleHitbox(
-        radius: initialSize.x,
-        position: Vector2(initialSize.x, initialSize.y),
-      ),
+    _hitbox = CircleHitbox(
+      radius: initialSize.x,
+      position: Vector2(initialSize.x, initialSize.y),
     );
-    add(
-      ShadowComponent(
-        position: Vector2(initialSize.x, initialSize.y),
-        radius: initialSize.x,
-      ),
+    _shadow = ShadowComponent(
+      position: Vector2(initialSize.x, initialSize.y),
+      radius: initialSize.x,
     );
+    add(_hitbox!);
+    add(_shadow!);
   }
 
   void _updateFacingToward(PositionComponent target) {
@@ -350,7 +354,7 @@ class BirdEnemyComponent extends SpriteAnimationComponent
 
   void _animateShadowPulse(double dt) {
     _shadowPulseTime += dt;
-    final shadow = children.whereType<ShadowComponent>().firstOrNull;
+    final ShadowComponent? shadow = _shadow;
     if (shadow == null) return;
     final pulse = 0.92 + 0.08 * (1 + sin(_shadowPulseTime * 3));
     shadow.scale = Vector2.all(pulse);
@@ -381,14 +385,16 @@ class BirdEnemyComponent extends SpriteAnimationComponent
 
   void _scaleDownShadow(PositionComponent target) {
     if (_isScaled) return;
-    final shadow = children.whereType<ShadowComponent>().firstOrNull;
+    final ShadowComponent? shadow = _shadow;
     if (shadow == null) return;
     final distance = position.distanceTo(target.position);
     final t = 1 - (distance / _scaleUpDistance).clamp(0.0, 1.0);
-    shadow.paint = Paint()
-      ..color = Colors.black.withValues(alpha: (1 - t).clamp(0.0, 0.5));
+    _shadowPaint.color = Colors.black.withValues(
+      alpha: (1 - t).clamp(0.0, 0.5),
+    );
+    shadow.paint = _shadowPaint;
     if (distance <= 0) {
-      shadow.paint = Paint()..color = Colors.transparent;
+      shadow.paint = _transparentPaint;
     }
   }
 
@@ -400,9 +406,11 @@ class BirdEnemyComponent extends SpriteAnimationComponent
     }
     final t = 1 - (distance / _scaleUpDistance).clamp(0.0, 1.0);
     size = minSize + (initialSize - minSize) * t;
-    paint = Paint()..color = Colors.black.withValues(alpha: 1 * t);
+    _birdPaint.color = Colors.black.withValues(alpha: t);
+    paint = _birdPaint;
     if (distance <= 0) {
-      paint = Paint()..color = Colors.black.withValues(alpha: 1);
+      _birdPaint.color = Colors.black.withValues(alpha: 1);
+      paint = _birdPaint;
       size = initialSize;
       _isScaled = true;
     }
