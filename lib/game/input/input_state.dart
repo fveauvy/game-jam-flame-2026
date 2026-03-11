@@ -3,8 +3,7 @@ import 'package:game_jam/core/entities/player_vertical_position.dart';
 class InputState {
   double moveAxisX = 0;
   double moveAxisY = 0;
-  PlayerVerticalPosition playerVerticalPosition =
-      PlayerVerticalPosition.waterLevel;
+  PlayerVerticalPosition playerVerticalPosition = PlayerVerticalPosition.land;
 
   bool jumpPressed = false;
   bool divePressed = false;

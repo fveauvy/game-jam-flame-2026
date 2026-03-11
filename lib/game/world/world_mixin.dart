@@ -5,6 +5,8 @@ import 'package:flame/components.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/entities/biome_type.dart';
+import 'package:game_jam/game/character/infra/seed_code.dart';
+import 'package:game_jam/game/components/environment/cloud_shadow_component.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
@@ -112,6 +114,11 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   }
 
   Future<void> generateLevel(BiomeType biome) async {
+    for (final WaterLilyComponent lily
+        in game.world.children.whereType<WaterLilyComponent>().toList()) {
+      lily.removeFromParent();
+    }
+
     final worldSize = GameConfig.worldSize;
     final gridW = (worldSize.x / _cellSize).ceil();
     final gridH = (worldSize.y / _cellSize).ceil();
@@ -242,7 +249,9 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             );
             if (!tooClose) {
               lilyPositions.add(lilyCenter.clone());
-              add(WaterLilyComponent(position: lilyPos, radius: radius));
+              await game.world.add(
+                WaterLilyComponent(position: lilyPos, radius: radius),
+              );
             }
           }
         }
@@ -250,7 +259,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     }
 
     for (final Vector2 center in candidateSafeZoneCenters) {
-      add(
+      await game.world.add(
         WaterLilyComponent(
           position: Vector2(
             center.x - _candidateSafeZoneLilyRadius,
@@ -260,6 +269,10 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         ),
       );
     }
+
+    await add(
+      CloudShadowComponent(seed: SeedCode.decode(game.characterSeedCode)),
+    );
   }
 
   List<List<double>> _normalizeGrid(List<List<double>> grid, int w, int h) {

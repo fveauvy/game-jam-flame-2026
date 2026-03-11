@@ -2,6 +2,9 @@
 
 List each non-original asset.
 
-| Asset | Type | Source URL | Author | License | Modified |
-|---|---|---|---|---|---|
-| example_tileset.png | image | https://example.com | artist-name | CC-BY 4.0 | yes |
+For original art in `assets/images/` by Alice Abadia, use this license entry:
+`All Rights Reserved (see LICENSE-ASSETS.md)`.
+
+| Asset             | Type  | Source URL                   | Author       | License                                 |
+| ----------------- | ----- | ---------------------------- | ------------ | --------------------------------------- |
+| `assets/images/*` | image | <https://www.aliceabadia.com/> | Alice Abadia | All Rights Reserved (LICENSE-ASSETS.md)

@@ -6,6 +6,8 @@ abstract final class AssetPaths {
   static const String plank = 'assets/images/plank.png';
   static const String plankLight = 'assets/images/plank_light.png';
   static const String plankDark = 'assets/images/plank_dark.png';
+  static const String plankPanel1CacheKey = 'planks_panel_1.png';
+  static const String plankPanel2CacheKey = 'planks_panel_2.png';
   static const String waterLily = 'assets/images/water_lily.png';
   static const String waterLilyAlt = 'assets/images/water_lily_1.png';
   static const String fly = 'assets/images/fly.png';
@@ -67,6 +69,9 @@ abstract final class AssetPaths {
       'gronouy/frog-$number/Chill.png',
       'gronouy/frog-$number/Nage1.png',
       'gronouy/frog-$number/Nage2.png',
+      if (number == 14) 'gronouy/frog-$number/Chillsousleau.png',
+      if (number == 14) 'gronouy/frog-$number/Nage1sousleau.png',
+      if (number == 14) 'gronouy/frog-$number/Nage2sousleau.png',
     ];
   }
 
@@ -84,6 +89,8 @@ abstract final class AssetPaths {
     plankCacheKey,
     plankLightCacheKey,
     plankDarkCacheKey,
+    plankPanel1CacheKey,
+    plankPanel2CacheKey,
     waterLilyCacheKey,
     waterLilyAltCacheKey,
     flyCacheKey,

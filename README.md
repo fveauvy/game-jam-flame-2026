@@ -28,6 +28,14 @@ flutter run -d chrome --wasm
 flutter build web --wasm --release
 ```
 
+## Optimize images (Mac + Homebrew)
+
+```bash
+brew install pngquant oxipng jpegoptim
+scripts/optimize_images.sh assets/images build/optimized-assets/images
+rsync -a --delete build/optimized-assets/images/ assets/images/
+```
+
 ## Project layout
 
 - `lib/core`: config/constants/utils

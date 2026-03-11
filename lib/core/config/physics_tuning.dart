@@ -18,8 +18,9 @@ abstract final class PhysicsTuning {
 
   // Sprite opacity by vertical layer.
   static const double landOpacity = 1.0;
-  static const double waterOpacity = 0.7;
-  static const double underwaterOpacity = 0.4;
+  static const double waterOpacity = 0.85;
+  static const double underwaterOpacity = 0.6;
+  static const double underwaterSurfaceGraceSeconds = 0.2;
 
   // Bird enemy component.
   static const double birdEnemySpeed = 200;
@@ -48,4 +49,8 @@ abstract final class PhysicsTuning {
   static const double thornParticleSpeedMin = 70;
   static const double thornParticleSpeedMax = 240;
   static const double thornParticleAlpha = 0.8;
+
+  /// Frog House
+  static const double frogHouseSize = 200;
+  static const double frogHousePositionOffset = 100;
 }

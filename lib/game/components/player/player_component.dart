@@ -10,7 +10,8 @@ import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
-import 'package:game_jam/game/components/allies/tadpole.dart';
+import 'package:game_jam/game/components/allies/egg_component.dart';
+import 'package:game_jam/game/components/environment/frog_house_component.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
@@ -36,7 +37,7 @@ class PlayerComponent extends SpriteAnimationComponent
          position: startPosition.clone(),
          size: Vector2.all(PhysicsTuning.playerBaseSize),
          anchor: Anchor.center,
-         priority: 10,
+         priority: 110,
        ) {
     _applyStatsFromProfile();
     previousPosition = inputState.playerVerticalPosition;
@@ -70,17 +71,22 @@ class PlayerComponent extends SpriteAnimationComponent
   bool _isDamageTextVisible = false;
   bool isInWater = false;
   int _waterContacts = 0;
+  int _frogHouseContacts = 0;
   int _groundContacts = 0;
   int _lilyContacts = 0;
   bool _jumpActive = false;
   double _jumpElapsed = 0;
+  double _underwaterSurfaceGraceRemaining = 0;
   Vector2 _jumpDirection = Vector2.zero();
   final Vector2 _thornKnockbackVelocity = Vector2.zero();
   double _thornInvincibilityRemaining = 0;
   double _thornFlickerElapsed = 0;
 
+  int eggsCollected = 0;
+
   bool get _isTouchingGround => _groundContacts > 0;
   bool get _isTouchingLily => _lilyContacts > 0;
+  bool get _isTouchingFrogHouse => _frogHouseContacts > 0;
 
   bool get _isMoving => velocity.length2 > 0;
   bool _wasMoving = false;
@@ -226,7 +232,6 @@ class PlayerComponent extends SpriteAnimationComponent
     if (jumpActive) {
       return PlayerVerticalPosition.land;
     }
-
     if (current == PlayerVerticalPosition.land) {
       if (isInWater && !canStayOnLand) {
         return PlayerVerticalPosition.waterLevel;
@@ -283,7 +288,8 @@ class PlayerComponent extends SpriteAnimationComponent
     if (_jumpElapsed >= PhysicsTuning.jumpDurationSeconds) {
       _jumpActive = false;
       _jumpElapsed = 0;
-      inputState.playerVerticalPosition = (_isTouchingGround || _isTouchingLily)
+      inputState.playerVerticalPosition =
+          (_isTouchingGround || _isTouchingLily || _isTouchingFrogHouse)
           ? PlayerVerticalPosition.land
           : PlayerVerticalPosition.waterLevel;
     }
@@ -292,6 +298,13 @@ class PlayerComponent extends SpriteAnimationComponent
   @override
   void update(double dt) {
     super.update(dt);
+    if (isInWater) {
+      _underwaterSurfaceGraceRemaining =
+          PhysicsTuning.underwaterSurfaceGraceSeconds;
+    } else {
+      _underwaterSurfaceGraceRemaining = (_underwaterSurfaceGraceRemaining - dt)
+          .clamp(0.0, PhysicsTuning.underwaterSurfaceGraceSeconds);
+    }
     _thornInvincibilityRemaining = nextThornInvincibilityRemaining(
       current: _thornInvincibilityRemaining,
       dt: dt,
@@ -371,28 +384,41 @@ class PlayerComponent extends SpriteAnimationComponent
     position.y = position.y.clamp(0, maxY);
     position.x = position.x.clamp(0, maxX);
 
+    bool effectiveInWater = isInWater;
+    if (!effectiveInWater &&
+        levelPosition == PlayerVerticalPosition.underwater) {
+      effectiveInWater = game.level.isPositionInWater(absoluteCenter);
+    }
+
     inputState.playerVerticalPosition = resolveVerticalPosition(
       current: levelPosition,
-      isInWater: isInWater,
+      isInWater:
+          effectiveInWater ||
+          (levelPosition == PlayerVerticalPosition.underwater &&
+              _underwaterSurfaceGraceRemaining > 0),
       jumpPressed: inputState.jumpPressed,
       divePressed: inputState.divePressed,
-      canStayOnLand: _isTouchingGround || _isTouchingLily,
+      canStayOnLand:
+          _isTouchingGround || _isTouchingLily || _isTouchingFrogHouse,
       jumpActive: _jumpActive,
     );
 
     switch (levelPosition) {
       case PlayerVerticalPosition.land:
         _spriteOpacity = PhysicsTuning.landOpacity;
+        priority = 110;
         size = Vector2.all(
           PhysicsTuning.playerBaseSize * _sizeMultiplier * 1.1,
         );
         break;
       case PlayerVerticalPosition.waterLevel:
         _spriteOpacity = PhysicsTuning.waterOpacity;
+        priority = 110;
         size = Vector2.all(PhysicsTuning.playerBaseSize * _sizeMultiplier);
         break;
       case PlayerVerticalPosition.underwater:
         _spriteOpacity = PhysicsTuning.underwaterOpacity;
+        priority = 50;
         size = Vector2.all(
           PhysicsTuning.playerBaseSize * _sizeMultiplier * 0.9,
         );
@@ -421,6 +447,7 @@ class PlayerComponent extends SpriteAnimationComponent
     isInWater = false;
     _jumpActive = false;
     _jumpElapsed = 0;
+    _underwaterSurfaceGraceRemaining = 0;
     _hopTime = 0;
     // Reset the vertical position to land, matching the spawn tile.
     inputState.playerVerticalPosition = PlayerVerticalPosition.land;
@@ -594,10 +621,28 @@ class PlayerComponent extends SpriteAnimationComponent
       collisionNormal.normalize();
       position += collisionNormal.scaled(separationDistance);
     }
+    if (other is FrogHouseComponent) {
+      if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
+        if (intersectionPoints.length == 2) {
+          final mid =
+              (intersectionPoints.elementAt(0) +
+                  intersectionPoints.elementAt(1)) /
+              2;
+          final collisionNormal = absoluteCenter - mid;
+          final separationDistance = (size.x / 2) - collisionNormal.length;
+          collisionNormal.normalize();
+          final double moveDot = velocity.dot(collisionNormal);
+          if (moveDot < 0 || separationDistance > 1.5) {
+            position += collisionNormal.scaled(separationDistance);
+          }
+        }
+      }
+    }
 
-    if (other is Egg) {
+    if (other is EggComponent) {
+      eggsCollected++;
       debugPrint('Collected an egg!');
-      other.collect();
+      await other.collect();
     }
     super.onCollision(intersectionPoints, other);
   }
@@ -611,8 +656,22 @@ class PlayerComponent extends SpriteAnimationComponent
       _waterContacts++;
       isInWater = _waterContacts > 0;
       if (isInWater) {
+        _underwaterSurfaceGraceRemaining =
+            PhysicsTuning.underwaterSurfaceGraceSeconds;
+      }
+      if (isInWater) {
         removeAll(children.whereType<SimpleTextComponent>());
       }
+    }
+    if (other is FrogHouseComponent) {
+      _frogHouseContacts++;
+      if (_jumpActive) {
+        _jumpActive = false;
+        _jumpElapsed = 0;
+        inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+      }
+      super.onCollisionStart(intersectionPoints, other);
+      return;
     }
     if (other is GroundComponent) {
       _groundContacts++;
@@ -621,6 +680,8 @@ class PlayerComponent extends SpriteAnimationComponent
         _jumpElapsed = 0;
         inputState.playerVerticalPosition = PlayerVerticalPosition.land;
       }
+      super.onCollisionStart(intersectionPoints, other);
+      return;
     }
     if (other is WaterLilyComponent) {
       _lilyContacts++;
@@ -629,8 +690,9 @@ class PlayerComponent extends SpriteAnimationComponent
         _jumpElapsed = 0;
         inputState.playerVerticalPosition = PlayerVerticalPosition.land;
       }
+      super.onCollisionStart(intersectionPoints, other);
+      return;
     }
-    super.onCollisionStart(intersectionPoints, other);
   }
 
   @override
@@ -645,6 +707,9 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     if (other is WaterLilyComponent) {
       _lilyContacts = (_lilyContacts - 1).clamp(0, 999999);
+    }
+    if (other is FrogHouseComponent) {
+      _frogHouseContacts = (_frogHouseContacts - 1).clamp(0, 999999);
     }
 
     super.onCollisionEnd(other);
