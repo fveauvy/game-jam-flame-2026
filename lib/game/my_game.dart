@@ -7,9 +7,9 @@ import 'package:flame/game.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/audio/audio_settings.dart';
 import 'package:game_jam/audio/audio_settings_store.dart';
-import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
@@ -24,6 +24,7 @@ import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/allies/tadpole.dart';
 import 'package:game_jam/game/components/enemies/bird_enemy_component.dart';
+import 'package:game_jam/game/components/enemies/fish_enemy_component.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/player/water_ripple_component.dart';
@@ -160,6 +161,7 @@ class MyGame extends FlameGame<WorldRoot>
       CollisionSystem(),
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
+      ..._buildInitialFishEnemies(),
       bird,
     ]);
 
@@ -444,6 +446,19 @@ class MyGame extends FlameGame<WorldRoot>
       (int index) => Egg(
         position: _randomEggPosition(),
         size: Vector2.all(GameplayTuning.worldPickupSize),
+      ),
+    );
+  }
+
+  List<FishEnemyComponent> _buildInitialFishEnemies() {
+    return List<FishEnemyComponent>.generate(
+      5,
+      (int index) => FishEnemyComponent(
+        initialPosition: Vector2(
+          random.nextDouble() * GameConfig.worldSize.x,
+          random.nextDouble() * GameConfig.worldSize.y,
+        ),
+        initialSize: Vector2(200, 200),
       ),
     );
   }
