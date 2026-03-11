@@ -46,6 +46,9 @@ abstract final class AssetPaths {
   static const String thorns2CacheKey = 'environment/Ronces2.png';
   static const String thorns3CacheKey = 'environment/Ronces3.png';
 
+  static const int croqueAnimationFrames = 20;
+  static const String croqueAnimationPrefix = "croque/croque_";
+
   static List<String> get thornsAnimationCacheKeys => <String>[
     thorns1CacheKey,
     thorns2CacheKey,
@@ -106,6 +109,10 @@ abstract final class AssetPaths {
       return frogSpriteCacheKey(index + 1);
     }, growable: false).where((path) => path.isNotEmpty),
     waterTexture,
+    ...List<String>.generate(croqueAnimationFrames, (index) {
+      final frameNumber = index;
+      return 'croque/croque_$frameNumber.png';
+    }),
   ];
 
   static List<String> get preloadAudioCacheKeys => <String>[
