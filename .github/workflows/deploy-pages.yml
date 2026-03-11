@@ -28,20 +28,25 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
       - name: Build web
-        run: flutter build web --wasm --release --base-href /play/
+        run: flutter build web --wasm --release --pwa-strategy=none --base-href /play/
 
       - name: Move game under /play and add landing pages
         run: |
           temp_dir="$(mktemp -d)"
-          mv build/web/* "$temp_dir"/
+          cp -a build/web/. "$temp_dir"/
+          rm -rf build/web
           mkdir -p build/web/play
-          mv "$temp_dir"/* build/web/play/
-          cp -R landing/. build/web/
+          cp -a "$temp_dir"/. build/web/play/
+          cp -a landing/. build/web/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

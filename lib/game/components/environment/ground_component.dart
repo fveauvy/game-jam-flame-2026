@@ -19,6 +19,6 @@ class GroundComponent extends RectangleComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    add(RectangleHitbox(size: size));
+    add(RectangleHitbox(size: size, collisionType: CollisionType.passive));
   }
 }

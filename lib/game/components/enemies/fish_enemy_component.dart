@@ -15,6 +15,9 @@ class FishEnemyComponent extends SpriteAnimationComponent
   PositionComponent? target;
   bool isEating = false;
   double timeSinceStartingEat = 0;
+  late final List<Sprite> _sprites;
+  late final SpriteAnimation _idleAnimation;
+  late final SpriteAnimation _eatAnimation;
 
   FishEnemyComponent({required this.initialPosition, required this.initialSize})
     : super(
@@ -29,7 +32,71 @@ class FishEnemyComponent extends SpriteAnimationComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    animation = idleAnimation;
+    _sprites = List<Sprite>.generate(AssetPaths.croqueAnimationFrames, (index) {
+      final int frameNumber = index;
+      return Sprite(
+        game.images.fromCache(
+          '${AssetPaths.croqueAnimationPrefix}$frameNumber.png',
+        ),
+      );
+    }, growable: false);
+    _idleAnimation = SpriteAnimation.spriteList([
+      _sprites[19],
+    ], stepTime: _stepTimeInS);
+    _eatAnimation = SpriteAnimation.variableSpriteList(
+      <int>[
+        19,
+        18,
+        17,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+      ].map((i) => _sprites[i]).toList(growable: false),
+      stepTimes: <int>[
+        3,
+        2,
+        3,
+        4,
+        4,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        3,
+        2,
+        2,
+        2,
+        1,
+        2,
+        2,
+        3,
+      ].map((frame) => frame * _stepTimeInS).toList(growable: false),
+      loop: false,
+    );
+    animation = _idleAnimation;
     add(
       CircleHitbox(
         radius: (initialSize.x / 3),
@@ -40,7 +107,7 @@ class FishEnemyComponent extends SpriteAnimationComponent
   }
 
   @override
-  void update(double dt) async {
+  void update(double dt) {
     super.update(dt);
     if (!isEating && timeSinceStartingEat != 0) {
       timeSinceStartingEat = 0;
@@ -52,9 +119,11 @@ class FishEnemyComponent extends SpriteAnimationComponent
         target != null &&
         timeSinceStartingEat <= deathTimeInS + 0.6) {
       if (target is PlayerComponent) {
-        await (target as PlayerComponent).applyDamageWithInvincibilityDelay(
-          50,
-          1.0,
+        unawaited(
+          (target as PlayerComponent).applyDamageWithInvincibilityDelay(
+            50,
+            1.0,
+          ),
         );
       } else {
         target?.removeFromParent();
@@ -84,12 +153,12 @@ class FishEnemyComponent extends SpriteAnimationComponent
   void startEating() async {
     if (isEating) return;
     isEating = true;
-    animation = eatAnimation;
+    animation = _eatAnimation;
     paint.blendMode = BlendMode.srcOver;
     await Future.delayed(
       Duration(milliseconds: (animationsTimeInS * 1000).toInt()),
       () {
-        animation = idleAnimation;
+        animation = _idleAnimation;
         isEating = false;
         paint.blendMode = BlendMode.screen;
       },
@@ -105,71 +174,4 @@ class FishEnemyComponent extends SpriteAnimationComponent
 
   static const double animationsTimeInS = _stepTimeInS * totalFrames;
   static const double deathTimeInS = closingMouthFrame * _stepTimeInS;
-
-  List<Sprite> get spriteList =>
-      List<Sprite>.generate(AssetPaths.croqueAnimationFrames, (index) {
-        final frameNumber = index;
-        return Sprite(
-          game.images.fromCache(
-            '${AssetPaths.croqueAnimationPrefix}$frameNumber.png',
-          ),
-        );
-      });
-  SpriteAnimation get idleAnimation =>
-      SpriteAnimation.spriteList([spriteList[19]], stepTime: _stepTimeInS);
-
-  SpriteAnimation get eatAnimation => SpriteAnimation.variableSpriteList(
-    [
-      19,
-      18,
-      17,
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      11,
-      12,
-      13,
-      14,
-      15,
-      16,
-      17,
-      18,
-      19,
-    ].map((i) => spriteList[i]).toList(),
-
-    stepTimes: [
-      3,
-      2,
-      3,
-      4,
-      4,
-      1,
-      1,
-      1,
-      1,
-      1,
-      1,
-      1,
-      1,
-      1,
-      1,
-      3,
-      2,
-      2,
-      2,
-      1,
-      2,
-      2,
-      3,
-    ].map((frame) => frame * _stepTimeInS).toList(),
-    loop: false,
-  );
 }
