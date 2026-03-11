@@ -34,12 +34,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   static const double _candidateSafeZoneLilyRadius = 36;
   static const double _candidateSafeZoneRingRadius = 120;
 
-  // Fish enemy spawning.
-  static const int _fishEnemyCount = 3;
-  static const double _fishEnemySize = 150;
-  static const double _fishMinSpawnDistance = 600;
-  static const double _minFishSpacing = 400;
-
   static Vector2 candidateSafeZoneCenter({Vector2? preferredCenter}) {
     final Vector2 center = (preferredCenter ?? GameConfig.playerSpawn).clone();
     final double minX = _candidateSafeZoneHalfSize + _cellSize;
@@ -243,7 +237,8 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             !isThornCell &&
             !inSpawnZone &&
             !inCandidateSafeZone &&
-            cellCenter.distanceTo(spawn) >= _fishMinSpawnDistance) {
+            cellCenter.distanceTo(spawn) >=
+                GameplayTuning.fishMinSpawnDistance) {
           fishCandidates.add(cellCenter.clone());
         }
 
@@ -285,16 +280,17 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     fishCandidates.shuffle(random);
     final spawnedFishPositions = <Vector2>[];
     for (final pos in fishCandidates) {
-      if (spawnedFishPositions.length >= _fishEnemyCount) break;
+      if (spawnedFishPositions.length >= GameplayTuning.fishEnemyCount) break;
       final tooClose = spawnedFishPositions.any(
-        (p) => p.distanceTo(pos) < _minFishSpacing,
+        (p) => p.distanceTo(pos) < GameplayTuning.minFishSpacing,
       );
       if (!tooClose) {
         spawnedFishPositions.add(pos.clone());
         await game.world.add(
           FishEnemyComponent(
-            initialPosition: pos - Vector2.all(_fishEnemySize / 2),
-            initialSize: Vector2.all(_fishEnemySize),
+            initialPosition:
+                pos - Vector2.all(GameplayTuning.fishEnemySize / 2),
+            initialSize: Vector2.all(GameplayTuning.fishEnemySize),
           ),
         );
       }
