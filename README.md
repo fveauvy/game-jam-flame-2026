@@ -28,6 +28,20 @@ flutter run -d chrome --wasm
 flutter build web --wasm --release
 ```
 
+## Leaderboard admin reset
+
+- Endpoint: `POST /api/reset-leaderboard`
+- Auth header: `x-leaderboard-admin-key`
+- Required server env var: `LEADERBOARD_ADMIN_KEY`
+- This secret is admin-only and must never be shipped in game/client code.
+
+Example:
+
+```bash
+curl -X POST "https://game-jam-flame-2026-gamma.vercel.app/api/reset-leaderboard" \
+  -H "x-leaderboard-admin-key: <your-admin-secret>"
+```
+
 ## Optimize images (Mac + Homebrew)
 
 ```bash
