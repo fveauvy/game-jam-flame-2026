@@ -725,7 +725,6 @@ class MyGame extends FlameGame<WorldRoot>
 
     _player = _playerList.first;
     world.bindPlayer(_player);
-    _cameraController.target = _player;
 
     await world.addAll([..._waterRipples, ..._playerList]);
   }
