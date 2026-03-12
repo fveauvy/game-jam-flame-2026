@@ -212,14 +212,6 @@ class MyGame extends FlameGame<WorldRoot>
     );
     await world.add(_menu);
 
-    world.add(
-      CircleComponent(
-        paint: Paint()..color = const Color(0xFFFF0000),
-        position: GameConfig.playerSpawn,
-        radius: 10,
-      ),
-    );
-
     phase.value = GamePhase.menu;
     _startBgmIfNeeded();
 
@@ -655,14 +647,6 @@ class MyGame extends FlameGame<WorldRoot>
     );
     characterGenerationState.value = nextState;
     characterState.value = nextState.profile;
-
-    if (isLoaded &&
-        phase.value == GamePhase.menu &&
-        index < _playerList.length) {
-      _player = _playerList[index];
-      world.bindPlayer(_player);
-      _cameraController.target = _player;
-    }
   }
 
   void _stepMenuCandidate(int delta) {
@@ -833,6 +817,17 @@ class MyGame extends FlameGame<WorldRoot>
 
     _startBgmIfNeeded();
 
+    final CharacterGenerationState? state = characterGenerationState.value;
+
+    if (phase.value == GamePhase.menu &&
+        state != null &&
+        state.selectedIndex >= 0 &&
+        state.selectedIndex < _playerList.length) {
+      _player = _playerList[state.selectedIndex];
+      world.bindPlayer(_player);
+      _cameraController.target = _player;
+    }
+
     // Hide the menu and remove non-selected candidates when the game starts.
     if (phase.value == GamePhase.menu) {
       if (isLoaded && _menu.parent != null) {
@@ -841,7 +836,6 @@ class MyGame extends FlameGame<WorldRoot>
       _cleanupMenuCandidates();
     }
 
-    final CharacterGenerationState? state = characterGenerationState.value;
     if (state != null) {
       _characterSeedCode = state.selectedSeedCode;
       _randomSeeded = Random(SeedCode.decode(_characterSeedCode));

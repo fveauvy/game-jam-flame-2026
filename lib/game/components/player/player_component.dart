@@ -25,7 +25,11 @@ import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class PlayerComponent extends SpriteAnimationComponent
-    with HasGameReference<MyGame>, CollisionCallbacks, TapCallbacks {
+    with
+        HasGameReference<MyGame>,
+        CollisionCallbacks,
+        TapCallbacks,
+        HoverCallbacks {
   PlayerComponent({
     required this.inputState,
     required CharacterProfile profile,
@@ -57,6 +61,7 @@ class PlayerComponent extends SpriteAnimationComponent
 
   CharacterProfile _profile;
   double _spriteOpacity = 1.0;
+  bool _isHoveredInMenu = false;
   CircleHitbox? _hitbox;
   late double _speedMultiplier;
   late double _sizeMultiplier;
@@ -107,6 +112,25 @@ class PlayerComponent extends SpriteAnimationComponent
       game.onPlayerTapped(this);
     }
     super.onTapDown(event);
+  }
+
+  @override
+  void onHoverEnter() {
+    super.onHoverEnter();
+    if (game.phase.value != GamePhase.menu) {
+      return;
+    }
+    _isHoveredInMenu = true;
+    final int index = game.playerCandidates.indexOf(this);
+    if (index != -1) {
+      game.pointCharacterCandidate(index);
+    }
+  }
+
+  @override
+  void onHoverExit() {
+    super.onHoverExit();
+    _isHoveredInMenu = false;
   }
 
   @override
@@ -423,6 +447,24 @@ class PlayerComponent extends SpriteAnimationComponent
     }
   }
 
+  void _syncMenuPointedVisual() {
+    if (game.phase.value != GamePhase.menu) {
+      _isHoveredInMenu = false;
+      scale = Vector2.all(1.0);
+      paint.color = Colors.white.withValues(alpha: _spriteOpacity);
+      return;
+    }
+
+    final state = game.characterGenerationState.value;
+    final int index = game.playerCandidates.indexOf(this);
+    final bool isSelected =
+        state != null && index != -1 && index == state.selectedIndex;
+    final bool isPointed = isSelected || _isHoveredInMenu;
+
+    scale = Vector2.all(isPointed ? 1.08 : 1.0);
+    paint.color = Colors.white.withValues(alpha: isPointed ? 1.0 : 0.9);
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -445,8 +487,11 @@ class PlayerComponent extends SpriteAnimationComponent
     _thornFlickerElapsed += dt;
 
     if (game.phase.value != GamePhase.playing) {
+      _syncMenuPointedVisual();
       return;
     }
+
+    scale = Vector2.all(1.0);
 
     _syncMovementAnimation();
 

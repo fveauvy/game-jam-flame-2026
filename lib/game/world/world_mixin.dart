@@ -32,7 +32,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       2 * _maxLilyRadius + _playerBaseDiameter + _lilyGapBuffer;
   static const double _candidateSafeZoneHalfSize = 260;
   static const double _candidateSafeZoneLilyRadius = 36;
-  static const double _candidateSafeZoneRingRadius = 240;
+  static const double _candidateSafeZoneRingRadius = 210;
 
   static Vector2 candidateSafeZoneCenter({Vector2? preferredCenter}) {
     final Vector2 center = (preferredCenter ?? GameConfig.playerSpawn).clone();
