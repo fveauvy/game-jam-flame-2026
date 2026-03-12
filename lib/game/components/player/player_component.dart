@@ -19,7 +19,9 @@ import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
+import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_animation_extention.dart';
+import 'package:game_jam/game/components/player/frog_tongue_component.dart';
 import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -87,6 +89,7 @@ class PlayerComponent extends SpriteAnimationComponent
   SpriteAnimation? _boundAnimationForMoveSfx;
   int _lastMoveFrameIndex = -1;
   bool _seenLastMoveFrameInCurrentRun = false;
+  FrogTongueComponent? _tongue;
 
   int eggsCollected = 0;
 
@@ -126,6 +129,16 @@ class PlayerComponent extends SpriteAnimationComponent
     animation = idleAnimation(levelPosition);
     _onAnimationChanged();
     await add(_hitbox!);
+    final FrogTongueComponent tongue = FrogTongueComponent(player: this);
+    _tongue = tongue;
+    await game.world.add(tongue);
+  }
+
+  @override
+  void onRemove() {
+    _tongue?.removeFromParent();
+    _tongue = null;
+    super.onRemove();
   }
 
   static double _normalizeAngle(double value) {
@@ -490,6 +503,9 @@ class PlayerComponent extends SpriteAnimationComponent
         isInWater) {
       _startJump();
     }
+    if (inputState.attackPressed) {
+      _tryUseTongue();
+    }
     _resolveJump(dt);
 
     final double maxX = GameConfig.worldSize.x - size.x;
@@ -554,6 +570,18 @@ class PlayerComponent extends SpriteAnimationComponent
         : _spriteOpacity;
     paint.color = Colors.white.withValues(alpha: targetOpacity);
     _syncHitbox();
+  }
+
+  void _tryUseTongue() {
+    if ((_tongue?.tryLick() ?? false) == false) {
+      return;
+    }
+    unawaited(
+      game.playSfx(
+        AssetPaths.tongueLickSfx,
+        volume: GameplayTuning.tongueSfxVolume,
+      ),
+    );
   }
 
   void reset() {
@@ -869,6 +897,59 @@ class PlayerComponent extends SpriteAnimationComponent
     if (_remainingHealth <= 0) {
       game.endGame();
     }
+  }
+
+  void heal(int amount) {
+    if (game.phase.value != GamePhase.playing || amount <= 0) {
+      return;
+    }
+    final int before = _remainingHealth;
+    _remainingHealth = (_remainingHealth + amount).clamp(0, _maxHealth);
+    final int healed = _remainingHealth - before;
+    if (healed > 0) {
+      unawaited(_showHealingText(healed));
+    }
+  }
+
+  Future<void> _showHealingText(int healed) async {
+    final SimpleTextComponent healingText = SimpleTextComponent(
+      color: Colors.lightGreenAccent,
+      text: '+$healed HP',
+      position:
+          absoluteCenter +
+          Vector2(
+            GameplayTuning.healingTextOffsetX,
+            GameplayTuning.healingTextOffsetY,
+          ),
+      priority: 130,
+    );
+    await game.world.add(healingText);
+    await healingText.add(
+      MoveEffect.by(
+        Vector2(0, -GameplayTuning.healingTextRiseDistance),
+        EffectController(
+          duration: GameplayTuning.healingTextRiseDurationSeconds,
+          curve: Curves.easeOut,
+        ),
+      ),
+    );
+    Future.delayed(
+      const Duration(milliseconds: GameplayTuning.healingTextLifetimeMs),
+      () {
+        if (healingText.parent == null) {
+          return;
+        }
+        healingText.removeFromParent();
+      },
+    );
+  }
+
+  void onFlyCaughtFromTongue(FlyComponent fly) {
+    if (game.phase.value != GamePhase.playing || fly.parent == null) {
+      return;
+    }
+    fly.removeFromParent();
+    heal(GameplayTuning.flyHealAmount);
   }
 
   Future<void> applyDamageWithInvincibilityDelay(

@@ -1,11 +1,13 @@
 import 'dart:math';
 
+import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/game/components/environment/fly_animation_definition.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class FlyComponent extends SpriteAnimationComponent
-    with HasGameReference<MyGame>, FlyAnimationDefinition {
+    with HasGameReference<MyGame>, FlyAnimationDefinition, CollisionCallbacks {
   FlyComponent({super.position, super.size}) : super(priority: 100);
 
   static const double _minRadius = 20;
@@ -36,6 +38,14 @@ class FlyComponent extends SpriteAnimationComponent
     animation = SpriteAnimation.fromFrameData(
       game.images.fromCache('fly.png'),
       animationData,
+    );
+    await add(
+      CircleHitbox(
+        radius: size.x * GameplayTuning.flyHitboxRadiusFactor,
+        position: size / 2,
+        anchor: Anchor.center,
+        collisionType: CollisionType.passive,
+      ),
     );
   }
 
