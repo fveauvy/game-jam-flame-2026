@@ -289,6 +289,51 @@ figcaption {
   grid-template-columns: 1fr;
 }
 
+.leaderboard-panel {
+  padding: 1rem;
+}
+
+.leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.leaderboard-status {
+  color: #2d6353;
+  font-weight: 700;
+}
+
+.leaderboard-table-wrap {
+  overflow-x: auto;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 340px;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  text-align: left;
+  padding: 0.62rem 0.55rem;
+  border-bottom: 1px solid rgba(16, 74, 57, 0.15);
+}
+
+.leaderboard-table th {
+  color: #205647;
+  font-family: "Changa", sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.leaderboard-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .info-card,
 .loop-step {
   padding: 1rem;
