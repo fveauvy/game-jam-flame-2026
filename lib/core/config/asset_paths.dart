@@ -77,9 +77,12 @@ abstract final class AssetPaths {
       'gronouy/frog-$number/Chill.png',
       'gronouy/frog-$number/Nage1.png',
       'gronouy/frog-$number/Nage2.png',
-      if (number == 14) 'gronouy/frog-$number/Chillsousleau.png',
-      if (number == 14) 'gronouy/frog-$number/Nage1sousleau.png',
-      if (number == 14) 'gronouy/frog-$number/Nage2sousleau.png',
+      if (animatedFrogSpriteId.contains(number))
+        'gronouy/frog-$number/Chillsousleau.png',
+      if (animatedFrogSpriteId.contains(number))
+        'gronouy/frog-$number/Nage1sousleau.png',
+      if (animatedFrogSpriteId.contains(number))
+        'gronouy/frog-$number/Nage2sousleau.png',
     ];
   }
 
