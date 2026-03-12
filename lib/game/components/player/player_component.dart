@@ -93,7 +93,7 @@ class PlayerComponent extends SpriteAnimationComponent
   bool get _isTouchingLily => _lilyContacts > 0;
   bool get _isTouchingFrogHouse => _frogHouseContacts > 0;
 
-  bool get _isMoving => velocity.length2 > 0;
+  bool get _isMoving => inputState.moveAxisX != 0 || inputState.moveAxisY != 0;
   bool _wasMoving = false;
 
   Vector2 get velocity =>
@@ -191,6 +191,21 @@ class PlayerComponent extends SpriteAnimationComponent
       velocity.normalize();
     }
     return velocity;
+  }
+
+  double _movementDot(Vector2 normal) {
+    double x = inputState.moveAxisX;
+    double y = inputState.moveAxisY;
+    final double length2 = (x * x) + (y * y);
+    if (length2 == 0) {
+      return 0;
+    }
+    if (length2 > 1) {
+      final double invLength = 1 / sqrt(length2);
+      x *= invLength;
+      y *= invLength;
+    }
+    return (x * normal.x) + (y * normal.y);
   }
 
   static bool shouldRenderGlasses(double intelligence) {
@@ -410,6 +425,11 @@ class PlayerComponent extends SpriteAnimationComponent
   @override
   void update(double dt) {
     super.update(dt);
+    final Vector2 movement = normalizeMoveAxis(
+      inputState.moveAxisX,
+      inputState.moveAxisY,
+    );
+    final bool isMoving = movement.length2 > 0;
     if (isInWater) {
       _underwaterSurfaceGraceRemaining =
           PhysicsTuning.underwaterSurfaceGraceSeconds;
@@ -429,7 +449,7 @@ class PlayerComponent extends SpriteAnimationComponent
 
     _syncMovementAnimation();
 
-    if (!isInWater && _isMoving) {
+    if (!isInWater && isMoving) {
       _hopTime += dt;
     } else {
       _hopTime = 0.0;
@@ -437,7 +457,7 @@ class PlayerComponent extends SpriteAnimationComponent
     final double hopScale = isInWater ? 1.0 : sin(_hopTime * 8.0).abs();
 
     position +=
-        velocity *
+        movement *
         PhysicsTuning.playerMoveSpeed *
         _speedMultiplier *
         dt *
@@ -451,10 +471,10 @@ class PlayerComponent extends SpriteAnimationComponent
             PhysicsTuning.thornKnockbackMinSpeed) {
       _thornKnockbackVelocity.setZero();
     }
-    _wasMoving = _isMoving;
+    _wasMoving = isMoving;
 
-    final double targetAngle = velocity.screenAngle();
-    if (velocity.x != 0 || velocity.y != 0) {
+    final double targetAngle = movement.screenAngle();
+    if (movement.x != 0 || movement.y != 0) {
       final double angleDelta = _shortestAngleDelta(targetAngle, angle);
       if (angleDelta != 0) {
         final double maxStep =
@@ -707,7 +727,7 @@ class PlayerComponent extends SpriteAnimationComponent
           final collisionNormal = absoluteCenter - mid;
           final separationDistance = (size.x / 2) - collisionNormal.length;
           collisionNormal.normalize();
-          final double moveDot = velocity.dot(collisionNormal);
+          final double moveDot = _movementDot(collisionNormal);
           if (moveDot < 0 || separationDistance > 1.5) {
             position += collisionNormal.scaled(separationDistance);
           }
@@ -738,7 +758,7 @@ class PlayerComponent extends SpriteAnimationComponent
           final collisionNormal = absoluteCenter - mid;
           final separationDistance = (size.x / 2) - collisionNormal.length;
           collisionNormal.normalize();
-          final double moveDot = velocity.dot(collisionNormal);
+          final double moveDot = _movementDot(collisionNormal);
           if (moveDot < 0 || separationDistance > 1.5) {
             position += collisionNormal.scaled(separationDistance);
           }

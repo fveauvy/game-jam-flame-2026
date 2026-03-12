@@ -19,6 +19,12 @@ class WaterComponent extends SpriteComponent with HasGameReference<MyGame> {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    add(RectangleHitbox(size: size, priority: 1));
+    add(
+      RectangleHitbox(
+        size: size,
+        priority: 1,
+        collisionType: CollisionType.passive,
+      ),
+    );
   }
 }
