@@ -5,12 +5,16 @@ import 'package:flame/events.dart';
 import 'package:flame/experimental.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/game/character/model/character_generation_state.dart';
+import 'package:game_jam/game/character/model/character_profile.dart';
+import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/ui/seed_panel_component.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class MenuComponent extends PositionComponent
     with HasGameReference<MyGame>, TapCallbacks {
   final Future<void> Function() onReroll;
+  final _SelectedFrogStatsPopover _statsPopover = _SelectedFrogStatsPopover();
 
   MenuComponent({required this.onReroll})
     : super(priority: 100, position: GameConfig.playerSpawn);
@@ -77,28 +81,165 @@ class MenuComponent extends PositionComponent
   }
 
   @override
+  void onMount() {
+    super.onMount();
+    if (_statsPopover.parent == null) {
+      game.world.add(_statsPopover);
+    }
+  }
+
+  @override
   void onRemove() {
-    game.characterGenerationState.removeListener(_syncDebugText);
+    _statsPopover.removeFromParent();
+    super.onRemove();
+  }
+}
+
+class _SelectedFrogStatsPopover extends PositionComponent
+    with HasGameReference<MyGame> {
+  _SelectedFrogStatsPopover()
+    : super(size: Vector2(210, 92), anchor: Anchor.center, priority: 220);
+
+  late final TextComponent _nameText;
+  late final TextComponent _statsText;
+  bool _showPopover = false;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    _nameText = TextComponent(
+      text: '-',
+      anchor: Anchor.topCenter,
+      position: Vector2(size.x / 2, 8),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+
+    _statsText = TextComponent(
+      text: '-',
+      anchor: Anchor.topCenter,
+      position: Vector2(size.x / 2, 28),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white70,
+          fontSize: 11,
+          height: 1.25,
+        ),
+      ),
+    );
+
+    addAll([_nameText, _statsText]);
+  }
+
+  @override
+  void onMount() {
+    super.onMount();
+    game.characterGenerationState.addListener(_syncFromState);
+    _syncFromState();
+  }
+
+  @override
+  void onRemove() {
+    game.characterGenerationState.removeListener(_syncFromState);
     super.onRemove();
   }
 
-  void _syncDebugText() {
-    //   final CharacterDebugState? debugState = game.characterDebugState.value;
-    //   if (debugState == null) {
-    //     _nameText.text = '-';
-    //     _detailsText.text = 'Seed: -\nColor: -';
-    //     _layoutText();
-    //     return;
-    //   }
-    //   _nameText.text = debugState.profile.name.display;
-    //   _detailsText.text =
-    //       'Seed: ${debugState.seedCode}\nColor: ${debugState.profile.colorHex}';
-    //   _layoutText();
-    // }
+  @override
+  void update(double dt) {
+    super.update(dt);
+    final CharacterGenerationState? state = game.characterGenerationState.value;
+    if (game.phase.value != GamePhase.menu || state == null) {
+      _showPopover = false;
+      return;
+    }
 
-    // void _layoutText() {
-    //   _detailsText.position = Vector2(0, _nameText.size.y + 4);
-    //   _fpsText.position = Vector2(0, _nameText.size.y + _detailsText.size.y + 8);
-    // }
+    final int index = state.selectedIndex;
+    final List<PlayerComponent> candidates = game.playerCandidates;
+    if (index < 0 || index >= candidates.length) {
+      _showPopover = false;
+      return;
+    }
+
+    final PlayerComponent selected = candidates[index];
+    _showPopover = true;
+
+    debugPrint(
+      '[menu] selected candidate pos: ${selected.position}',
+    ); // [0.0, 261.xxx];
+    debugPrint('${game.camera.viewport.position}'); // [0.0, 261.xxx];
+    debugPrint('${game.camera.viewport.size}');
+
+    final double verticalOffset = (selected.size.y * 0.95) + 52;
+    final double halfPanelHeight = game.camera.viewport.size.y * 0.5;
+    final double aboveY = selected.position.y - verticalOffset;
+    final double belowY = selected.position.y + verticalOffset;
+    bool placeBelow = aboveY - halfPanelHeight < 8;
+
+    // If below would go off-screen, force it back above.
+    if (belowY + halfPanelHeight > GameConfig.worldSize.y - 8) {
+      placeBelow = false;
+    }
+
+    position =
+        selected.position +
+        Vector2(
+          0,
+          placeBelow
+              ? ((selected.size.y * 0.95) + 52)
+              : (-(selected.size.y * 0.95) - 52),
+        );
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (!_showPopover) {
+      return;
+    }
+
+    final RRect panel = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.x, size.y),
+      const Radius.circular(10),
+    );
+    canvas.drawRRect(
+      panel,
+      Paint()..color = Colors.black.withValues(alpha: 0.72),
+    );
+    canvas.drawRRect(
+      panel,
+      Paint()
+        ..color = Colors.white30
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+
+    super.render(canvas);
+  }
+
+  void _syncFromState() {
+    final CharacterGenerationState? state = game.characterGenerationState.value;
+    if (state == null) {
+      _nameText.text = '-';
+      _statsText.text = '-';
+      return;
+    }
+
+    final CharacterProfile profile = state.profile;
+    _nameText.text = profile.name.display;
+    _statsText.text =
+        'SPD ${_fmt(profile.traits.speed)}   SIZE ${_fmt(profile.traits.size)}\n'
+        'INT ${_fmt(profile.traits.intelligence)}   HP ${profile.traits.health ?? '-'}';
+  }
+
+  String _fmt(double? value) {
+    if (value == null) {
+      return '-';
+    }
+    return value.toStringAsFixed(2);
   }
 }
