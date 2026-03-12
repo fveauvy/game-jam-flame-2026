@@ -19,8 +19,19 @@ class YouWinOverlay extends StatefulWidget {
 
 class _YouWinOverlayState extends State<YouWinOverlay> {
   bool _isPublishing = false;
+  bool _hasPublishedScore = false;
 
   Future<void> _publishScore() async {
+    if (_hasPublishedScore) {
+      final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(
+        context,
+      );
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('Score already published for this run.')),
+      );
+      return;
+    }
+
     final String? playerName = await showDialog<String>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -76,6 +87,9 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
 
     setState(() {
       _isPublishing = false;
+      if (success) {
+        _hasPublishedScore = true;
+      }
     });
 
     final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(
@@ -143,9 +157,15 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
                       ),
                     ),
                     FilledButton(
-                      onPressed: _isPublishing ? null : _publishScore,
+                      onPressed: (_isPublishing || _hasPublishedScore)
+                          ? null
+                          : _publishScore,
                       child: Text(
-                        _isPublishing ? 'Publishing...' : 'Publish Score',
+                        _isPublishing
+                            ? 'Publishing...'
+                            : (_hasPublishedScore
+                                  ? 'Published'
+                                  : 'Publish Score'),
                       ),
                     ),
                     FilledButton(

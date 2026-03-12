@@ -14,6 +14,11 @@ on:
 permissions:
   contents: write
 
+env:
+  LEADERBOARD_SUBMIT_URL: ${{ secrets.LEADERBOARD_SUBMIT_URL }}
+  LEADERBOARD_KEY_PART_A: ${{ secrets.LEADERBOARD_KEY_PART_A }}
+  LEADERBOARD_KEY_PART_B: ${{ secrets.LEADERBOARD_KEY_PART_B }}
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -125,7 +130,10 @@ jobs:
         run: |
           flutter build apk --release \
             --build-name "${{ needs.prepare.outputs.version_name }}" \
-            --build-number "${{ needs.prepare.outputs.build_number }}"
+            --build-number "${{ needs.prepare.outputs.build_number }}" \
+            --dart-define=LEADERBOARD_SUBMIT_URL="$LEADERBOARD_SUBMIT_URL" \
+            --dart-define=LEADERBOARD_KEY_PART_A="$LEADERBOARD_KEY_PART_A" \
+            --dart-define=LEADERBOARD_KEY_PART_B="$LEADERBOARD_KEY_PART_B"
 
       - name: Upload Android artifact
         uses: actions/upload-artifact@v4
@@ -161,7 +169,10 @@ jobs:
         run: |
           flutter build ios --release --no-codesign \
             --build-name "${{ needs.prepare.outputs.version_name }}" \
-            --build-number "${{ needs.prepare.outputs.build_number }}"
+            --build-number "${{ needs.prepare.outputs.build_number }}" \
+            --dart-define=LEADERBOARD_SUBMIT_URL="$LEADERBOARD_SUBMIT_URL" \
+            --dart-define=LEADERBOARD_KEY_PART_A="$LEADERBOARD_KEY_PART_A" \
+            --dart-define=LEADERBOARD_KEY_PART_B="$LEADERBOARD_KEY_PART_B"
 
       - name: Package iOS artifact
         run: |
@@ -196,7 +207,13 @@ jobs:
 
       - name: Build Windows
         shell: bash
-        run: flutter build windows --release --build-name "${{ needs.prepare.outputs.version_name }}" --build-number "${{ needs.prepare.outputs.build_number }}"
+        run: |
+          flutter build windows --release \
+            --build-name "${{ needs.prepare.outputs.version_name }}" \
+            --build-number "${{ needs.prepare.outputs.build_number }}" \
+            --dart-define=LEADERBOARD_SUBMIT_URL="$LEADERBOARD_SUBMIT_URL" \
+            --dart-define=LEADERBOARD_KEY_PART_A="$LEADERBOARD_KEY_PART_A" \
+            --dart-define=LEADERBOARD_KEY_PART_B="$LEADERBOARD_KEY_PART_B"
 
       - name: Package Windows artifact
         shell: pwsh
@@ -230,7 +247,10 @@ jobs:
         run: |
           flutter build macos --release \
             --build-name "${{ needs.prepare.outputs.version_name }}" \
-            --build-number "${{ needs.prepare.outputs.build_number }}"
+            --build-number "${{ needs.prepare.outputs.build_number }}" \
+            --dart-define=LEADERBOARD_SUBMIT_URL="$LEADERBOARD_SUBMIT_URL" \
+            --dart-define=LEADERBOARD_KEY_PART_A="$LEADERBOARD_KEY_PART_A" \
+            --dart-define=LEADERBOARD_KEY_PART_B="$LEADERBOARD_KEY_PART_B"
 
       - name: Package macOS artifact
         shell: bash
@@ -290,7 +310,10 @@ jobs:
         run: |
           flutter build linux --release \
             --build-name "${{ needs.prepare.outputs.version_name }}" \
-            --build-number "${{ needs.prepare.outputs.build_number }}"
+            --build-number "${{ needs.prepare.outputs.build_number }}" \
+            --dart-define=LEADERBOARD_SUBMIT_URL="$LEADERBOARD_SUBMIT_URL" \
+            --dart-define=LEADERBOARD_KEY_PART_A="$LEADERBOARD_KEY_PART_A" \
+            --dart-define=LEADERBOARD_KEY_PART_B="$LEADERBOARD_KEY_PART_B"
 
       - name: Package Linux artifact
         run: tar -czf game-jam-linux-bundle.tar.gz -C build/linux/x64/release bundle
