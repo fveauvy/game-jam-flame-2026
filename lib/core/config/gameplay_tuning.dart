@@ -24,6 +24,29 @@ abstract final class GameplayTuning {
   static const double gamepadButtonPressedValue = 1;
   static const bool gamepadDebugLogs = false;
 
+  // Frog tongue and fly healing.
+  static const int flyHealAmount = 12;
+  static const double tongueCooldownSeconds = 0.45;
+  static const double tongueActiveSeconds = 0.22;
+  static const double tongueAnimationStepSeconds = 0.07;
+  static const double tongueWidth = 50;
+  static const double tongueHeight = 180;
+  static const double tongueHitboxWidthFactor = 0.8;
+  static const double tongueHitboxHeightFactor = 1.0;
+  static const double tongueMouthOffsetFactor = 0.28;
+  static const double tongueMouthOffsetPixels = 0;
+  static const double tongueSfxVolume = 0.8;
+
+  // Healing feedback.
+  static const double healingTextOffsetX = -8;
+  static const double healingTextOffsetY = -12;
+  static const double healingTextRiseDistance = 18;
+  static const double healingTextRiseDurationSeconds = 0.45;
+  static const int healingTextLifetimeMs = 500;
+
+  // Fly collision.
+  static const double flyHitboxRadiusFactor = 0.35;
+
   // Thorn world generation.
   static const double thornPatchNoiseFrequency = 0.12;
   static const double thornPatchThresholdMin = 0.56;

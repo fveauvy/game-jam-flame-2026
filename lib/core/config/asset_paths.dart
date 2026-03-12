@@ -31,6 +31,7 @@ abstract final class AssetPaths {
   static const String jumpSfx1 = 'sound_effects/jump1.wav';
   static const String jumpSfx2 = 'sound_effects/jump2.wav';
   static const String waterSplashMidSfx = 'sound_effects/water-splash-mid.wav';
+  static const String tongueLickSfx = 'sound_effects/coup-de-langue.mp3';
 
   // Flame image cache keys.
   static const String uiRefreshLogoCacheKey = 'ui/refresh_logo.png';
@@ -45,6 +46,9 @@ abstract final class AssetPaths {
   static const String thorns1CacheKey = 'environment/Ronces1.png';
   static const String thorns2CacheKey = 'environment/Ronces2.png';
   static const String thorns3CacheKey = 'environment/Ronces3.png';
+  static const String tongue1CacheKey = 'gronouy/Langue1.png';
+  static const String tongue2CacheKey = 'gronouy/Langue2.png';
+  static const String tongue3CacheKey = 'gronouy/Langue3.png';
 
   static const int croqueAnimationFrames = 20;
   static const String croqueAnimationPrefix = "croque/croque_";
@@ -100,6 +104,9 @@ abstract final class AssetPaths {
     flyCacheKey,
     eggsCacheKey,
     ...thornsAnimationCacheKeys,
+    tongue1CacheKey,
+    tongue2CacheKey,
+    tongue3CacheKey,
     uiRefreshLogoCacheKey,
     ...animatedFrogSpriteId.expand((id) => frogAnimatedSpriteCacheKey(id)),
     ...List<String>.generate(GameplayTuning.frogSpriteCount, (int index) {
@@ -121,6 +128,7 @@ abstract final class AssetPaths {
     jumpSfx1,
     jumpSfx2,
     waterSplashMidSfx,
+    tongueLickSfx,
   ];
 
   static List<String> get preloadBundleAssets => <String>[
