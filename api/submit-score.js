@@ -33,6 +33,11 @@ function buildLeaderboardMember(name, createdAt) {
   });
 }
 
+function buildDedupeKey(name, timeMs) {
+  const normalizedName = name.toLowerCase();
+  return `leaderboard:dedupe:${normalizedName}:${timeMs}`;
+}
+
 async function kvCommand(baseUrl, token, commandParts) {
   const encoded = commandParts.map((part) => encodeURIComponent(String(part)));
   const response = await fetch(`${baseUrl}/${encoded.join('/')}`, {
@@ -100,6 +105,19 @@ export default async function handler(request) {
     return jsonResponse(400, { error: 'invalid_name' }, corsHeaders);
   }
 
+  const dedupeKey = buildDedupeKey(keySuffix, timeMs);
+  const dedupeResult = await kvCommand(kvUrl, kvToken, [
+    'set',
+    dedupeKey,
+    '1',
+    'EX',
+    '1800',
+    'NX',
+  ]);
+  if (dedupeResult !== 'OK') {
+    return jsonResponse(200, { ok: true, duplicate: true }, corsHeaders);
+  }
+
   const bestKey = `leaderboard:best:${keySuffix}`;
   const currentRaw = await kvCommand(kvUrl, kvToken, ['get', bestKey]);
   const currentBest = currentRaw == null ? null : Number(currentRaw);
@@ -116,5 +134,5 @@ export default async function handler(request) {
     buildLeaderboardMember(name, createdAt),
   ]);
 
-  return jsonResponse(200, { ok: true }, corsHeaders);
+  return jsonResponse(200, { ok: true, duplicate: false }, corsHeaders);
 }
