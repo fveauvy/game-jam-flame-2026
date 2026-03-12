@@ -2,15 +2,17 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
-import 'package:game_jam/game/components/enemies/bird_enemy_component.dart';
+import 'package:game_jam/core/config/physics_tuning.dart';
+import 'package:game_jam/game/components/enemies/bird/bird_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/my_game.dart';
 
 enum ShadowType { max, min, normal }
 
-class ShadowComponent extends SpriteAnimationGroupComponent
+class BirdShadowComponent extends SpriteAnimationGroupComponent
     with HasGameReference<MyGame>, CollisionCallbacks {
-  ShadowComponent({super.position, required super.size}) : super(priority: 10);
+  BirdShadowComponent({super.position, required super.size})
+    : super(priority: 10);
 
   late final SpriteAnimationGroupComponent _animations;
 
@@ -81,20 +83,20 @@ class ShadowComponent extends SpriteAnimationGroupComponent
     final distanceToPlayer = (parent as PositionComponent).position.distanceTo(
       player.position,
     );
-    if (distanceToPlayer > 600) {
+    if (distanceToPlayer > PhysicsTuning.birdShadowMaxTypeDistance) {
       _animations.current = ShadowType.max;
-    } else if (distanceToPlayer > 450) {
+    } else if (distanceToPlayer > PhysicsTuning.birdShadowNormalTypeDistance) {
       _animations.current = ShadowType.normal;
     } else {
       _animations.current = ShadowType.min;
     }
-    if (distanceToPlayer < 150) {
+    if (distanceToPlayer < PhysicsTuning.birdShadowAttackTriggerDistance) {
       (parent as BirdComponent).startAttack();
     }
 
     _updateAlphaByDistance(distanceToPlayer, dt);
 
-    if (distanceToPlayer < 600) {
+    if (distanceToPlayer < PhysicsTuning.birdShadowFadeInStartDistance) {
       _scaleToParentSize(dt);
       _updatePositionToZero(dt);
     } else {
@@ -106,20 +108,23 @@ class ShadowComponent extends SpriteAnimationGroupComponent
   }
 
   void _updateAlphaByDistance(double distanceToPlayer, double dt) {
-    const double fadeInStart = 600.0;
-    const double peakDistance = 300.0;
-    const double fadeOutEnd = 100.0;
     late final double alpha;
-    if (distanceToPlayer <= fadeOutEnd) {
+    if (distanceToPlayer <= PhysicsTuning.birdShadowFadeOutEndDistance) {
       alpha = 0.0;
-    } else if (distanceToPlayer >= fadeInStart) {
-      alpha = 1;
-    } else if (distanceToPlayer >= peakDistance) {
+    } else if (distanceToPlayer >=
+        PhysicsTuning.birdShadowFadeInStartDistance) {
+      alpha = 0.0;
+    } else if (distanceToPlayer >= PhysicsTuning.birdShadowAlphaPeakDistance) {
       alpha =
           1.0 -
-          (distanceToPlayer - peakDistance) / (fadeInStart - peakDistance);
+          (distanceToPlayer - PhysicsTuning.birdShadowAlphaPeakDistance) /
+              (PhysicsTuning.birdShadowFadeInStartDistance -
+                  PhysicsTuning.birdShadowAlphaPeakDistance);
     } else {
-      alpha = (distanceToPlayer - fadeOutEnd) / (peakDistance - fadeOutEnd);
+      alpha =
+          (distanceToPlayer - PhysicsTuning.birdShadowFadeOutEndDistance) /
+          (PhysicsTuning.birdShadowAlphaPeakDistance -
+              PhysicsTuning.birdShadowFadeOutEndDistance);
     }
     _animations.paint = Paint()
       ..color = Colors.white.withValues(alpha: alpha)
@@ -128,46 +133,59 @@ class ShadowComponent extends SpriteAnimationGroupComponent
 
   void _scaleToParentSize(double dt) {
     final currentSize = size;
-    final double scaleSpeed = 2; // fraction per second toward target (lerp)
     final parentSize = (parent as PositionComponent).size;
-    final targetSize = parentSize.clone();
-    final factor = (dt * scaleSpeed).clamp(0.0, 1.0);
-    final xScale = (currentSize.x + (targetSize.x - currentSize.x) * factor)
-        .clamp(parentSize.x, parentSize.x * 1.5);
-    final yScale = (currentSize.y + (targetSize.y - currentSize.y) * factor)
-        .clamp(parentSize.y, parentSize.y * 1.5);
-    final updatedSize = Vector2(xScale, yScale);
+    final factor = (dt * PhysicsTuning.birdShadowScaleSpeed).clamp(0.0, 1.0);
+    final updatedSize = Vector2(
+      (currentSize.x + (parentSize.x - currentSize.x) * factor).clamp(
+        parentSize.x,
+        parentSize.x * PhysicsTuning.birdShadowMaxSizeMultiplier,
+      ),
+      (currentSize.y + (parentSize.y - currentSize.y) * factor).clamp(
+        parentSize.y,
+        parentSize.y * PhysicsTuning.birdShadowMaxSizeMultiplier,
+      ),
+    );
     _animations.size = updatedSize;
     size = updatedSize;
   }
 
   void _scaleToParentSizeMax(double dt) {
     final currentSize = size;
-    final double scaleSpeed = 1;
     final parentSize = (parent as PositionComponent).size;
-    final targetSize = parentSize * 1.5;
-    final factor = (dt * scaleSpeed).clamp(0.0, 1.0);
-    final xScale = (currentSize.x + (targetSize.x - currentSize.x) * factor)
-        .clamp(parentSize.x, parentSize.x * 1.5);
-    final yScale = (currentSize.y + (targetSize.y - currentSize.y) * factor)
-        .clamp(parentSize.y, parentSize.y * 1.5);
-    final updatedSize = Vector2(xScale, yScale);
+    final targetSize = parentSize * PhysicsTuning.birdShadowMaxSizeMultiplier;
+    final factor = (dt * PhysicsTuning.birdShadowRetractScaleSpeed).clamp(
+      0.0,
+      1.0,
+    );
+    final updatedSize = Vector2(
+      (currentSize.x + (targetSize.x - currentSize.x) * factor).clamp(
+        parentSize.x,
+        parentSize.x * PhysicsTuning.birdShadowMaxSizeMultiplier,
+      ),
+      (currentSize.y + (targetSize.y - currentSize.y) * factor).clamp(
+        parentSize.y,
+        parentSize.y * PhysicsTuning.birdShadowMaxSizeMultiplier,
+      ),
+    );
     size = updatedSize;
     _animations.size = updatedSize;
   }
 
   void _updatePositionToZero(double dt) {
     final parentSize = (parent as PositionComponent).size;
-    final target = Vector2(parentSize.x / 2 + 50.0, parentSize.y / 2 + 25.0);
-    final factor = dt * 0.5;
+    final target = Vector2(
+      parentSize.x / 2 + PhysicsTuning.birdShadowPositionOffsetX,
+      parentSize.y / 2 + PhysicsTuning.birdShadowPositionOffsetY,
+    );
+    final factor = dt * PhysicsTuning.birdShadowPositionLerpSpeed;
     position = Vector2(
       (position.x + (target.x - position.x) * factor).clamp(
         parentSize.x / 2,
-        parentSize.x / 2 + 50.0,
+        parentSize.x / 2 + PhysicsTuning.birdShadowPositionOffsetX,
       ),
       (position.y + (target.y - position.y) * factor).clamp(
         parentSize.y / 2,
-        parentSize.y / 2 + 25.0,
+        parentSize.y / 2 + PhysicsTuning.birdShadowPositionOffsetY,
       ),
     );
   }
@@ -175,15 +193,15 @@ class ShadowComponent extends SpriteAnimationGroupComponent
   void _updatePositionToOriginalSize(double dt) {
     final parentSize = (parent as PositionComponent).size;
     final target = parentSize / 2;
-    final factor = dt * 0.5;
+    final factor = dt * PhysicsTuning.birdShadowPositionLerpSpeed;
     position = Vector2(
       (position.x + (target.x - position.x) * factor).clamp(
         parentSize.x / 2,
-        parentSize.x / 2 + 50.0,
+        parentSize.x / 2 + PhysicsTuning.birdShadowPositionOffsetX,
       ),
       (position.y + (target.y - position.y) * factor).clamp(
         parentSize.y / 2,
-        parentSize.y / 2 + 25.0,
+        parentSize.y / 2 + PhysicsTuning.birdShadowPositionOffsetY,
       ),
     );
   }

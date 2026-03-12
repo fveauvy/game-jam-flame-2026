@@ -26,7 +26,7 @@ import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/allies/egg_component.dart';
-import 'package:game_jam/game/components/enemies/bird_enemy_component.dart';
+import 'package:game_jam/game/components/enemies/bird/bird_component.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/environment/frog_house_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
@@ -180,13 +180,12 @@ class MyGame extends FlameGame<WorldRoot>
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
       _buildInitialWoodBoards(),
+      bird,
     ]);
 
     // Bind the initially selected player.
     world.bindPlayer(_player);
     _isPlayerReady = true;
-
-    await world.add(bird);
 
     await camera.viewport.add(HudComponent());
 

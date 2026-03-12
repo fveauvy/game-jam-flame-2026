@@ -155,7 +155,10 @@ class PlayerComponent extends SpriteAnimationComponent
   }
 
   void _applyStatsFromProfile() {
-    _speedMultiplier = 1.5;
+    _speedMultiplier = (_profile.traits.speed ?? _baseSpeedMultiplier).clamp(
+      PhysicsTuning.minSpeedMultiplier,
+      PhysicsTuning.maxSpeedMultiplier,
+    );
     _sizeMultiplier = (_profile.traits.size ?? _baseSizeMultiplier).clamp(
       PhysicsTuning.minSizeMultiplier,
       PhysicsTuning.maxSizeMultiplier,

@@ -3,15 +3,13 @@ import 'dart:math';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart';
-import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
-import 'package:game_jam/game/components/environment/fly_animation_definition.dart';
+import 'package:game_jam/game/components/enemies/bird/bird_animation_component.dart';
+import 'package:game_jam/game/components/enemies/bird/bird_shadow_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
-import 'package:game_jam/game/components/utils/shadow_component.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/game/utils/position_component_extension.dart';
 
@@ -20,11 +18,11 @@ class BirdComponent extends PositionComponent
   BirdComponent({required super.position, required super.size})
     : super(priority: 120);
 
-  static const double attackSpeed = 300;
-  static const double speed = 100;
+  static const double attackSpeed = PhysicsTuning.birdEnemyAttackSpeed;
+  static const double speed = PhysicsTuning.birdEnemySpeed;
 
-  late final ShadowComponent _shadow;
-  late final BirdEnemyComponent _bird;
+  late final BirdShadowComponent _shadow;
+  late final BirdAnimationComponent _bird;
 
   final _maxEggs = GameplayTuning.initialEggCount / 5;
 
@@ -34,8 +32,8 @@ class BirdComponent extends PositionComponent
 
   @override
   Future<void> onLoad() async {
-    _shadow = ShadowComponent(position: size / 2, size: size * 1.5);
-    _bird = BirdEnemyComponent(position: size / 2);
+    _shadow = BirdShadowComponent(position: size / 2, size: size * 1.5);
+    _bird = BirdAnimationComponent(position: size / 2);
     add(_shadow);
     add(_bird);
     add(CircleHitbox(radius: size.x / 2));
@@ -45,6 +43,10 @@ class BirdComponent extends PositionComponent
 
   @override
   void update(double dt) {
+    if (!shouldRunForPhase(game.phase.value)) {
+      super.update(dt);
+      return;
+    }
     final player = game.world.children.whereType<PlayerComponent>().firstOrNull;
     if (player == null || game.paused) {
       super.update(dt);
@@ -77,7 +79,12 @@ class BirdComponent extends PositionComponent
     if (other is PlayerComponent &&
         intersectionPoints.length >= 2 &&
         !_bird.isRetreating) {
-      unawaited(other.applyDamageWithInvincibilityDelay(10, 5));
+      unawaited(
+        other.applyDamageWithInvincibilityDelay(
+          PhysicsTuning.birdEnemyDamageAmount,
+          PhysicsTuning.birdEnemyDamageInvincibilitySeconds,
+        ),
+      );
     }
     super.onCollision(intersectionPoints, other);
   }
@@ -150,111 +157,8 @@ class BirdComponent extends PositionComponent
     _isAttacking = false;
     _bird.startRetreat();
   }
-}
 
-class BirdEnemyComponent extends SpriteAnimationComponent
-    with HasGameReference<MyGame>, FlyAnimationDefinition, CollisionCallbacks {
-  BirdEnemyComponent({required super.position})
-    : super(priority: 130, size: _zeroSize);
-
-  static final _zeroSize = Vector2.zero();
-  Vector2 get _originalSize => (parent as PositionComponent).size;
-  final _megaSize = Vector2(1000, 1100);
-
-  bool _isAttacking = false;
-  bool isRetreating = false;
-  bool _updateSizeForAttack = false;
-
-  @override
-  Future<void> onLoad() async {
-    animation = SpriteAnimation.variableSpriteList(
-      [
-        Sprite(
-          game.images.fromCache(AssetPaths.birdAnimatedSpriteCacheKey(1)),
-          srcSize: Vector2(1073, 536),
-        ),
-        Sprite(
-          game.images.fromCache(AssetPaths.birdAnimatedSpriteCacheKey(2)),
-          srcSize: Vector2(1073, 536),
-        ),
-      ],
-      stepTimes: [0.5, 0.5],
-    );
-    paint = Paint()..color = Colors.transparent.withValues(alpha: 1);
-    anchor = Anchor.center;
-
-    await super.onLoad();
-  }
-
-  @override
-  void update(double dt) {
-    if (game.paused) {
-      super.update(dt);
-      return;
-    }
-    if (_updateSizeForAttack) {
-      size = _megaSize;
-      paint = Paint()..color = Colors.white.withValues(alpha: 1.0);
-      _updateSizeForAttack = false;
-      _isAttacking = true;
-    }
-    if (_isAttacking) {
-      _scaleToOriginalSize(dt);
-    }
-    if (isRetreating) {
-      _scaleToMegaSize(dt);
-      _fadeOut(dt);
-      if (paint.color.a <= 0.01) {
-        size = Vector2.zero();
-        isRetreating = false;
-      }
-    }
-    super.update(dt);
-  }
-
-  void startAttack() {
-    isRetreating = false;
-    _updateSizeForAttack = true;
-  }
-
-  void startRetreat() {
-    _isAttacking = false;
-    _updateSizeForAttack = false;
-    isRetreating = true;
-  }
-
-  void _scaleToOriginalSize(double dt) {
-    final currentSize = size;
-    final double scaleSpeed = 2;
-
-    final targetSize = _originalSize.clone();
-    final factor = (dt * scaleSpeed).clamp(0.0, 1.0);
-    final xScale = (currentSize.x + (targetSize.x - currentSize.x) * factor)
-        .clamp(_originalSize.x, _megaSize.x);
-    final yScale = (currentSize.y + (targetSize.y - currentSize.y) * factor)
-        .clamp(_originalSize.y, _megaSize.y);
-    final updatedSize = Vector2(xScale, yScale);
-    size = updatedSize;
-  }
-
-  void _scaleToMegaSize(double dt) {
-    final currentSize = size;
-    const double scaleSpeed = 2;
-    final factor = (dt * scaleSpeed).clamp(0.0, 1.0);
-    size = Vector2(
-      (currentSize.x + (_megaSize.x - currentSize.x) * factor).clamp(
-        currentSize.x,
-        _megaSize.x,
-      ),
-      (currentSize.y + (_megaSize.y - currentSize.y) * factor).clamp(
-        currentSize.y,
-        _megaSize.y,
-      ),
-    );
-  }
-
-  void _fadeOut(double dt) {
-    final newAlpha = (paint.color.a - dt * 1.5).clamp(0.0, 1.0);
-    paint = Paint()..color = Colors.white.withValues(alpha: newAlpha);
+  static bool shouldRunForPhase(GamePhase phase) {
+    return phase == GamePhase.playing;
   }
 }
