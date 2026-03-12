@@ -25,6 +25,14 @@ function sanitizeNameKey(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
+function buildLeaderboardMember(name, createdAt) {
+  return JSON.stringify({
+    n: name,
+    c: createdAt,
+    i: crypto.randomUUID(),
+  });
+}
+
 async function kvCommand(baseUrl, token, commandParts) {
   const encoded = commandParts.map((part) => encodeURIComponent(String(part)));
   const response = await fetch(`${baseUrl}/${encoded.join('/')}`, {
@@ -100,11 +108,13 @@ export default async function handler(request) {
     await kvCommand(kvUrl, kvToken, ['set', `${bestKey}:name`, name]);
   }
 
-  await kvCommand(
-    kvUrl,
-    kvToken,
-    ['zadd', 'leaderboard:times', String(timeMs), `${Date.now()}:${name}`],
-  );
+  const createdAt = Date.now();
+  await kvCommand(kvUrl, kvToken, [
+    'zadd',
+    'leaderboard:times',
+    String(timeMs),
+    buildLeaderboardMember(name, createdAt),
+  ]);
 
   return jsonResponse(200, { ok: true }, corsHeaders);
 }
