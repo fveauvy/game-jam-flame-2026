@@ -4,8 +4,10 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
+import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
+import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/components/environment/fly_animation_definition.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/utils/shadow_component.dart';
@@ -23,9 +25,11 @@ class BirdComponent extends PositionComponent
   late final ShadowComponent _shadow;
   late final BirdEnemyComponent _bird;
 
-  final _maxEggs = GameplayTuning.initialEggCount / 3;
+  final _maxEggs = GameplayTuning.initialEggCount / 5;
 
   bool _isAttacking = false;
+
+  static final _startPosition = Vector2(GameConfig.worldSize.x - 200, 100);
 
   @override
   Future<void> onLoad() async {
@@ -39,28 +43,51 @@ class BirdComponent extends PositionComponent
 
   @override
   void update(double dt) {
-    final eggCount = game.gameState.savedEggs;
-    final speedMultiplier = ((eggCount / _maxEggs).toInt()).clamp(1, 3);
     final player = game.world.children.whereType<PlayerComponent>().firstOrNull;
-    if (player == null) {
+    if (player == null || game.paused) {
       super.update(dt);
       return;
     }
 
-    followComponent(
-      _isAttacking ? (attackSpeed * speedMultiplier) : speed,
-      dt,
-      player,
-    );
-    _updateFacing(player, dt);
+    final eggCount = game.gameState.savedEggs;
+    final speedToAdd = ((eggCount / _maxEggs).toInt()).clamp(1, 5) * 50;
+
+    if (player.levelPosition == PlayerVerticalPosition.underwater) {
+      _moveTowardStartPosition(dt);
+    } else {
+      followComponent(speed + speedToAdd, dt, player);
+      _updateFacing(player, dt);
+    }
+
+    if (player.levelPosition == PlayerVerticalPosition.underwater &&
+        _isAttacking) {
+      finishAttack();
+    }
 
     super.update(dt);
+  }
+
+  void _moveTowardStartPosition(double dt) {
+    final direction = _startPosition - position;
+    final distance = direction.length;
+    if (distance < 1.0) {
+      position = _startPosition.clone();
+      return;
+    }
+    direction.normalize();
+    position += direction * min(speed * dt, distance);
+    _applyFacingFromDirection(direction, dt);
   }
 
   void _updateFacing(PlayerComponent player, double dt) {
     final direction = player.absoluteCenter - absoluteCenter;
     if (direction.length < 1e-4) return;
-    final targetAngle = atan2(direction.x, -direction.y);
+    direction.normalize();
+    _applyFacingFromDirection(direction, dt);
+  }
+
+  void _applyFacingFromDirection(Vector2 normalizedDirection, double dt) {
+    final targetAngle = atan2(normalizedDirection.x, -normalizedDirection.y);
     final double angleDelta = _shortestAngleDelta(targetAngle, _bird.angle);
     if (angleDelta.abs() > 1e-4) {
       final double maxStep = PhysicsTuning.birdEnemyRotationSpeed * dt;
@@ -94,13 +121,19 @@ class BirdComponent extends PositionComponent
   }
 
   void startAttack() {
-    if (_isAttacking) return;
+    final player = game.world.children.whereType<PlayerComponent>().firstOrNull;
+    if (_isAttacking ||
+        player == null ||
+        player.levelPosition == PlayerVerticalPosition.underwater) {
+      return;
+    }
     _isAttacking = true;
     _bird.startAttack();
   }
 
   void finishAttack() {
     _isAttacking = false;
+    _bird.startRetreat();
   }
 }
 
@@ -114,6 +147,7 @@ class BirdEnemyComponent extends SpriteAnimationComponent
   final _megaSize = Vector2(1000, 1100);
 
   bool _isAttacking = false;
+  bool _isRetreating = false;
   bool _updateSizeForAttack = false;
 
   @override
@@ -139,20 +173,39 @@ class BirdEnemyComponent extends SpriteAnimationComponent
 
   @override
   void update(double dt) {
-    super.update(dt);
+    if (game.paused) {
+      super.update(dt);
+      return;
+    }
     if (_updateSizeForAttack) {
       size = _megaSize;
+      paint = Paint()..color = Colors.white.withValues(alpha: 1.0);
       _updateSizeForAttack = false;
       _isAttacking = true;
     }
     if (_isAttacking) {
       _scaleToOriginalSize(dt);
     }
+    if (_isRetreating) {
+      _scaleToMegaSize(dt);
+      _fadeOut(dt);
+      if (paint.color.a <= 0.01) {
+        size = Vector2.zero();
+        _isRetreating = false;
+      }
+    }
     super.update(dt);
   }
 
   void startAttack() {
+    _isRetreating = false;
     _updateSizeForAttack = true;
+  }
+
+  void startRetreat() {
+    _isAttacking = false;
+    _updateSizeForAttack = false;
+    _isRetreating = true;
   }
 
   void _scaleToOriginalSize(double dt) {
@@ -167,5 +220,26 @@ class BirdEnemyComponent extends SpriteAnimationComponent
         .clamp(_originalSize.y, _megaSize.y);
     final updatedSize = Vector2(xScale, yScale);
     size = updatedSize;
+  }
+
+  void _scaleToMegaSize(double dt) {
+    final currentSize = size;
+    const double scaleSpeed = 2;
+    final factor = (dt * scaleSpeed).clamp(0.0, 1.0);
+    size = Vector2(
+      (currentSize.x + (_megaSize.x - currentSize.x) * factor).clamp(
+        currentSize.x,
+        _megaSize.x,
+      ),
+      (currentSize.y + (_megaSize.y - currentSize.y) * factor).clamp(
+        currentSize.y,
+        _megaSize.y,
+      ),
+    );
+  }
+
+  void _fadeOut(double dt) {
+    final newAlpha = (paint.color.a - dt * 1.5).clamp(0.0, 1.0);
+    paint = Paint()..color = Colors.white.withValues(alpha: newAlpha);
   }
 }

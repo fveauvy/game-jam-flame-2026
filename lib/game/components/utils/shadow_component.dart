@@ -63,7 +63,9 @@ class ShadowComponent extends SpriteAnimationGroupComponent
     );
     _animations.size = size;
     _animations.current = ShadowType.max;
-    _animations.paint = Paint()..color = Colors.white.withValues(alpha: 1);
+    _animations.paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.5)
+      ..blendMode = BlendMode.multiply;
 
     add(_animations);
     await super.onLoad();
@@ -72,34 +74,30 @@ class ShadowComponent extends SpriteAnimationGroupComponent
   @override
   void update(double dt) {
     final player = game.world.children.whereType<PlayerComponent>().firstOrNull;
-    if (player == null) {
+    if (player == null || game.paused) {
       super.update(dt);
       return;
     }
     final distanceToPlayer = (parent as PositionComponent).position.distanceTo(
       player.position,
     );
-    if (distanceToPlayer > 400) {
+    if (distanceToPlayer > 600) {
       _animations.current = ShadowType.max;
-    }
-    if (distanceToPlayer > 300 && distanceToPlayer < 400) {
+    } else if (distanceToPlayer > 450) {
       _animations.current = ShadowType.normal;
+    } else {
+      _animations.current = ShadowType.min;
     }
-    if (distanceToPlayer < 300) {
-      _animations.current = ShadowType.max;
-    }
-    if (distanceToPlayer < 200) {
+    if (distanceToPlayer < 150) {
       (parent as BirdComponent).startAttack();
     }
 
-    if (distanceToPlayer < 200) {
-      _makeShadowFadeOut(dt);
+    _updateAlphaByDistance(distanceToPlayer, dt);
+
+    if (distanceToPlayer < 600) {
       _scaleToParentSize(dt);
       _updatePositionToZero(dt);
-    }
-
-    if (distanceToPlayer > 200) {
-      _makeShadowFadeIn(dt);
+    } else {
       _scaleToParentSizeMax(dt);
       _updatePositionToOriginalSize(dt);
     }
@@ -107,22 +105,25 @@ class ShadowComponent extends SpriteAnimationGroupComponent
     super.update(dt);
   }
 
-  void _makeShadowFadeOut(double dt) {
-    final double currentAlpha = _animations.paint.color.a;
-    final double fadeSpeed = 0.4;
-    final double alphaStep = dt * fadeSpeed;
-    final double newAlpha = (currentAlpha - alphaStep).clamp(0.0, 1.0);
+  void _updateAlphaByDistance(double distanceToPlayer, double dt) {
+    const double fadeInStart = 600.0;
+    const double peakDistance = 300.0;
+    const double fadeOutEnd = 100.0;
+    late final double alpha;
+    if (distanceToPlayer <= fadeOutEnd) {
+      alpha = 0.0;
+    } else if (distanceToPlayer >= fadeInStart) {
+      alpha = 1;
+    } else if (distanceToPlayer >= peakDistance) {
+      alpha =
+          1.0 -
+          (distanceToPlayer - peakDistance) / (fadeInStart - peakDistance);
+    } else {
+      alpha = (distanceToPlayer - fadeOutEnd) / (peakDistance - fadeOutEnd);
+    }
     _animations.paint = Paint()
-      ..color = Colors.white.withValues(alpha: newAlpha);
-  }
-
-  void _makeShadowFadeIn(double dt) {
-    final double currentAlpha = _animations.paint.color.a;
-    final double fadeSpeed = 0.4;
-    final double alphaStep = dt * fadeSpeed;
-    final double newAlpha = (currentAlpha + alphaStep).clamp(0.0, 1.0);
-    _animations.paint = Paint()
-      ..color = Colors.white.withValues(alpha: newAlpha);
+      ..color = Colors.white.withValues(alpha: alpha)
+      ..blendMode = BlendMode.multiply;
   }
 
   void _scaleToParentSize(double dt) {
