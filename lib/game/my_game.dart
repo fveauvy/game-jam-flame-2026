@@ -852,7 +852,6 @@ class MyGame extends FlameGame<WorldRoot>
     overlays
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.pause)
-      ..add(AppOverlays.audioQuickControls)
       ..add(AppOverlays.touchControls);
   }
 
@@ -874,7 +873,6 @@ class MyGame extends FlameGame<WorldRoot>
       pauseEngine();
       overlays
         ..add(AppOverlays.pause)
-        ..remove(AppOverlays.audioQuickControls)
         ..remove(AppOverlays.touchControls);
       return;
     }
@@ -885,7 +883,6 @@ class MyGame extends FlameGame<WorldRoot>
     resumeEngine();
     overlays
       ..remove(AppOverlays.pause)
-      ..add(AppOverlays.audioQuickControls)
       ..add(AppOverlays.touchControls);
   }
 
@@ -895,7 +892,6 @@ class MyGame extends FlameGame<WorldRoot>
     pauseEngine();
     overlays
       ..remove(AppOverlays.pause)
-      ..remove(AppOverlays.audioQuickControls)
       ..remove(AppOverlays.touchControls)
       ..add(AppOverlays.gameOver);
   }
@@ -907,7 +903,6 @@ class MyGame extends FlameGame<WorldRoot>
     pauseEngine();
     overlays
       ..remove(AppOverlays.pause)
-      ..remove(AppOverlays.audioQuickControls)
       ..remove(AppOverlays.touchControls)
       ..add(AppOverlays.winOverlay);
   }
@@ -926,7 +921,6 @@ class MyGame extends FlameGame<WorldRoot>
     resumeEngine();
     overlays
       ..remove(AppOverlays.pause)
-      ..remove(AppOverlays.audioQuickControls)
       ..remove(AppOverlays.touchControls)
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.winOverlay);
