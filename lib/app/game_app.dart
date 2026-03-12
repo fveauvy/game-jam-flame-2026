@@ -11,7 +11,6 @@ import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/input/touch_input.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/screens/game_over_overlay.dart';
-import 'package:game_jam/screens/in_game_audio_controls.dart';
 import 'package:game_jam/screens/pause_overlay.dart';
 import 'package:game_jam/screens/startup_splash_screen.dart';
 import 'package:game_jam/screens/you_win_overlay.dart';
@@ -139,19 +138,6 @@ class _GameJamAppState extends State<GameJamApp> {
                             musicVolume: settings.musicVolume,
                             sfxVolume: settings.sfxVolume,
                           );
-                        },
-                      );
-                    },
-                  );
-                },
-                AppOverlays.audioQuickControls: (_, MyGame game) {
-                  return ValueListenableBuilder<AudioSettings>(
-                    valueListenable: game.audioSettings,
-                    builder: (_, AudioSettings settings, _) {
-                      return InGameAudioControls(
-                        muted: settings.muted,
-                        onToggleMute: () {
-                          unawaited(game.toggleMute());
                         },
                       );
                     },
