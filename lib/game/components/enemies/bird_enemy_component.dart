@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flame/collisions.dart';
@@ -37,6 +38,7 @@ class BirdComponent extends PositionComponent
     _bird = BirdEnemyComponent(position: size / 2);
     add(_shadow);
     add(_bird);
+    add(CircleHitbox(radius: size.x / 2));
 
     await super.onLoad();
   }
@@ -65,6 +67,19 @@ class BirdComponent extends PositionComponent
     }
 
     super.update(dt);
+  }
+
+  @override
+  Future<void> onCollision(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) async {
+    if (other is PlayerComponent &&
+        intersectionPoints.length >= 2 &&
+        !_bird.isRetreating) {
+      unawaited(other.applyDamageWithInvincibilityDelay(10, 5));
+    }
+    super.onCollision(intersectionPoints, other);
   }
 
   void _moveTowardStartPosition(double dt) {
@@ -147,7 +162,7 @@ class BirdEnemyComponent extends SpriteAnimationComponent
   final _megaSize = Vector2(1000, 1100);
 
   bool _isAttacking = false;
-  bool _isRetreating = false;
+  bool isRetreating = false;
   bool _updateSizeForAttack = false;
 
   @override
@@ -186,26 +201,26 @@ class BirdEnemyComponent extends SpriteAnimationComponent
     if (_isAttacking) {
       _scaleToOriginalSize(dt);
     }
-    if (_isRetreating) {
+    if (isRetreating) {
       _scaleToMegaSize(dt);
       _fadeOut(dt);
       if (paint.color.a <= 0.01) {
         size = Vector2.zero();
-        _isRetreating = false;
+        isRetreating = false;
       }
     }
     super.update(dt);
   }
 
   void startAttack() {
-    _isRetreating = false;
+    isRetreating = false;
     _updateSizeForAttack = true;
   }
 
   void startRetreat() {
     _isAttacking = false;
     _updateSizeForAttack = false;
-    _isRetreating = true;
+    isRetreating = true;
   }
 
   void _scaleToOriginalSize(double dt) {
