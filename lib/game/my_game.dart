@@ -166,9 +166,9 @@ class MyGame extends FlameGame<WorldRoot>
         .map((player) => WaterRippleComponent(player: player))
         .toList();
 
-    final bird = BirdEnemyComponent(
-      initialPosition: Vector2(180, 920) + Vector2.all(200),
-      initialSize: Vector2.all(100),
+    final bird = BirdComponent(
+      position: Vector2(GameConfig.worldSize.x - 200, 100),
+      size: Vector2(200, 100),
     );
 
     await world.add(_level);
@@ -180,12 +180,13 @@ class MyGame extends FlameGame<WorldRoot>
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
       _buildInitialWoodBoards(),
-      bird,
     ]);
 
     // Bind the initially selected player.
     world.bindPlayer(_player);
     _isPlayerReady = true;
+
+    await world.add(bird);
 
     await camera.viewport.add(HudComponent());
 

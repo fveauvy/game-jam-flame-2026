@@ -23,7 +23,8 @@ abstract final class PhysicsTuning {
   static const double underwaterSurfaceGraceSeconds = 0.2;
 
   // Bird enemy component.
-  static const double birdEnemySpeed = 200;
+  static const double birdEnemyRotationSpeed = 6.0;
+  static const double birdEnemySpeed = 300;
   static const double birdEnemyDirectionChangeInterval = 2;
   static const double birdEnemyMargin = 60;
   static const double birdEnemyFacingFlipDeadZone = 8;
