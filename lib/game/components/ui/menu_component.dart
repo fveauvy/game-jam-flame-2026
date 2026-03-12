@@ -169,12 +169,6 @@ class _SelectedFrogStatsPopover extends PositionComponent
     final PlayerComponent selected = candidates[index];
     _showPopover = true;
 
-    debugPrint(
-      '[menu] selected candidate pos: ${selected.position}',
-    ); // [0.0, 261.xxx];
-    debugPrint('${game.camera.viewport.position}'); // [0.0, 261.xxx];
-    debugPrint('${game.camera.viewport.size}');
-
     final double verticalOffset = (selected.size.y * 0.95) + 52;
     final double halfPanelHeight = game.camera.viewport.size.y * 0.5;
     final double aboveY = selected.position.y - verticalOffset;

@@ -205,11 +205,7 @@ class MyGame extends FlameGame<WorldRoot>
 
     _cameraController.attach();
 
-    _menu = MenuComponent(
-      onReroll: () async {
-        await rerollCharacter();
-      },
-    );
+    _menu = MenuComponent(onReroll: rerollCharacter);
     await world.add(_menu);
 
     phase.value = GamePhase.menu;
