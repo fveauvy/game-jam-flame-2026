@@ -524,8 +524,6 @@ class PlayerComponent extends SpriteAnimationComponent
       ..setFloat(5, 1.0)
       ..setFloat(6, 1.0)
       ..setFloat(7, _outlinePulseTime)
-      ..setFloat(8, .5)
-      ..setFloat(9, .3)
       ..setImageSampler(0, currentSprite.image);
 
     canvas.drawRect(
