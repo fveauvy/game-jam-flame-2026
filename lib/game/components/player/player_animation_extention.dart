@@ -12,14 +12,12 @@ extension PlayerAnimationExtension on PlayerComponent {
 
   static const String _idleLandName = 'Saut1.png';
   static const String _idleWaterName = 'Chill.png';
-  static const String _idleUnderwaterFrog14Name = 'Chillsousleau.png';
+  static const String _idleUnderwaterName = 'Chillsousleau.png';
 
   static const String _swim1Name = 'Nage1.png';
   static const String _swim2Name = 'Nage2.png';
-  static const String _swim1UnderwaterFrog14Name = 'Nage1sousleau.png';
-  static const String _swim2UnderwaterFrog14Name = 'Nage2sousleau.png';
-
-  bool get _isFrog14 => profile.spriteId == 'frog-14';
+  static const String _swim1UnderwaterName = 'Nage1sousleau.png';
+  static const String _swim2UnderwaterName = 'Nage2sousleau.png';
 
   SpriteAnimation moveAnimation(PlayerVerticalPosition type) {
     if (!_supportedSpritesId.contains(profile.spriteId)) {
@@ -66,20 +64,18 @@ extension PlayerAnimationExtension on PlayerComponent {
           loop: true,
         );
       case PlayerVerticalPosition.underwater:
-        final String swim1 = _isFrog14
-            ? _swim1UnderwaterFrog14Name
-            : _swim1Name;
-        final String swim2 = _isFrog14
-            ? _swim2UnderwaterFrog14Name
-            : _swim2Name;
         return SpriteAnimation.spriteList(
           [
             Sprite(
-              game.images.fromCache('gronouy/${profile.spriteId}/$swim1'),
+              game.images.fromCache(
+                'gronouy/${profile.spriteId}/$_swim1UnderwaterName',
+              ),
               srcSize: Vector2(200, 200),
             ),
             Sprite(
-              game.images.fromCache('gronouy/${profile.spriteId}/$swim2'),
+              game.images.fromCache(
+                'gronouy/${profile.spriteId}/$_swim2UnderwaterName',
+              ),
               srcSize: Vector2(200, 200),
             ),
           ],
@@ -130,14 +126,11 @@ extension PlayerAnimationExtension on PlayerComponent {
           loop: true,
         );
       case PlayerVerticalPosition.underwater:
-        final String idleUnderwater = _isFrog14
-            ? _idleUnderwaterFrog14Name
-            : _idleWaterName;
         return SpriteAnimation.spriteList(
           [
             Sprite(
               game.images.fromCache(
-                'gronouy/${profile.spriteId}/$idleUnderwater',
+                'gronouy/${profile.spriteId}/$_idleUnderwaterName',
               ),
               srcSize: Vector2(200, 200),
             ),

@@ -36,6 +36,11 @@ class TouchInputOverlay extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _TapButton(
+                    icon: Icons.pause,
+                    onTap: () => touchController.onPause(),
+                  ),
+                  const Expanded(child: SizedBox.shrink()),
+                  _TapButton(
                     icon: Icons.arrow_upward,
                     onTap: () => touchController.onUpLayerPressed(),
                   ),
