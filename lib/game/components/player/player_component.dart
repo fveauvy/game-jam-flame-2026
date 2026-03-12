@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
@@ -53,6 +54,8 @@ class PlayerComponent extends SpriteAnimationComponent
   static const Duration _damageTextDuration = Duration(seconds: 1);
   static const Duration _damageTextDelay = Duration(milliseconds: 500);
   static const int _defaultHealth = 100;
+  static ui.FragmentProgram? _frogOutlineProgram;
+  static Future<ui.FragmentProgram>? _frogOutlineProgramLoader;
 
   final InputState inputState;
   final Vector2 _startPosition;
@@ -62,6 +65,8 @@ class PlayerComponent extends SpriteAnimationComponent
   CharacterProfile _profile;
   double _spriteOpacity = 1.0;
   bool _isHoveredInMenu = false;
+  bool _isMenuSelected = false;
+  ui.FragmentShader? _frogOutlineShader;
   CircleHitbox? _hitbox;
   late double _speedMultiplier;
   late double _sizeMultiplier;
@@ -84,6 +89,7 @@ class PlayerComponent extends SpriteAnimationComponent
   int _lilyContacts = 0;
   bool _jumpActive = false;
   double _jumpElapsed = 0;
+  double _outlinePulseTime = 0;
   double _underwaterSurfaceGraceRemaining = 0;
   Vector2 _jumpDirection = Vector2.zero();
   final Vector2 _thornKnockbackVelocity = Vector2.zero();
@@ -131,6 +137,27 @@ class PlayerComponent extends SpriteAnimationComponent
   void onHoverExit() {
     super.onHoverExit();
     _isHoveredInMenu = false;
+  }
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    await _ensureOutlineShader();
+  }
+
+  Future<void> _ensureOutlineShader() async {
+    try {
+      final ui.FragmentProgram program =
+          _frogOutlineProgram ??
+          await (_frogOutlineProgramLoader ??= ui.FragmentProgram.fromAsset(
+            'shaders/frog_outline.frag',
+          ));
+      _frogOutlineProgram = program;
+      _frogOutlineShader = program.fragmentShader();
+    } catch (error) {
+      _frogOutlineShader = null;
+      debugPrint('[shader] frog outline unavailable: $error');
+    }
   }
 
   @override
@@ -450,6 +477,7 @@ class PlayerComponent extends SpriteAnimationComponent
   void _syncMenuPointedVisual() {
     if (game.phase.value != GamePhase.menu) {
       _isHoveredInMenu = false;
+      _isMenuSelected = false;
       scale = Vector2.all(1.0);
       paint.color = Colors.white.withValues(alpha: _spriteOpacity);
       return;
@@ -459,6 +487,7 @@ class PlayerComponent extends SpriteAnimationComponent
     final int index = game.playerCandidates.indexOf(this);
     final bool isSelected =
         state != null && index != -1 && index == state.selectedIndex;
+    _isMenuSelected = isSelected;
     final bool isPointed = isSelected || _isHoveredInMenu;
 
     scale = Vector2.all(isPointed ? 1.08 : 1.0);
@@ -466,8 +495,49 @@ class PlayerComponent extends SpriteAnimationComponent
   }
 
   @override
+  void render(Canvas canvas) {
+    final Sprite? currentSprite = animationTicker?.getSprite();
+    if (currentSprite == null) {
+      super.render(canvas);
+      return;
+    }
+
+    final bool shouldUseShader =
+        game.phase.value == GamePhase.menu && _isMenuSelected;
+    if (!shouldUseShader) {
+      super.render(canvas);
+      return;
+    }
+
+    final ui.FragmentShader? shader = _frogOutlineShader;
+    if (shader == null) {
+      super.render(canvas);
+      return;
+    }
+
+    shader
+      ..setFloat(0, size.x)
+      ..setFloat(1, size.y)
+      ..setFloat(2, 2.0)
+      ..setFloat(3, 1.0)
+      ..setFloat(4, 1.0)
+      ..setFloat(5, 1.0)
+      ..setFloat(6, 1.0)
+      ..setFloat(7, _outlinePulseTime)
+      ..setFloat(8, .5)
+      ..setFloat(9, .3)
+      ..setImageSampler(0, currentSprite.image);
+
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.x, size.y),
+      Paint()..shader = shader,
+    );
+  }
+
+  @override
   void update(double dt) {
     super.update(dt);
+    _outlinePulseTime += dt;
     final Vector2 movement = normalizeMoveAxis(
       inputState.moveAxisX,
       inputState.moveAxisY,

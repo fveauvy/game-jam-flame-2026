@@ -942,6 +942,10 @@ class MyGame extends FlameGame<WorldRoot>
       // Reroll refreshes the full menu candidate carousel.
       await rerollCharacter();
     }
+
+    _cameraController.target = PositionComponent(
+      position: GameConfig.playerSpawn,
+    );
   }
 
   void _resetMenuInputState() {
