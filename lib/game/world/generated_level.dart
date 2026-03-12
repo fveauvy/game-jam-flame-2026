@@ -8,18 +8,36 @@ import 'package:game_jam/game/world/world_mixin.dart';
 class GeneratedLevel extends Component
     with HasGameReference<MyGame>, WorldMixin {
   late BiomeType biome;
+  List<_AxisAlignedBounds> _waterBounds = <_AxisAlignedBounds>[];
 
   @override
   Future<void> onLoad() async {
     biome = computeBiome();
     await generateLevel(biome);
+    _rebuildWaterBounds();
     await super.onLoad();
   }
 
   Future<void> onUpdateSeed() async {
     removeAll(children);
+    _waterBounds = <_AxisAlignedBounds>[];
     biome = computeBiome();
     await generateLevel(biome);
+    _rebuildWaterBounds();
+  }
+
+  void _rebuildWaterBounds() {
+    _waterBounds = children
+        .whereType<WaterComponent>()
+        .map(
+          (WaterComponent water) => _AxisAlignedBounds(
+            left: water.position.x,
+            top: water.position.y,
+            right: water.position.x + water.size.x,
+            bottom: water.position.y + water.size.y,
+          ),
+        )
+        .toList(growable: false);
   }
 
   bool isPositionOnThorn(Vector2 position) {
@@ -38,17 +56,32 @@ class GeneratedLevel extends Component
   }
 
   bool isPositionInWater(Vector2 position) {
-    for (final WaterComponent water in children.whereType<WaterComponent>()) {
-      final bool insideX =
-          position.x >= water.position.x &&
-          position.x <= water.position.x + water.size.x;
-      final bool insideY =
-          position.y >= water.position.y &&
-          position.y <= water.position.y + water.size.y;
-      if (insideX && insideY) {
+    for (final _AxisAlignedBounds bounds in _waterBounds) {
+      if (bounds.contains(position)) {
         return true;
       }
     }
     return false;
+  }
+}
+
+class _AxisAlignedBounds {
+  const _AxisAlignedBounds({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  });
+
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+
+  bool contains(Vector2 point) {
+    return point.x >= left &&
+        point.x <= right &&
+        point.y >= top &&
+        point.y <= bottom;
   }
 }

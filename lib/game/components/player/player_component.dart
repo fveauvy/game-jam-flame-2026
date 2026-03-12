@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flame/collisions.dart';
@@ -6,7 +7,9 @@ import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flame/particles.dart';
 import 'package:flutter/material.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
@@ -81,6 +84,9 @@ class PlayerComponent extends SpriteAnimationComponent
   final Vector2 _thornKnockbackVelocity = Vector2.zero();
   double _thornInvincibilityRemaining = 0;
   double _thornFlickerElapsed = 0;
+  SpriteAnimation? _boundAnimationForMoveSfx;
+  int _lastMoveFrameIndex = -1;
+  bool _seenLastMoveFrameInCurrentRun = false;
 
   int eggsCollected = 0;
 
@@ -88,7 +94,7 @@ class PlayerComponent extends SpriteAnimationComponent
   bool get _isTouchingLily => _lilyContacts > 0;
   bool get _isTouchingFrogHouse => _frogHouseContacts > 0;
 
-  bool get _isMoving => velocity.length2 > 0;
+  bool get _isMoving => inputState.moveAxisX != 0 || inputState.moveAxisY != 0;
   bool _wasMoving = false;
 
   Vector2 get velocity =>
@@ -118,6 +124,7 @@ class PlayerComponent extends SpriteAnimationComponent
     inputState.playerVerticalPosition = PlayerVerticalPosition.land;
     previousPosition = PlayerVerticalPosition.land;
     animation = idleAnimation(levelPosition);
+    _onAnimationChanged();
     await add(_hitbox!);
   }
 
@@ -145,6 +152,7 @@ class PlayerComponent extends SpriteAnimationComponent
     _profile = profile;
     _applyStatsFromProfile();
     animation = idleAnimation(levelPosition);
+    _onAnimationChanged();
   }
 
   void _applyStatsFromProfile() {
@@ -184,6 +192,21 @@ class PlayerComponent extends SpriteAnimationComponent
       velocity.normalize();
     }
     return velocity;
+  }
+
+  double _movementDot(Vector2 normal) {
+    double x = inputState.moveAxisX;
+    double y = inputState.moveAxisY;
+    final double length2 = (x * x) + (y * y);
+    if (length2 == 0) {
+      return 0;
+    }
+    if (length2 > 1) {
+      final double invLength = 1 / sqrt(length2);
+      x *= invLength;
+      y *= invLength;
+    }
+    return (x * normal.x) + (y * normal.y);
   }
 
   static bool shouldRenderGlasses(double intelligence) {
@@ -272,6 +295,107 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     _jumpDirection.normalize();
     inputState.playerVerticalPosition = PlayerVerticalPosition.land;
+    _playRandomJumpSfx();
+  }
+
+  void _playRandomJumpSfx() {
+    final String asset = game.random.nextBool()
+        ? AssetPaths.jumpSfx1
+        : AssetPaths.jumpSfx2;
+    unawaited(game.playSfx(asset, volume: 0.65));
+  }
+
+  void _playWaterSplashSfx() {
+    unawaited(game.playSfx(AssetPaths.waterSplashMidSfx, volume: 0.8));
+  }
+
+  bool _shouldPlayWaterSplash({
+    required PlayerVerticalPosition from,
+    required PlayerVerticalPosition to,
+  }) {
+    return from == PlayerVerticalPosition.land &&
+        to == PlayerVerticalPosition.waterLevel;
+  }
+
+  bool _canPlayMoveCycleSfxNow() {
+    return game.phase.value == GamePhase.playing &&
+        _isMoving &&
+        !_jumpActive &&
+        levelPosition != PlayerVerticalPosition.underwater;
+  }
+
+  void _handleMoveAnimationFrame(int frameIndex) {
+    final SpriteAnimation? currentAnimation = animation;
+    if (currentAnimation == null) {
+      return;
+    }
+
+    final int frameCount = currentAnimation.frames.length;
+    if (frameCount <= 1) {
+      _lastMoveFrameIndex = frameIndex;
+      return;
+    }
+
+    final int lastFrame = frameCount - 1;
+    if (frameIndex == lastFrame) {
+      _seenLastMoveFrameInCurrentRun = true;
+    }
+
+    final bool isLoopWrap =
+        _lastMoveFrameIndex == lastFrame &&
+        frameIndex == 0 &&
+        _seenLastMoveFrameInCurrentRun;
+    _lastMoveFrameIndex = frameIndex;
+
+    if (!isLoopWrap || !_canPlayMoveCycleSfxNow()) {
+      return;
+    }
+    _playRandomJumpSfx();
+  }
+
+  void _bindMoveCycleSfxTicker() {
+    final ticker = animationTicker;
+    if (ticker == null) {
+      return;
+    }
+    ticker.onFrame = _handleMoveAnimationFrame;
+  }
+
+  void _onAnimationChanged() {
+    final SpriteAnimation? currentAnimation = animation;
+    if (identical(_boundAnimationForMoveSfx, currentAnimation)) {
+      return;
+    }
+
+    _boundAnimationForMoveSfx = currentAnimation;
+    _lastMoveFrameIndex = -1;
+    _seenLastMoveFrameInCurrentRun = false;
+
+    final ticker = animationTicker;
+    if (ticker == null) {
+      return;
+    }
+    ticker.onFrame = null;
+    if (!_isMoving || currentAnimation == null) {
+      return;
+    }
+    _bindMoveCycleSfxTicker();
+  }
+
+  void _syncMovementAnimation() {
+    final PlayerVerticalPosition currentLevelPosition = levelPosition;
+    if (_isMoving) {
+      if (!_wasMoving || previousPosition != currentLevelPosition) {
+        animation = moveAnimation(currentLevelPosition);
+        _onAnimationChanged();
+      }
+    } else {
+      if (_wasMoving || previousPosition != currentLevelPosition) {
+        animation = idleAnimation(currentLevelPosition);
+        _onAnimationChanged();
+      }
+    }
+    previousPosition = currentLevelPosition;
   }
 
   void _resolveJump(double dt) {
@@ -302,6 +426,11 @@ class PlayerComponent extends SpriteAnimationComponent
   @override
   void update(double dt) {
     super.update(dt);
+    final Vector2 movement = normalizeMoveAxis(
+      inputState.moveAxisX,
+      inputState.moveAxisY,
+    );
+    final bool isMoving = movement.length2 > 0;
     if (isInWater) {
       _underwaterSurfaceGraceRemaining =
           PhysicsTuning.underwaterSurfaceGraceSeconds;
@@ -319,29 +448,9 @@ class PlayerComponent extends SpriteAnimationComponent
       return;
     }
 
-    if (_isMoving) {
-      if (!_wasMoving || previousPosition != levelPosition) {
-        animation = moveAnimation(levelPosition);
-      }
-    } else {
-      if (_wasMoving || previousPosition != levelPosition) {
-        animation = idleAnimation(levelPosition);
-      }
-    }
-    previousPosition = levelPosition;
+    _syncMovementAnimation();
 
-    if (_isMoving) {
-      if (!_wasMoving || previousPosition != levelPosition) {
-        animation = moveAnimation(levelPosition);
-      }
-    } else {
-      if (_wasMoving || previousPosition != levelPosition) {
-        animation = idleAnimation(levelPosition);
-      }
-    }
-    previousPosition = levelPosition;
-
-    if (!isInWater && _isMoving) {
+    if (!isInWater && isMoving) {
       _hopTime += dt;
     } else {
       _hopTime = 0.0;
@@ -349,7 +458,7 @@ class PlayerComponent extends SpriteAnimationComponent
     final double hopScale = isInWater ? 1.0 : sin(_hopTime * 8.0).abs();
 
     position +=
-        velocity *
+        movement *
         PhysicsTuning.playerMoveSpeed *
         _speedMultiplier *
         dt *
@@ -363,10 +472,10 @@ class PlayerComponent extends SpriteAnimationComponent
             PhysicsTuning.thornKnockbackMinSpeed) {
       _thornKnockbackVelocity.setZero();
     }
-    _wasMoving = _isMoving;
+    _wasMoving = isMoving;
 
-    final double targetAngle = velocity.screenAngle();
-    if (velocity.x != 0 || velocity.y != 0) {
+    final double targetAngle = movement.screenAngle();
+    if (movement.x != 0 || movement.y != 0) {
       final double angleDelta = _shortestAngleDelta(targetAngle, angle);
       if (angleDelta != 0) {
         final double maxStep =
@@ -394,6 +503,7 @@ class PlayerComponent extends SpriteAnimationComponent
       effectiveInWater = game.level.isPositionInWater(absoluteCenter);
     }
 
+    final PlayerVerticalPosition previousVerticalPosition = levelPosition;
     inputState.playerVerticalPosition = resolveVerticalPosition(
       current: levelPosition,
       isInWater:
@@ -406,6 +516,13 @@ class PlayerComponent extends SpriteAnimationComponent
           _isTouchingGround || _isTouchingLily || _isTouchingFrogHouse,
       jumpActive: _jumpActive,
     );
+    final PlayerVerticalPosition nextVerticalPosition = levelPosition;
+    if (_shouldPlayWaterSplash(
+      from: previousVerticalPosition,
+      to: nextVerticalPosition,
+    )) {
+      _playWaterSplashSfx();
+    }
 
     switch (levelPosition) {
       case PlayerVerticalPosition.land:
@@ -453,9 +570,18 @@ class PlayerComponent extends SpriteAnimationComponent
     _jumpElapsed = 0;
     _underwaterSurfaceGraceRemaining = 0;
     _hopTime = 0;
+    _boundAnimationForMoveSfx = null;
+    _lastMoveFrameIndex = -1;
+    _seenLastMoveFrameInCurrentRun = false;
+    final ticker = animationTicker;
+    if (ticker != null) {
+      ticker.onFrame = null;
+    }
     // Reset the vertical position to land, matching the spawn tile.
     inputState.playerVerticalPosition = PlayerVerticalPosition.land;
     previousPosition = PlayerVerticalPosition.land;
+    removeWhere((child) => child is EggComponent);
+    eggsCollected = 0;
   }
 
   Future<void> onHitGround(GroundComponent ground) async {
@@ -604,7 +730,7 @@ class PlayerComponent extends SpriteAnimationComponent
           final collisionNormal = absoluteCenter - mid;
           final separationDistance = (size.x / 2) - collisionNormal.length;
           collisionNormal.normalize();
-          final double moveDot = velocity.dot(collisionNormal);
+          final double moveDot = _movementDot(collisionNormal);
           if (moveDot < 0 || separationDistance > 1.5) {
             position += collisionNormal.scaled(separationDistance);
           }
@@ -635,7 +761,7 @@ class PlayerComponent extends SpriteAnimationComponent
           final collisionNormal = absoluteCenter - mid;
           final separationDistance = (size.x / 2) - collisionNormal.length;
           collisionNormal.normalize();
-          final double moveDot = velocity.dot(collisionNormal);
+          final double moveDot = _movementDot(collisionNormal);
           if (moveDot < 0 || separationDistance > 1.5) {
             position += collisionNormal.scaled(separationDistance);
           }
@@ -644,9 +770,25 @@ class PlayerComponent extends SpriteAnimationComponent
     }
 
     if (other is EggComponent) {
-      eggsCollected++;
-      debugPrint('Collected an egg!');
-      await other.collect();
+      if (eggsCollected < GameplayTuning.maxEggs &&
+          !other.isInSafeHouse &&
+          !other.isOnBack) {
+        eggsCollected++;
+        add(
+          EggComponent(
+            position: Vector2(
+              size.x / 3 + game.random.nextDouble() * size.x / 3,
+              size.y / 3 + game.random.nextDouble() * size.y / 3,
+            ),
+            size: Vector2.all(GameplayTuning.worldPickupSize / 1.5),
+            isOnBack: true,
+            isInSafeHouse: false,
+          ),
+        );
+
+        debugPrint('Collected an egg!');
+        await other.collect();
+      }
     }
     super.onCollision(intersectionPoints, other);
   }

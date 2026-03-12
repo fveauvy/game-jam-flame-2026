@@ -167,7 +167,11 @@ class _GameJamAppState extends State<GameJamApp> {
                   );
                 },
                 AppOverlays.winOverlay: (_, MyGame game) {
-                  return YouWinOverlay(onRestart: game.restartToMenu);
+                  return YouWinOverlay(
+                    onRestart: game.restartToMenu,
+                    winningTime: game.winningRunFormattedTime,
+                    onPublishScore: game.publishWinningScore,
+                  );
                 },
               },
             ),

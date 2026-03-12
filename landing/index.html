@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gronouy: Tadpole's Big Frother</title>
+  <title>Gronouy: Tadpole's Big Frogger</title>
   <meta name="description" content="Protect your frog siblings in a hostile pond. A procedural survival roguelite built for Flame Game Jam 2026.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +26,7 @@
       <div class="container hero-grid">
         <div class="hero-content">
           <p class="jam-badge">Built for Flame Game Jam 2026</p>
-          <h1>🐸 Gronouy: Tadpole's Big Frother</h1>
+          <h1>🐸 Gronouy: Tadpole's Big Frogger</h1>
           <p class="hero-copy">Lead your giant frog family through a hostile pond. Rescue your little siblings, dodge predators, and evolve across procedural runs.</p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="play/">Play the game</a>
@@ -102,6 +102,37 @@
       </div>
     </section>
 
+    <section class="section section-reveal" aria-labelledby="leaderboard-title">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="leaderboard-title">Live Leaderboard</h2>
+          <p>Best rescue times from hosted runs</p>
+        </div>
+        <div class="panel leaderboard-panel">
+          <div class="leaderboard-header">
+            <p id="leaderboard-status" class="leaderboard-status" aria-live="polite">Loading latest scores...</p>
+            <button id="leaderboard-refresh" class="btn btn-secondary" type="button">Refresh</button>
+          </div>
+          <div class="leaderboard-table-wrap">
+            <table class="leaderboard-table">
+              <thead>
+                <tr>
+                  <th scope="col">Rank</th>
+                  <th scope="col">Player</th>
+                  <th scope="col">Time</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-rows">
+                <tr>
+                  <td colspan="3">No scores yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="section final-cta section-reveal" aria-labelledby="cta-title">
       <div class="container cta-shell">
         <h2 id="cta-title">Ready to protect the pond?</h2>
@@ -117,5 +148,6 @@
       <a href="https://itch.io/jam/flame-game-jam-2026" target="_blank" rel="noopener noreferrer">Official jam page</a>
     </div>
   </footer>
+  <script src="leaderboard.js" defer></script>
 </body>
 </html>

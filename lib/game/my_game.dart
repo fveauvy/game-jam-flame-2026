@@ -11,9 +11,11 @@ import 'package:flutter/widgets.dart';
 import 'package:game_jam/app/routes.dart';
 import 'package:game_jam/audio/audio_settings.dart';
 import 'package:game_jam/audio/audio_settings_store.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
+import 'package:game_jam/core/leaderboard/leaderboard_client.dart';
 import 'package:game_jam/core/utils/time_utils.dart';
 import 'package:game_jam/game/camera/camera_controller.dart';
 import 'package:game_jam/game/character/generator/character_generator.dart';
@@ -105,9 +107,13 @@ class MyGame extends FlameGame<WorldRoot>
   bool _awaitingWebAudioGesture = false;
   bool _webAudioAutoplayWarningLogged = false;
   AudioPlayer? _gameplayMusicPlayer;
+  AudioPlayer? _victoryMusicPlayer;
+  int? _winningRunElapsedTimeInMs;
   final AudioSettingsStore _audioSettingsStore = AudioSettingsStore();
+  final LeaderboardClient _leaderboardClient = const LeaderboardClient();
   static const String _menuBgmAsset = 'mud-ambient.mp3';
   static const String _gameplayBgmAsset = 'music.mp3';
+  static const String _victoryBgmAsset = AssetPaths.victoryMusic;
 
   late GeneratedLevel _level;
 
@@ -120,6 +126,14 @@ class MyGame extends FlameGame<WorldRoot>
       _isPlayerReady ? _player.remainingHealth : null;
   int? get playerMaxHealth => _isPlayerReady ? _player.maxHealth : null;
   AudioSettings get currentAudioSettings => audioSettings.value;
+  int? get winningRunElapsedTimeInMs => _winningRunElapsedTimeInMs;
+  String get winningRunFormattedTime {
+    final int? elapsed = _winningRunElapsedTimeInMs;
+    if (elapsed == null) {
+      return '--:--';
+    }
+    return _formatElapsedTime(elapsed);
+  }
 
   List<PlayerComponent> get playerCandidates => _playerList;
 
@@ -257,8 +271,23 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     final double volume = audioSettings.value.effectiveMusicVolume;
+    if (phase.value == GamePhase.win) {
+      unawaited(_stopAmbientBgm());
+      unawaited(_stopGameplayMusic());
+      unawaited(_syncVictoryMusic(volume));
+      return;
+    }
+
+    unawaited(_stopVictoryMusic());
     unawaited(_syncAmbientBgm(volume));
     unawaited(_syncGameplayMusic(volume));
+  }
+
+  Future<void> _stopAmbientBgm() async {
+    if (!FlameAudio.bgm.isPlaying) {
+      return;
+    }
+    await FlameAudio.bgm.stop();
   }
 
   Future<void> _syncAmbientBgm(double volume) async {
@@ -312,6 +341,54 @@ class MyGame extends FlameGame<WorldRoot>
     await player.stop();
     await player.dispose();
     _gameplayMusicPlayer = null;
+  }
+
+  Future<void> _syncVictoryMusic(double volume) async {
+    if (volume <= 0) {
+      await _stopVictoryMusic();
+      return;
+    }
+
+    final AudioPlayer? player = _victoryMusicPlayer;
+    if (player == null) {
+      try {
+        _victoryMusicPlayer = await FlameAudio.loopLongAudio(
+          _victoryBgmAsset,
+          volume: volume,
+        );
+      } catch (error) {
+        if (_handleWebAutoplayError(error)) {
+          return;
+        }
+        debugPrint('[audio] victory music start failed: $error');
+      }
+      return;
+    }
+
+    await player.setVolume(volume);
+  }
+
+  Future<void> _stopVictoryMusic() async {
+    final AudioPlayer? player = _victoryMusicPlayer;
+    if (player == null) {
+      return;
+    }
+    await player.stop();
+    await player.dispose();
+    _victoryMusicPlayer = null;
+  }
+
+  Future<bool> publishWinningScore(String playerName) async {
+    final String normalizedName = playerName.trim();
+    final int? score = _winningRunElapsedTimeInMs;
+    if (normalizedName.isEmpty || score == null) {
+      return false;
+    }
+
+    return _leaderboardClient.submitScore(
+      playerName: normalizedName,
+      elapsedTimeInMs: score,
+    );
   }
 
   bool _handleWebAutoplayError(Object error) {
@@ -775,6 +852,7 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     _resetRunState();
+    _winningRunElapsedTimeInMs = null;
     phase.value = GamePhase.playing;
     _applyAudioSettings();
     resumeEngine();
@@ -831,6 +909,7 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   void winGame() {
+    _winningRunElapsedTimeInMs = gameState.elapsedTimeInMs;
     phase.value = GamePhase.win;
     _applyAudioSettings();
     pauseEngine();
@@ -842,13 +921,15 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   Future<void> restartToMenu() async {
-    if (phase.value != GamePhase.paused && phase.value != GamePhase.gameOver) {
+    if (phase.value != GamePhase.paused &&
+        phase.value != GamePhase.gameOver &&
+        phase.value != GamePhase.win) {
       return;
     }
 
     phase.value = GamePhase.menu;
     _applyAudioSettings();
-    inputState.clearPausePressed();
+    _resetMenuInputState();
     _resetRunState();
     resumeEngine();
     overlays
@@ -867,5 +948,20 @@ class MyGame extends FlameGame<WorldRoot>
       // Reroll refreshes the full menu candidate carousel.
       await rerollCharacter();
     }
+  }
+
+  void _resetMenuInputState() {
+    inputState.moveAxisX = 0;
+    inputState.moveAxisY = 0;
+    inputState.clearTransient();
+    _menuNavDirection = 0;
+    _menuNavRepeatTimer = 0;
+  }
+
+  String _formatElapsedTime(int elapsedTimeInMs) {
+    final int totalSeconds = elapsedTimeInMs ~/ 1000;
+    final int minutes = totalSeconds ~/ 60;
+    final int seconds = totalSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }

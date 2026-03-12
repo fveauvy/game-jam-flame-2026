@@ -1,10 +1,92 @@
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
 
-class YouWinOverlay extends StatelessWidget {
+class YouWinOverlay extends StatefulWidget {
   final VoidCallback onRestart;
+  final String winningTime;
+  final Future<bool> Function(String playerName) onPublishScore;
 
-  const YouWinOverlay({super.key, required this.onRestart});
+  const YouWinOverlay({
+    super.key,
+    required this.onRestart,
+    required this.winningTime,
+    required this.onPublishScore,
+  });
+
+  @override
+  State<YouWinOverlay> createState() => _YouWinOverlayState();
+}
+
+class _YouWinOverlayState extends State<YouWinOverlay> {
+  bool _isPublishing = false;
+
+  Future<void> _publishScore() async {
+    final String? playerName = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        final TextEditingController controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('Publish Score'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              labelText: 'Player name',
+              hintText: 'Enter your name',
+            ),
+            onSubmitted: (String value) {
+              final String normalized = value.trim();
+              Navigator.of(
+                dialogContext,
+              ).pop(normalized.isEmpty ? null : normalized);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final String normalized = controller.text.trim();
+                Navigator.of(
+                  dialogContext,
+                ).pop(normalized.isEmpty ? null : normalized);
+              },
+              child: const Text('Publish'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (playerName == null || _isPublishing) {
+      return;
+    }
+
+    setState(() {
+      _isPublishing = true;
+    });
+
+    final bool success = await widget.onPublishScore(playerName);
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isPublishing = false;
+    });
+
+    final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(
+      context,
+    );
+    messenger?.showSnackBar(
+      SnackBar(
+        content: Text(success ? 'Score published.' : 'Score publish failed.'),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,19 +110,46 @@ class YouWinOverlay extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 30,
+                  spacing: 18,
                   children: [
                     const Text(
-                      'You Win !!!',
+                      'The little brothers are safe.',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 30,
                         fontWeight: FontWeight.w700,
-                        color: Colors.orangeAccent,
+                        color: Color(0xFF2A170E),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 36),
+                      child: Text(
+                        'You brought every egg home before the marsh could take them.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF3B2418),
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Rescue time: ${widget.winningTime}',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A0C05),
+                      ),
+                    ),
                     FilledButton(
-                      onPressed: onRestart,
+                      onPressed: _isPublishing ? null : _publishScore,
+                      child: Text(
+                        _isPublishing ? 'Publishing...' : 'Publish Score',
+                      ),
+                    ),
+                    FilledButton(
+                      onPressed: widget.onRestart,
                       child: const Text('Play Again'),
                     ),
                   ],

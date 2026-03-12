@@ -24,7 +24,7 @@ class FrogHouseComponent extends SpriteComponent
   }
 
   @override
-  Future<void> update(double dt) async {
+  void update(double dt) {
     final savedEggs = children
         .whereType<EggComponent>()
         .where((egg) => egg.isInSafeHouse)
@@ -51,6 +51,7 @@ class FrogHouseComponent extends SpriteComponent
           .length;
       final eggsToAdd = game.gameState.savedEggs - existingCount;
       other.eggsCollected = 0;
+      other.removeWhere((child) => child is EggComponent);
 
       for (var i = 0; i < eggsToAdd; i++) {
         final index = existingCount + i;

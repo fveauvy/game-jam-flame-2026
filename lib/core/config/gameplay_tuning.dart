@@ -6,6 +6,7 @@ abstract final class GameplayTuning {
   // Initial world population.
   static const int initialFlyCount = 10;
   static const int initialEggCount = 20;
+  static const double maxEggs = 5;
   static const double worldPickupSize = 32;
   static const int eggSpawnMaxRetries = 96;
 
@@ -31,4 +32,10 @@ abstract final class GameplayTuning {
 
   // Thorn animation.
   static const double thornAnimationFrameSeconds = 0.2;
+
+  // Fish enemy spawning.
+  static const int fishEnemyCount = 3;
+  static const double fishEnemySize = 150;
+  static const double fishMinSpawnDistance = 600;
+  static const double minFishSpacing = 400;
 }
