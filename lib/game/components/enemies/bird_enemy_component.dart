@@ -128,7 +128,7 @@ class BirdEnemyComponent extends SpriteAnimationComponent
     if (distanceToTarget <= _damageRange &&
         target is PlayerComponent &&
         _damageCooldown <= 0) {
-      target.applyDamage(_damageAmount);
+      unawaited(target.applyDamage(_damageAmount));
       _damageCooldown = _damageInterval;
     }
 

@@ -125,6 +125,7 @@ class MyGame extends FlameGame<WorldRoot>
   int? get playerRemainingHealth =>
       _isPlayerReady ? _player.remainingHealth : null;
   int? get playerMaxHealth => _isPlayerReady ? _player.maxHealth : null;
+  int? get playerMoistureLevel => _isPlayerReady ? _player.moistureLevel : null;
   AudioSettings get currentAudioSettings => audioSettings.value;
   int? get winningRunElapsedTimeInMs => _winningRunElapsedTimeInMs;
   String get winningRunFormattedTime {
