@@ -28,6 +28,26 @@ flutter run -d chrome --wasm
 flutter build web --wasm --release
 ```
 
+## Leaderboard config (GitHub Pages + Vercel KV)
+
+- Frontend stays on GitHub Pages.
+- Backend runs as Vercel Function: `api/submit-score.js`.
+- Required Vercel env vars:
+  - `LEADERBOARD_SERVER_KEY`
+  - `LEADERBOARD_ALLOWED_ORIGIN` (example `https://gronouy.fr`)
+  - `KV_REST_API_URL`
+  - `KV_REST_API_TOKEN`
+- Required GitHub Actions secrets (for web build `--dart-define`):
+  - `LEADERBOARD_SUBMIT_URL` (example `https://<your-vercel-project>.vercel.app/api/submit-score`)
+  - `LEADERBOARD_KEY_PART_A`
+  - `LEADERBOARD_KEY_PART_B`
+
+Generate key parts from your plain key:
+
+```bash
+node -e "const s=process.argv[1];const b=Buffer.from(s).toString('base64').replace(/\+/g,'-').replace(/\//g,'_');const m=Math.floor(b.length/2);console.log('LEADERBOARD_KEY_PART_B='+b.slice(0,m));console.log('LEADERBOARD_KEY_PART_A='+b.slice(m));" "your-secret"
+```
+
 ## Optimize images (Mac + Homebrew)
 
 ```bash
