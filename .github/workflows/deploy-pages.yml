@@ -37,7 +37,11 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Build web
-        run: flutter build web --wasm --release --pwa-strategy=none --base-href /play/
+        run: >-
+          flutter build web --wasm --release --pwa-strategy=none --base-href /play/
+          --dart-define=LEADERBOARD_SUBMIT_URL=${{ secrets.LEADERBOARD_SUBMIT_URL }}
+          --dart-define=LEADERBOARD_KEY_PART_A=${{ secrets.LEADERBOARD_KEY_PART_A }}
+          --dart-define=LEADERBOARD_KEY_PART_B=${{ secrets.LEADERBOARD_KEY_PART_B }}
 
       - name: Move game under /play and add landing pages
         run: |

@@ -2,7 +2,7 @@ import 'package:flame/components.dart';
 
 abstract final class GameConfig {
   // App identity and deterministic defaults.
-  static const String title = "Gronouy: Tadpole's Big Frother";
+  static const String title = "Gronouy: Tadpole's Big Frogger";
   static const String defaultCharacterSeedCode = '6DCE9';
 
   // Camera and fixed-resolution world viewport.

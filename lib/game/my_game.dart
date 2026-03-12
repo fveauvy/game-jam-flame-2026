@@ -15,6 +15,7 @@ import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
+import 'package:game_jam/core/leaderboard/leaderboard_client.dart';
 import 'package:game_jam/core/utils/time_utils.dart';
 import 'package:game_jam/game/camera/camera_controller.dart';
 import 'package:game_jam/game/character/generator/character_generator.dart';
@@ -109,6 +110,7 @@ class MyGame extends FlameGame<WorldRoot>
   AudioPlayer? _victoryMusicPlayer;
   int? _winningRunElapsedTimeInMs;
   final AudioSettingsStore _audioSettingsStore = AudioSettingsStore();
+  final LeaderboardClient _leaderboardClient = const LeaderboardClient();
   static const String _menuBgmAsset = 'mud-ambient.mp3';
   static const String _gameplayBgmAsset = 'music.mp3';
   static const String _victoryBgmAsset = AssetPaths.victoryMusic;
@@ -377,8 +379,10 @@ class MyGame extends FlameGame<WorldRoot>
       return false;
     }
 
-    debugPrint('[leaderboard] submit name="$normalizedName" timeMs=$score');
-    return true;
+    return _leaderboardClient.submitScore(
+      playerName: normalizedName,
+      elapsedTimeInMs: score,
+    );
   }
 
   bool _handleWebAutoplayError(Object error) {
