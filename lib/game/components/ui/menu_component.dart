@@ -4,16 +4,16 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/experimental.dart';
 import 'package:flutter/material.dart';
+import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/game/components/ui/seed_panel_component.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class MenuComponent extends PositionComponent
     with HasGameReference<MyGame>, TapCallbacks {
-  final VoidCallback onStart;
   final Future<void> Function() onReroll;
 
-  MenuComponent({required this.onStart, required this.onReroll})
-    : super(priority: 100);
+  MenuComponent({required this.onReroll})
+    : super(priority: 100, position: GameConfig.playerSpawn);
 
   @override
   Future<void> onLoad() async {
@@ -22,6 +22,7 @@ class MenuComponent extends PositionComponent
     final menuWidth = game.camera.viewport.size.x * 0.2;
     final menuHeight = game.camera.viewport.size.y * 0.2;
     final menuSize = Vector2(menuWidth, menuHeight);
+    anchor = Anchor.center;
 
     // Cap plank size to a maximum of 359x98 while still
     // being proportional to the menu size.
@@ -37,7 +38,6 @@ class MenuComponent extends PositionComponent
         crossAxisAlignment: CrossAxisAlignment.center,
         size: menuSize,
         anchor: Anchor.center,
-        position: (game.camera.viewport.virtualSize / 2),
         children: [
           ColumnComponent(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -69,7 +69,6 @@ class MenuComponent extends PositionComponent
           SeedPanelComponent(
             size: Vector2(plankWidth, plankHeight),
             onReroll: onReroll,
-            onStart: onStart,
             position: Vector2(menuSize.x / 2, menuSize.y * 0.7),
           ),
         ],

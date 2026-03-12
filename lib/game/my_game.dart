@@ -183,22 +183,28 @@ class MyGame extends FlameGame<WorldRoot>
     await gamepadInput.initialize();
 
     _cameraController = GameCameraController(
-      camera: camera,
-      target: _player,
-      worldSize: GameConfig.worldSize,
       viewportSize: Vector2(GameConfig.baseWidth, GameConfig.baseHeight),
+      target: PositionComponent(position: GameConfig.playerSpawn),
+      worldSize: GameConfig.worldSize,
+      camera: camera,
     );
+
     _cameraController.attach();
 
     _menu = MenuComponent(
-      onStart: () async {
-        startGame();
-      },
       onReroll: () async {
         await rerollCharacter();
       },
     );
-    await camera.viewport.add(_menu);
+    await world.add(_menu);
+
+    world.add(
+      CircleComponent(
+        paint: Paint()..color = const Color(0xFFFF0000),
+        position: GameConfig.playerSpawn,
+        radius: 10,
+      ),
+    );
 
     phase.value = GamePhase.menu;
     _startBgmIfNeeded();
@@ -390,7 +396,9 @@ class MyGame extends FlameGame<WorldRoot>
         break;
       }
     }
+
     await setCharacterSeedCode(nextCode);
+
     if (isLoaded) {
       await _rebuildMenuCandidates();
     }
@@ -751,7 +759,7 @@ class MyGame extends FlameGame<WorldRoot>
     // Hide the menu and remove non-selected candidates when the game starts.
     if (phase.value == GamePhase.menu) {
       if (isLoaded && _menu.parent != null) {
-        camera.viewport.remove(_menu);
+        world.remove(_menu);
       }
       _cleanupMenuCandidates();
     }
@@ -852,7 +860,7 @@ class MyGame extends FlameGame<WorldRoot>
 
     // Re-show the menu overlay.
     if (isLoaded && _menu.parent == null) {
-      await camera.viewport.add(_menu);
+      await world.add(_menu);
     }
 
     if (isLoaded) {

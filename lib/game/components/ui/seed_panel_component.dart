@@ -11,13 +11,11 @@ class SeedPanelComponent extends SpriteButtonComponent
   SeedPanelComponent({
     required Vector2 position,
     required this.onReroll,
-    required this.onStart,
     required Vector2 size,
   }) : super(size: size, position: position, anchor: Anchor.center);
 
   late final TextComponent _seedText;
   final Future<void> Function() onReroll;
-  final VoidCallback onStart;
 
   @override
   Future<void> onLoad() async {
