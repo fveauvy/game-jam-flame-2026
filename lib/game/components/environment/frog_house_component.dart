@@ -51,6 +51,7 @@ class FrogHouseComponent extends SpriteComponent
           .length;
       final eggsToAdd = game.gameState.savedEggs - existingCount;
       other.eggsCollected = 0;
+      other.removeWhere((child) => child is EggComponent);
 
       for (var i = 0; i < eggsToAdd; i++) {
         final index = existingCount + i;

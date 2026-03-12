@@ -9,6 +9,7 @@ import 'package:flame/particles.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
 import 'package:game_jam/core/entities/player_vertical_position.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
@@ -579,6 +580,8 @@ class PlayerComponent extends SpriteAnimationComponent
     // Reset the vertical position to land, matching the spawn tile.
     inputState.playerVerticalPosition = PlayerVerticalPosition.land;
     previousPosition = PlayerVerticalPosition.land;
+    removeWhere((child) => child is EggComponent);
+    eggsCollected = 0;
   }
 
   Future<void> onHitGround(GroundComponent ground) async {
@@ -767,9 +770,25 @@ class PlayerComponent extends SpriteAnimationComponent
     }
 
     if (other is EggComponent) {
-      eggsCollected++;
-      debugPrint('Collected an egg!');
-      await other.collect();
+      if (eggsCollected < GameplayTuning.maxEggs &&
+          !other.isInSafeHouse &&
+          !other.isOnBack) {
+        eggsCollected++;
+        add(
+          EggComponent(
+            position: Vector2(
+              size.x / 3 + game.random.nextDouble() * size.x / 3,
+              size.y / 3 + game.random.nextDouble() * size.y / 3,
+            ),
+            size: Vector2.all(GameplayTuning.worldPickupSize / 1.5),
+            isOnBack: true,
+            isInSafeHouse: false,
+          ),
+        );
+
+        debugPrint('Collected an egg!');
+        await other.collect();
+      }
     }
     super.onCollision(intersectionPoints, other);
   }

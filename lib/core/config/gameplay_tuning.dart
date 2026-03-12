@@ -6,6 +6,7 @@ abstract final class GameplayTuning {
   // Initial world population.
   static const int initialFlyCount = 10;
   static const int initialEggCount = 20;
+  static const double maxEggs = 5;
   static const double worldPickupSize = 32;
   static const int eggSpawnMaxRetries = 96;
 
