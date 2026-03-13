@@ -134,7 +134,7 @@ class _SelectedFrogStatsPopover extends PositionComponent
       ),
     );
 
-    addAll([_nameText, _statsText]);
+    await addAll([_nameText, _statsText]);
   }
 
   @override
