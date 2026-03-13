@@ -24,9 +24,9 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
 
     final String adjective = rng.pick(namePool.adjectives);
     final String noun = rng.pick(namePool.nouns);
-    final String? batch = namePool.batches.isEmpty
+    final String? title = namePool.titles.isEmpty
         ? null
-        : rng.pick(namePool.batches);
+        : rng.pick(namePool.titles);
     final int spriteNumber = _resolveSpriteNumber(seed);
 
     final double speedMultiplier = _rollTrait(rng: rng, min: 0.7, max: 1.5);
@@ -35,7 +35,7 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
     final int health = _rollHealth(rng);
 
     return CharacterProfile(
-      name: CharacterName(adjective: adjective, noun: noun, batch: batch),
+      name: CharacterName(adjective: adjective, noun: noun, title: title),
       spriteId: 'frog-$spriteNumber',
       spriteAssetPath: AssetPaths.frogSpriteAssetPath(spriteNumber),
       traits: CharacterTraits(

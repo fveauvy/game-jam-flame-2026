@@ -8,7 +8,7 @@ void main() {
     namePool: CharacterNamePool(
       adjectives: <String>['Brave', 'Tiny', 'Swift'],
       nouns: <String>['Tadpole', 'Froglet', 'Leaper'],
-      batches: <String>['Mk I', 'Prime', 'Patrol'],
+      titles: <String>['Mk I', 'Prime', 'Patrol'],
     ),
     colors: <CharacterColorPoolItem>[
       CharacterColorPoolItem(id: 'pond_green', hex: '#2A9D8F'),
