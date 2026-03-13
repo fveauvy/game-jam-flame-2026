@@ -5,6 +5,7 @@ import 'package:flame/events.dart';
 import 'package:flame/experimental.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/game_config.dart';
+import 'package:game_jam/core/config/ui_config.dart';
 import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
@@ -23,8 +24,8 @@ class MenuComponent extends PositionComponent
   Future<void> onLoad() async {
     await super.onLoad();
 
-    final menuWidth = game.camera.viewport.size.x * 0.2;
-    final menuHeight = game.camera.viewport.size.y * 0.2;
+    final menuWidth = game.camera.viewport.size.x * MenuUi.menuWidthFactor;
+    final menuHeight = game.camera.viewport.size.y * MenuUi.menuHeightFactor;
     final menuSize = Vector2(menuWidth, menuHeight);
     anchor = Anchor.center;
 
@@ -37,43 +38,16 @@ class MenuComponent extends PositionComponent
     // 1. Add a semi-transparent background
     add(
       ColumnComponent(
-        gap: 10.0,
+        gap: 0,
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
         size: menuSize,
         anchor: Anchor.center,
         children: [
-          ColumnComponent(
-            crossAxisAlignment: CrossAxisAlignment.center,
-
-            children: [
-              TextComponent(
-                text: 'GRONOUŸ',
-                textRenderer: TextPaint(
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              TextComponent(
-                text: "Tadpole's Big Frogger",
-                textRenderer: TextPaint(
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w200,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
           SeedPanelComponent(
             size: Vector2(plankWidth, plankHeight),
             onReroll: onReroll,
-            position: Vector2(menuSize.x / 2, menuSize.y * 0.7),
+            position: Vector2(menuSize.x / 2, menuSize.y * 0.58),
           ),
         ],
       ),

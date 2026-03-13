@@ -11,7 +11,10 @@ import 'package:gamepads/gamepads.dart';
 /// Controller for gamepad/game controller input.
 /// Supports standard gamepads with analog sticks and buttons.
 class GamepadInput extends Controller {
-  GamepadInput(super.state);
+  GamepadInput(super.state, {ValueNotifier<bool>? connectionState})
+    : _connectionState = connectionState;
+
+  final ValueNotifier<bool>? _connectionState;
 
   GamepadController? _currentController;
   bool _disposed = false;
@@ -46,6 +49,7 @@ class GamepadInput extends Controller {
         'Gamepad connected: ${controllers.map((c) => c.name).join(", ")}',
       );
       _currentController = controllers[0];
+      _connectionState?.value = true;
       return;
     }
 
@@ -53,6 +57,11 @@ class GamepadInput extends Controller {
       await _currentController!.dispose();
       _currentController = null;
       setMoveAxis(0, 0);
+      _connectionState?.value = false;
+    }
+
+    if (controllers.isEmpty && _currentController == null) {
+      _connectionState?.value = false;
     }
   }
 
@@ -117,6 +126,10 @@ class GamepadInput extends Controller {
           break;
         case GamepadButton.northButton:
         case GamepadButton.westButton:
+          if (event.value == GameplayTuning.gamepadButtonPressedValue) {
+            attack();
+          }
+          break;
         case GamepadButton.selectButton:
         case GamepadButton.shareButton:
         case GamepadButton.homeButton:
@@ -168,5 +181,6 @@ class GamepadInput extends Controller {
       await _currentController!.dispose();
       _currentController = null;
     }
+    _connectionState?.value = false;
   }
 }

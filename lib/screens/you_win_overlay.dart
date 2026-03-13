@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
+import 'package:game_jam/core/config/ui_config.dart';
 
 class YouWinOverlay extends StatefulWidget {
-  final VoidCallback onRestart;
+  final Future<void> Function() onRetrySeed;
+  final Future<void> Function() onRestartWithNewSeed;
   final String winningTime;
   final Future<bool> Function(String playerName) onPublishScore;
 
   const YouWinOverlay({
     super.key,
-    required this.onRestart,
+    required this.onRetrySeed,
+    required this.onRestartWithNewSeed,
     required this.winningTime,
     required this.onPublishScore,
   });
@@ -20,6 +23,7 @@ class YouWinOverlay extends StatefulWidget {
 class _YouWinOverlayState extends State<YouWinOverlay> {
   bool _isPublishing = false;
   bool _hasPublishedScore = false;
+  bool _isRestarting = false;
 
   Future<void> _publishScore() async {
     if (_hasPublishedScore) {
@@ -27,7 +31,7 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
         context,
       );
       messenger?.showSnackBar(
-        const SnackBar(content: Text('Score already published for this run.')),
+        const SnackBar(content: Text(WinOverlayUi.duplicatePublishMessage)),
       );
       return;
     }
@@ -37,14 +41,14 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
       builder: (BuildContext dialogContext) {
         final TextEditingController controller = TextEditingController();
         return AlertDialog(
-          title: const Text('Publish Score'),
+          title: const Text(WinOverlayUi.publishDialogTitle),
           content: TextField(
             controller: controller,
             autofocus: true,
             textInputAction: TextInputAction.done,
             decoration: const InputDecoration(
-              labelText: 'Player name',
-              hintText: 'Enter your name',
+              labelText: WinOverlayUi.publishNameLabel,
+              hintText: WinOverlayUi.publishNameHint,
             ),
             onSubmitted: (String value) {
               final String normalized = value.trim();
@@ -56,7 +60,7 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: const Text(WinOverlayUi.cancelAction),
             ),
             FilledButton(
               onPressed: () {
@@ -65,7 +69,7 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
                   dialogContext,
                 ).pop(normalized.isEmpty ? null : normalized);
               },
-              child: const Text('Publish'),
+              child: const Text(WinOverlayUi.publishAction),
             ),
           ],
         );
@@ -97,22 +101,44 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
     );
     messenger?.showSnackBar(
       SnackBar(
-        content: Text(success ? 'Score published.' : 'Score publish failed.'),
+        content: Text(
+          success
+              ? WinOverlayUi.publishSuccessMessage
+              : WinOverlayUi.publishFailMessage,
+        ),
       ),
     );
+  }
+
+  Future<void> _runRestart(Future<void> Function() action) async {
+    if (_isRestarting) {
+      return;
+    }
+    setState(() {
+      _isRestarting = true;
+    });
+    await action();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isRestarting = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: Colors.black.withValues(alpha: 0.45),
+      color: Colors.black.withValues(
+        alpha: WinOverlayUi.overlayBackgroundAlpha,
+      ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
+          constraints: const BoxConstraints(maxWidth: WinOverlayUi.maxWidth),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(WinOverlayUi.cardRadius),
             child: AspectRatio(
-              aspectRatio: 773 / 801,
+              aspectRatio: WinOverlayUi.cardAspectRatio,
               child: DecoratedBox(
                 decoration: const BoxDecoration(
                   image: DecorationImage(
@@ -124,36 +150,38 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 18,
+                  spacing: WinOverlayUi.contentSpacing,
                   children: [
                     const Text(
-                      'The little brothers are safe.',
+                      WinOverlayUi.victoryTitle,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 30,
+                        fontSize: WinOverlayUi.titleFontSize,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF2A170E),
+                        color: WinOverlayUi.titleColor,
                       ),
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 36),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: WinOverlayUi.summaryHorizontalPadding,
+                      ),
                       child: Text(
-                        'You brought every egg home before the marsh could take them.',
+                        WinOverlayUi.victorySummary,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: WinOverlayUi.summaryFontSize,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF3B2418),
-                          height: 1.35,
+                          color: WinOverlayUi.summaryColor,
+                          height: WinOverlayUi.summaryLineHeight,
                         ),
                       ),
                     ),
                     Text(
-                      'Rescue time: ${widget.winningTime}',
+                      '${WinOverlayUi.rescueTimePrefix} ${widget.winningTime}',
                       style: const TextStyle(
-                        fontSize: 22,
+                        fontSize: WinOverlayUi.rescueTimeFontSize,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A0C05),
+                        color: WinOverlayUi.rescueTimeColor,
                       ),
                     ),
                     FilledButton(
@@ -162,15 +190,27 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
                           : _publishScore,
                       child: Text(
                         _isPublishing
-                            ? 'Publishing...'
+                            ? WinOverlayUi.publishingLabel
                             : (_hasPublishedScore
-                                  ? 'Published'
-                                  : 'Publish Score'),
+                                  ? WinOverlayUi.publishedLabel
+                                  : WinOverlayUi.publishAction),
                       ),
                     ),
                     FilledButton(
-                      onPressed: widget.onRestart,
-                      child: const Text('Play Again'),
+                      onPressed: _isRestarting
+                          ? null
+                          : () => _runRestart(widget.onRetrySeed),
+                      child: Text(
+                        _isRestarting
+                            ? WinOverlayUi.restartingLabel
+                            : WinOverlayUi.retrySeedAction,
+                      ),
+                    ),
+                    FilledButton(
+                      onPressed: _isRestarting
+                          ? null
+                          : () => _runRestart(widget.onRestartWithNewSeed),
+                      child: const Text(WinOverlayUi.restartNewSeedAction),
                     ),
                   ],
                 ),

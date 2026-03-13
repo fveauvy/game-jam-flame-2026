@@ -25,10 +25,22 @@ function sanitizeNameKey(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-function buildLeaderboardMember(name, createdAt) {
+function normalizeSeed(seed) {
+  if (typeof seed !== 'string') {
+    return null;
+  }
+  const normalized = seed.trim().toUpperCase();
+  if (!/^[A-Z0-9]{5}$/.test(normalized)) {
+    return null;
+  }
+  return normalized;
+}
+
+function buildLeaderboardMember(name, createdAt, seed) {
   return JSON.stringify({
     n: name,
     c: createdAt,
+    s: seed,
     i: crypto.randomUUID(),
   });
 }
@@ -87,6 +99,7 @@ export default async function handler(request) {
   const rawName = typeof payload?.name === 'string' ? payload.name : '';
   const name = normalizeName(rawName);
   const timeMs = Number(payload?.timeMs);
+  const seed = normalizeSeed(payload?.seed);
 
   const validName = name.length >= 2 && name.length <= 24;
   const validTime = Number.isInteger(timeMs) && timeMs >= 1000 && timeMs <= 3600000;
@@ -131,7 +144,7 @@ export default async function handler(request) {
     'zadd',
     'leaderboard:times',
     String(timeMs),
-    buildLeaderboardMember(name, createdAt),
+    buildLeaderboardMember(name, createdAt, seed),
   ]);
 
   return jsonResponse(200, { ok: true, duplicate: false }, corsHeaders);

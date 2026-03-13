@@ -23,7 +23,7 @@ void main() {
     'game uses injected character generator for character profile',
     () async {
       const CharacterProfile profile = CharacterProfile(
-        name: CharacterName(adjective: 'Brave', noun: 'Tadpole', batch: 'Mk I'),
+        name: CharacterName(adjective: 'Brave', noun: 'Tadpole', title: 'Mk I'),
         spriteId: 'frog-1',
         spriteAssetPath: 'assets/images/gronouy/frog-1.png',
       );
@@ -46,7 +46,7 @@ void main() {
 
   test('setCharacterSeedCode updates current generation state', () async {
     final CharacterProfile profile = const CharacterProfile(
-      name: CharacterName(adjective: 'Tiny', noun: 'Froglet', batch: ''),
+      name: CharacterName(adjective: 'Tiny', noun: 'Froglet', title: ''),
       spriteId: 'frog-2',
       spriteAssetPath: 'assets/images/gronouy/frog-2.png',
     );

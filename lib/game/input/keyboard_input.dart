@@ -21,6 +21,7 @@ class KeyboardInput extends Controller {
 
   void _queueActions(LogicalKeyboardKey key) {
     if (key == LogicalKeyboardKey.space) {
+      confirm();
       moveUpLayer();
     } else if (key == LogicalKeyboardKey.shiftLeft ||
         key == LogicalKeyboardKey.shiftRight) {

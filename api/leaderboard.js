@@ -49,26 +49,45 @@ function clampLimit(rawLimit) {
   return value;
 }
 
-function parseMemberName(member) {
+function parseMember(member) {
+  const fallback = {
+    name: 'Anonymous',
+    seed: null,
+  };
   if (typeof member !== 'string' || member.length == 0) {
-    return 'Anonymous';
+    return fallback;
   }
 
   if (member.startsWith('{')) {
     try {
       const parsed = JSON.parse(member);
-      if (typeof parsed?.n === 'string' && parsed.n.trim().length > 0) {
-        return parsed.n.trim();
-      }
+      const parsedName =
+        typeof parsed?.n === 'string' && parsed.n.trim().length > 0
+          ? parsed.n.trim()
+          : 'Anonymous';
+      const parsedSeed =
+        typeof parsed?.s === 'string' && /^[A-Z0-9]{5}$/.test(parsed.s)
+          ? parsed.s
+          : null;
+      return {
+        name: parsedName,
+        seed: parsedSeed,
+      };
     } catch {}
   }
 
   const separatorIndex = member.indexOf(':');
   if (separatorIndex > -1 && separatorIndex < member.length - 1) {
-    return member.slice(separatorIndex + 1).trim() || 'Anonymous';
+    return {
+      name: member.slice(separatorIndex + 1).trim() || 'Anonymous',
+      seed: null,
+    };
   }
 
-  return member.trim() || 'Anonymous';
+  return {
+    name: member.trim() || 'Anonymous',
+    seed: null,
+  };
 }
 
 export default async function handler(request) {
@@ -114,9 +133,11 @@ export default async function handler(request) {
         continue;
       }
 
+      const parsedMember = parseMember(member);
       entries.push({
         rank: entries.length + 1,
-        name: parseMemberName(member),
+        name: parsedMember.name,
+        seed: parsedMember.seed,
         timeMs,
       });
     }

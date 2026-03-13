@@ -11,6 +11,9 @@ import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/input/touch_input.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/screens/game_over_overlay.dart';
+import 'package:game_jam/screens/hotkey_overlay.dart';
+import 'package:game_jam/screens/intro_story_overlay.dart';
+import 'package:game_jam/screens/menu_seed_overlay.dart';
 import 'package:game_jam/screens/pause_overlay.dart';
 import 'package:game_jam/screens/startup_splash_screen.dart';
 import 'package:game_jam/screens/you_win_overlay.dart';
@@ -154,13 +157,27 @@ class _GameJamAppState extends State<GameJamApp> {
                 },
                 AppOverlays.winOverlay: (_, MyGame game) {
                   return YouWinOverlay(
-                    onRestart: game.restartToMenu,
+                    onRetrySeed: game.retrySeedFromWin,
+                    onRestartWithNewSeed: game.restartWithNewSeedFromWin,
                     winningTime: game.winningRunFormattedTime,
                     onPublishScore: game.publishWinningScore,
                   );
                 },
               },
             ),
+            if (phase == GamePhase.intro)
+              IntroStoryOverlay(
+                onContinue: () => unawaited(game.continueFromIntro()),
+              ),
+            if (phase == GamePhase.menu)
+              MenuSeedOverlay(onStartWithSeed: game.setMenuSeedCode),
+            if (phase == GamePhase.playing)
+              ValueListenableBuilder<bool>(
+                valueListenable: game.gamepadConnected,
+                builder: (_, bool connected, _) {
+                  return HotkeyOverlay(isGamepadConnected: connected);
+                },
+              ),
           ],
         );
       },
