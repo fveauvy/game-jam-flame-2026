@@ -9,15 +9,13 @@ import 'package:game_jam/game/my_game.dart';
 class SeedPanelComponent extends SpriteButtonComponent
     with HasGameReference<MyGame>, HoverCallbacks, TapCallbacks {
   SeedPanelComponent({
-    Anchor anchor = Anchor.topLeft,
+    required Vector2 position,
     required this.onReroll,
-    required this.onStart,
     required Vector2 size,
-  }) : super(anchor: anchor, size: size);
+  }) : super(size: size, position: position, anchor: Anchor.center);
 
   late final TextComponent _seedText;
   final Future<void> Function() onReroll;
-  final VoidCallback onStart;
 
   @override
   Future<void> onLoad() async {
@@ -30,7 +28,6 @@ class SeedPanelComponent extends SpriteButtonComponent
       textRenderer: TextPaint(
         style: const TextStyle(color: Colors.white, letterSpacing: 2.0),
       ),
-      anchor: Anchor.center,
       position: size / 2 - Vector2(5, 2),
     );
 
@@ -47,8 +44,6 @@ class SeedPanelComponent extends SpriteButtonComponent
           SpriteComponent(
             sprite: Sprite(game.images.fromCache('ui/refresh_logo.png')),
             size: Vector2(16, 16),
-            // buttonDown: (game.images.fromCache('refresh_logo_down.png')),
-            anchor: Anchor.center,
             position: size / 2 + Vector2(50, 0),
           ),
         ],

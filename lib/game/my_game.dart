@@ -197,22 +197,16 @@ class MyGame extends FlameGame<WorldRoot>
     await gamepadInput.initialize();
 
     _cameraController = GameCameraController(
-      camera: camera,
-      target: _player,
-      worldSize: GameConfig.worldSize,
       viewportSize: Vector2(GameConfig.baseWidth, GameConfig.baseHeight),
+      target: PositionComponent(position: GameConfig.playerSpawn),
+      worldSize: GameConfig.worldSize,
+      camera: camera,
     );
+
     _cameraController.attach();
 
-    _menu = MenuComponent(
-      onStart: () async {
-        startGame();
-      },
-      onReroll: () async {
-        await rerollCharacter();
-      },
-    );
-    await camera.viewport.add(_menu);
+    _menu = MenuComponent(onReroll: rerollCharacter);
+    await world.add(_menu);
 
     phase.value = GamePhase.menu;
     _startBgmIfNeeded();
@@ -467,7 +461,9 @@ class MyGame extends FlameGame<WorldRoot>
         break;
       }
     }
+
     await setCharacterSeedCode(nextCode);
+
     if (isLoaded) {
       await _rebuildMenuCandidates();
     }
@@ -647,14 +643,6 @@ class MyGame extends FlameGame<WorldRoot>
     );
     characterGenerationState.value = nextState;
     characterState.value = nextState.profile;
-
-    if (isLoaded &&
-        phase.value == GamePhase.menu &&
-        index < _playerList.length) {
-      _player = _playerList[index];
-      world.bindPlayer(_player);
-      _cameraController.target = _player;
-    }
   }
 
   void _stepMenuCandidate(int delta) {
@@ -737,7 +725,6 @@ class MyGame extends FlameGame<WorldRoot>
 
     _player = _playerList.first;
     world.bindPlayer(_player);
-    _cameraController.target = _player;
 
     await world.addAll([..._waterRipples, ..._playerList]);
   }
@@ -825,15 +812,25 @@ class MyGame extends FlameGame<WorldRoot>
 
     _startBgmIfNeeded();
 
+    final CharacterGenerationState? state = characterGenerationState.value;
+
+    if (phase.value == GamePhase.menu &&
+        state != null &&
+        state.selectedIndex >= 0 &&
+        state.selectedIndex < _playerList.length) {
+      _player = _playerList[state.selectedIndex];
+      world.bindPlayer(_player);
+      _cameraController.target = _player;
+    }
+
     // Hide the menu and remove non-selected candidates when the game starts.
     if (phase.value == GamePhase.menu) {
       if (isLoaded && _menu.parent != null) {
-        camera.viewport.remove(_menu);
+        world.remove(_menu);
       }
       _cleanupMenuCandidates();
     }
 
-    final CharacterGenerationState? state = characterGenerationState.value;
     if (state != null) {
       _characterSeedCode = state.selectedSeedCode;
       _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
@@ -927,12 +924,16 @@ class MyGame extends FlameGame<WorldRoot>
 
     // Re-show the menu overlay.
     if (isLoaded && _menu.parent == null) {
-      await camera.viewport.add(_menu);
+      await world.add(_menu);
     }
 
     if (isLoaded) {
       // Reroll refreshes the full menu candidate carousel.
       await rerollCharacter();
+
+      _cameraController.target = PositionComponent(
+        position: GameConfig.playerSpawn,
+      );
     }
   }
 
