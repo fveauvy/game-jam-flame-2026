@@ -31,6 +31,7 @@ abstract final class AssetPaths {
   static const String jumpSfx1 = 'sound_effects/jump1.wav';
   static const String jumpSfx2 = 'sound_effects/jump2.wav';
   static const String waterSplashMidSfx = 'sound_effects/water-splash-mid.wav';
+  static const String tongueLickSfx = 'sound_effects/coup-de-langue.mp3';
 
   // Flame image cache keys.
   static const String uiRefreshLogoCacheKey = 'ui/refresh_logo.png';
@@ -45,6 +46,9 @@ abstract final class AssetPaths {
   static const String thorns1CacheKey = 'environment/Ronces1.png';
   static const String thorns2CacheKey = 'environment/Ronces2.png';
   static const String thorns3CacheKey = 'environment/Ronces3.png';
+  static const String tongue1CacheKey = 'gronouy/Langue1.png';
+  static const String tongue2CacheKey = 'gronouy/Langue2.png';
+  static const String tongue3CacheKey = 'gronouy/Langue3.png';
 
   static const int croqueAnimationFrames = 20;
   static const String croqueAnimationPrefix = "croque/croque_";
@@ -73,10 +77,29 @@ abstract final class AssetPaths {
       'gronouy/frog-$number/Chill.png',
       'gronouy/frog-$number/Nage1.png',
       'gronouy/frog-$number/Nage2.png',
-      if (number == 14) 'gronouy/frog-$number/Chillsousleau.png',
-      if (number == 14) 'gronouy/frog-$number/Nage1sousleau.png',
-      if (number == 14) 'gronouy/frog-$number/Nage2sousleau.png',
+      if (animatedFrogSpriteId.contains(number))
+        'gronouy/frog-$number/Chillsousleau.png',
+      if (animatedFrogSpriteId.contains(number))
+        'gronouy/frog-$number/Nage1sousleau.png',
+      if (animatedFrogSpriteId.contains(number))
+        'gronouy/frog-$number/Nage2sousleau.png',
     ];
+  }
+
+  static String birdAnimatedSpriteCacheKey(int number) {
+    return 'birds/oiseau$number.webp';
+  }
+
+  static String birdShadowAnimatedSpriteCacheKey(int number) {
+    return 'birds/ombre$number.webp';
+  }
+
+  static String birdFloutixMaxAnimatedSpriteCacheKey(int number) {
+    return 'birds/floutix$number.webp';
+  }
+
+  static String birdFloutixAnimatedSpriteCacheKey(int number) {
+    return 'birds/floutix$number.webp';
   }
 
   static String imageCacheKeyFromAssetPath(String path) {
@@ -89,6 +112,11 @@ abstract final class AssetPaths {
 
   static List<int> animatedFrogSpriteId = [10, 11, 12, 13, 14];
 
+  static List<int> birdSpriteId = [1, 2];
+  static List<int> birdShadowSpriteId = [1, 2];
+  static List<int> birdFloutixMaxSpriteId = [1, 2];
+  static List<int> birdFloutixSpriteId = [1, 2];
+
   static List<String> get preloadImageCacheKeys => <String>[
     plankCacheKey,
     plankLightCacheKey,
@@ -100,6 +128,9 @@ abstract final class AssetPaths {
     flyCacheKey,
     eggsCacheKey,
     ...thornsAnimationCacheKeys,
+    tongue1CacheKey,
+    tongue2CacheKey,
+    tongue3CacheKey,
     uiRefreshLogoCacheKey,
     ...animatedFrogSpriteId.expand((id) => frogAnimatedSpriteCacheKey(id)),
     ...List<String>.generate(GameplayTuning.frogSpriteCount, (int index) {
@@ -108,6 +139,12 @@ abstract final class AssetPaths {
       }
       return frogSpriteCacheKey(index + 1);
     }, growable: false).where((path) => path.isNotEmpty),
+    ...birdSpriteId.map((id) => birdAnimatedSpriteCacheKey(id)),
+    ...birdShadowSpriteId.map((id) => birdShadowAnimatedSpriteCacheKey(id)),
+    ...birdFloutixMaxSpriteId.map(
+      (id) => birdFloutixMaxAnimatedSpriteCacheKey(id),
+    ),
+    ...birdFloutixSpriteId.map((id) => birdFloutixAnimatedSpriteCacheKey(id)),
     waterTexture,
     ...List<String>.generate(croqueAnimationFrames, (index) {
       final frameNumber = index;
@@ -121,6 +158,7 @@ abstract final class AssetPaths {
     jumpSfx1,
     jumpSfx2,
     waterSplashMidSfx,
+    tongueLickSfx,
   ];
 
   static List<String> get preloadBundleAssets => <String>[

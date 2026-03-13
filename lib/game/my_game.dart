@@ -26,7 +26,7 @@ import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/allies/egg_component.dart';
-import 'package:game_jam/game/components/enemies/bird_enemy_component.dart';
+import 'package:game_jam/game/components/enemies/bird/bird_component.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/environment/frog_house_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
@@ -167,9 +167,9 @@ class MyGame extends FlameGame<WorldRoot>
         .map((player) => WaterRippleComponent(player: player))
         .toList();
 
-    final bird = BirdEnemyComponent(
-      initialPosition: Vector2(180, 920) + Vector2.all(200),
-      initialSize: Vector2.all(100),
+    final bird = BirdComponent(
+      position: Vector2(GameConfig.worldSize.x - 200, 100),
+      size: Vector2(200, 100),
     );
 
     await world.add(_level);
@@ -198,22 +198,16 @@ class MyGame extends FlameGame<WorldRoot>
     await gamepadInput.initialize();
 
     _cameraController = GameCameraController(
-      camera: camera,
-      target: _player,
-      worldSize: GameConfig.worldSize,
       viewportSize: Vector2(GameConfig.baseWidth, GameConfig.baseHeight),
+      target: PositionComponent(position: GameConfig.playerSpawn),
+      worldSize: GameConfig.worldSize,
+      camera: camera,
     );
+
     _cameraController.attach();
 
-    _menu = MenuComponent(
-      onStart: () async {
-        startGame();
-      },
-      onReroll: () async {
-        await rerollCharacter();
-      },
-    );
-    await camera.viewport.add(_menu);
+    _menu = MenuComponent(onReroll: rerollCharacter);
+    await world.add(_menu);
 
     phase.value = GamePhase.menu;
     _startBgmIfNeeded();
@@ -468,7 +462,9 @@ class MyGame extends FlameGame<WorldRoot>
         break;
       }
     }
+
     await setCharacterSeedCode(nextCode);
+
     if (isLoaded) {
       await _rebuildMenuCandidates();
     }
@@ -648,14 +644,6 @@ class MyGame extends FlameGame<WorldRoot>
     );
     characterGenerationState.value = nextState;
     characterState.value = nextState.profile;
-
-    if (isLoaded &&
-        phase.value == GamePhase.menu &&
-        index < _playerList.length) {
-      _player = _playerList[index];
-      world.bindPlayer(_player);
-      _cameraController.target = _player;
-    }
   }
 
   void _stepMenuCandidate(int delta) {
@@ -738,7 +726,6 @@ class MyGame extends FlameGame<WorldRoot>
 
     _player = _playerList.first;
     world.bindPlayer(_player);
-    _cameraController.target = _player;
 
     await world.addAll([..._waterRipples, ..._playerList]);
   }
@@ -826,15 +813,25 @@ class MyGame extends FlameGame<WorldRoot>
 
     _startBgmIfNeeded();
 
+    final CharacterGenerationState? state = characterGenerationState.value;
+
+    if (phase.value == GamePhase.menu &&
+        state != null &&
+        state.selectedIndex >= 0 &&
+        state.selectedIndex < _playerList.length) {
+      _player = _playerList[state.selectedIndex];
+      world.bindPlayer(_player);
+      _cameraController.target = _player;
+    }
+
     // Hide the menu and remove non-selected candidates when the game starts.
     if (phase.value == GamePhase.menu) {
       if (isLoaded && _menu.parent != null) {
-        camera.viewport.remove(_menu);
+        world.remove(_menu);
       }
       _cleanupMenuCandidates();
     }
 
-    final CharacterGenerationState? state = characterGenerationState.value;
     if (state != null) {
       _characterSeedCode = state.selectedSeedCode;
       _randomSeeded = Random(SeedCode.decode(_characterSeedCode));
@@ -853,7 +850,6 @@ class MyGame extends FlameGame<WorldRoot>
     overlays
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.pause)
-      ..add(AppOverlays.audioQuickControls)
       ..add(AppOverlays.touchControls);
   }
 
@@ -875,7 +871,6 @@ class MyGame extends FlameGame<WorldRoot>
       pauseEngine();
       overlays
         ..add(AppOverlays.pause)
-        ..remove(AppOverlays.audioQuickControls)
         ..remove(AppOverlays.touchControls);
       return;
     }
@@ -886,7 +881,6 @@ class MyGame extends FlameGame<WorldRoot>
     resumeEngine();
     overlays
       ..remove(AppOverlays.pause)
-      ..add(AppOverlays.audioQuickControls)
       ..add(AppOverlays.touchControls);
   }
 
@@ -896,7 +890,6 @@ class MyGame extends FlameGame<WorldRoot>
     pauseEngine();
     overlays
       ..remove(AppOverlays.pause)
-      ..remove(AppOverlays.audioQuickControls)
       ..remove(AppOverlays.touchControls)
       ..add(AppOverlays.gameOver);
   }
@@ -908,7 +901,6 @@ class MyGame extends FlameGame<WorldRoot>
     pauseEngine();
     overlays
       ..remove(AppOverlays.pause)
-      ..remove(AppOverlays.audioQuickControls)
       ..remove(AppOverlays.touchControls)
       ..add(AppOverlays.winOverlay);
   }
@@ -927,19 +919,22 @@ class MyGame extends FlameGame<WorldRoot>
     resumeEngine();
     overlays
       ..remove(AppOverlays.pause)
-      ..remove(AppOverlays.audioQuickControls)
       ..remove(AppOverlays.touchControls)
       ..remove(AppOverlays.gameOver)
       ..remove(AppOverlays.winOverlay);
 
     // Re-show the menu overlay.
     if (isLoaded && _menu.parent == null) {
-      await camera.viewport.add(_menu);
+      await world.add(_menu);
     }
 
     if (isLoaded) {
       // Reroll refreshes the full menu candidate carousel.
       await rerollCharacter();
+
+      _cameraController.target = PositionComponent(
+        position: GameConfig.playerSpawn,
+      );
     }
   }
 

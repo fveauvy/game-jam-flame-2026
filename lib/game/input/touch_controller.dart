@@ -1,4 +1,4 @@
-import 'package:game_jam/game/input/controler.dart';
+import 'package:game_jam/game/input/controller.dart';
 
 /// Controller for touch-based input.
 /// Handles virtual joystick and button input from the touch overlay.
@@ -8,6 +8,10 @@ class TouchController extends Controller {
   /// Update movement axes from the virtual joystick.
   void updateJoystick(double x, double y) {
     setMoveAxis(x, y);
+  }
+
+  void onPause() {
+    pause();
   }
 
   /// Handle jump button press.

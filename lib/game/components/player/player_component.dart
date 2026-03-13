@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
@@ -19,13 +20,19 @@ import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
+import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/player/player_animation_extention.dart';
+import 'package:game_jam/game/components/player/frog_tongue_component.dart';
 import 'package:game_jam/game/components/text/simple_text_component.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class PlayerComponent extends SpriteAnimationComponent
-    with HasGameReference<MyGame>, CollisionCallbacks, TapCallbacks {
+    with
+        HasGameReference<MyGame>,
+        CollisionCallbacks,
+        TapCallbacks,
+        HoverCallbacks {
   PlayerComponent({
     required this.inputState,
     required CharacterProfile profile,
@@ -50,6 +57,8 @@ class PlayerComponent extends SpriteAnimationComponent
   static const Duration _damageTextDuration = Duration(seconds: 1);
   static const Duration _dryingDelay = Duration(milliseconds: 500);
   static const int _defaultHealth = 100;
+  static ui.FragmentProgram? _frogOutlineProgram;
+  static Future<ui.FragmentProgram>? _frogOutlineProgramLoader;
 
   final InputState inputState;
   final Vector2 _startPosition;
@@ -58,6 +67,9 @@ class PlayerComponent extends SpriteAnimationComponent
 
   CharacterProfile _profile;
   double _spriteOpacity = 1.0;
+  bool _isHoveredInMenu = false;
+  bool _isMenuSelected = false;
+  ui.FragmentShader? _frogOutlineShader;
   CircleHitbox? _hitbox;
   late double _speedMultiplier;
   late double _sizeMultiplier;
@@ -81,6 +93,7 @@ class PlayerComponent extends SpriteAnimationComponent
   int _lilyContacts = 0;
   bool _jumpActive = false;
   double _jumpElapsed = 0;
+  double _outlinePulseTime = 0;
   double _underwaterSurfaceGraceRemaining = 0;
   Vector2 _jumpDirection = Vector2.zero();
   final Vector2 _thornKnockbackVelocity = Vector2.zero();
@@ -89,6 +102,7 @@ class PlayerComponent extends SpriteAnimationComponent
   SpriteAnimation? _boundAnimationForMoveSfx;
   int _lastMoveFrameIndex = -1;
   bool _seenLastMoveFrameInCurrentRun = false;
+  FrogTongueComponent? _tongue;
 
   int eggsCollected = 0;
 
@@ -112,6 +126,46 @@ class PlayerComponent extends SpriteAnimationComponent
   }
 
   @override
+  void onHoverEnter() {
+    super.onHoverEnter();
+    if (game.phase.value != GamePhase.menu) {
+      return;
+    }
+    _isHoveredInMenu = true;
+    final int index = game.playerCandidates.indexOf(this);
+    if (index != -1) {
+      game.pointCharacterCandidate(index);
+    }
+  }
+
+  @override
+  void onHoverExit() {
+    super.onHoverExit();
+    _isHoveredInMenu = false;
+  }
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    await _ensureOutlineShader();
+  }
+
+  Future<void> _ensureOutlineShader() async {
+    try {
+      final ui.FragmentProgram program =
+          _frogOutlineProgram ??
+          await (_frogOutlineProgramLoader ??= ui.FragmentProgram.fromAsset(
+            'shaders/frog_outline.frag',
+          ));
+      _frogOutlineProgram = program;
+      _frogOutlineShader = program.fragmentShader();
+    } catch (error) {
+      _frogOutlineShader = null;
+      debugPrint('[shader] frog outline unavailable: $error');
+    }
+  }
+
+  @override
   Future<void> onMount() async {
     super.onMount();
     paint = Paint()
@@ -128,6 +182,16 @@ class PlayerComponent extends SpriteAnimationComponent
     animation = idleAnimation(levelPosition);
     _onAnimationChanged();
     await add(_hitbox!);
+    final FrogTongueComponent tongue = FrogTongueComponent(player: this);
+    _tongue = tongue;
+    await game.world.add(tongue);
+  }
+
+  @override
+  void onRemove() {
+    _tongue?.removeFromParent();
+    _tongue = null;
+    super.onRemove();
   }
 
   static double _normalizeAngle(double value) {
@@ -425,9 +489,68 @@ class PlayerComponent extends SpriteAnimationComponent
     }
   }
 
+  void _syncMenuPointedVisual() {
+    if (game.phase.value != GamePhase.menu) {
+      _isHoveredInMenu = false;
+      _isMenuSelected = false;
+      scale = Vector2.all(1.0);
+      paint.color = Colors.white.withValues(alpha: _spriteOpacity);
+      return;
+    }
+
+    final state = game.characterGenerationState.value;
+    final int index = game.playerCandidates.indexOf(this);
+    final bool isSelected =
+        state != null && index != -1 && index == state.selectedIndex;
+    _isMenuSelected = isSelected;
+    final bool isPointed = isSelected || _isHoveredInMenu;
+
+    scale = Vector2.all(isPointed ? 1.08 : 1.0);
+    paint.color = Colors.white.withValues(alpha: isPointed ? 1.0 : 0.9);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final Sprite? currentSprite = animationTicker?.getSprite();
+    if (currentSprite == null) {
+      super.render(canvas);
+      return;
+    }
+
+    final bool shouldUseShader =
+        game.phase.value == GamePhase.menu && _isMenuSelected;
+    if (!shouldUseShader) {
+      super.render(canvas);
+      return;
+    }
+
+    final ui.FragmentShader? shader = _frogOutlineShader;
+    if (shader == null) {
+      super.render(canvas);
+      return;
+    }
+
+    shader
+      ..setFloat(0, size.x)
+      ..setFloat(1, size.y)
+      ..setFloat(2, 2.0)
+      ..setFloat(3, 1.0)
+      ..setFloat(4, 1.0)
+      ..setFloat(5, 1.0)
+      ..setFloat(6, 1.0)
+      ..setFloat(7, _outlinePulseTime)
+      ..setImageSampler(0, currentSprite.image);
+
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.x, size.y),
+      Paint()..shader = shader,
+    );
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
+    _outlinePulseTime += dt;
     final Vector2 movement = normalizeMoveAxis(
       inputState.moveAxisX,
       inputState.moveAxisY,
@@ -447,8 +570,11 @@ class PlayerComponent extends SpriteAnimationComponent
     _thornFlickerElapsed += dt;
 
     if (game.phase.value != GamePhase.playing) {
+      _syncMenuPointedVisual();
       return;
     }
+
+    scale = Vector2.all(1.0);
 
     _syncMovementAnimation();
 
@@ -491,6 +617,9 @@ class PlayerComponent extends SpriteAnimationComponent
         levelPosition == PlayerVerticalPosition.waterLevel &&
         isInWater) {
       _startJump();
+    }
+    if (inputState.attackPressed) {
+      _tryUseTongue();
     }
     _resolveJump(dt);
 
@@ -556,6 +685,18 @@ class PlayerComponent extends SpriteAnimationComponent
         : _spriteOpacity;
     paint.color = Colors.white.withValues(alpha: targetOpacity);
     _syncHitbox();
+  }
+
+  void _tryUseTongue() {
+    if ((_tongue?.tryLick() ?? false) == false) {
+      return;
+    }
+    unawaited(
+      game.playSfx(
+        AssetPaths.tongueLickSfx,
+        volume: GameplayTuning.tongueSfxVolume,
+      ),
+    );
   }
 
   void reset() {
@@ -878,6 +1019,59 @@ class PlayerComponent extends SpriteAnimationComponent
         damageText.removeFromParent();
       });
     }
+  }
+
+  void heal(int amount) {
+    if (game.phase.value != GamePhase.playing || amount <= 0) {
+      return;
+    }
+    final int before = _remainingHealth;
+    _remainingHealth = (_remainingHealth + amount).clamp(0, _maxHealth);
+    final int healed = _remainingHealth - before;
+    if (healed > 0) {
+      unawaited(_showHealingText(healed));
+    }
+  }
+
+  Future<void> _showHealingText(int healed) async {
+    final SimpleTextComponent healingText = SimpleTextComponent(
+      color: Colors.lightGreenAccent,
+      text: '+$healed HP',
+      position:
+          absoluteCenter +
+          Vector2(
+            GameplayTuning.healingTextOffsetX,
+            GameplayTuning.healingTextOffsetY,
+          ),
+      priority: 130,
+    );
+    await game.world.add(healingText);
+    await healingText.add(
+      MoveEffect.by(
+        Vector2(0, -GameplayTuning.healingTextRiseDistance),
+        EffectController(
+          duration: GameplayTuning.healingTextRiseDurationSeconds,
+          curve: Curves.easeOut,
+        ),
+      ),
+    );
+    Future.delayed(
+      const Duration(milliseconds: GameplayTuning.healingTextLifetimeMs),
+      () {
+        if (healingText.parent == null) {
+          return;
+        }
+        healingText.removeFromParent();
+      },
+    );
+  }
+
+  void onFlyCaughtFromTongue(FlyComponent fly) {
+    if (game.phase.value != GamePhase.playing || fly.parent == null) {
+      return;
+    }
+    fly.removeFromParent();
+    heal(GameplayTuning.flyHealAmount);
   }
 
   Future<void> applyDamageWithInvincibilityDelay(

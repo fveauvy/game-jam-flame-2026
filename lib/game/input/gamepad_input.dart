@@ -5,7 +5,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:game_jam/core/config/gamepad_bindings.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
-import 'package:game_jam/game/input/controler.dart';
+import 'package:game_jam/game/input/controller.dart';
 import 'package:gamepads/gamepads.dart';
 
 /// Controller for gamepad/game controller input.
