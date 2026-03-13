@@ -86,6 +86,22 @@ abstract final class AssetPaths {
     ];
   }
 
+  static String birdAnimatedSpriteCacheKey(int number) {
+    return 'birds/oiseau$number.webp';
+  }
+
+  static String birdShadowAnimatedSpriteCacheKey(int number) {
+    return 'birds/ombre$number.webp';
+  }
+
+  static String birdFloutixMaxAnimatedSpriteCacheKey(int number) {
+    return 'birds/floutix$number.webp';
+  }
+
+  static String birdFloutixAnimatedSpriteCacheKey(int number) {
+    return 'birds/floutix$number.webp';
+  }
+
   static String imageCacheKeyFromAssetPath(String path) {
     const String imageAssetPrefix = 'assets/images/';
     if (path.startsWith(imageAssetPrefix)) {
@@ -95,6 +111,11 @@ abstract final class AssetPaths {
   }
 
   static List<int> animatedFrogSpriteId = [10, 11, 12, 13, 14];
+
+  static List<int> birdSpriteId = [1, 2];
+  static List<int> birdShadowSpriteId = [1, 2];
+  static List<int> birdFloutixMaxSpriteId = [1, 2];
+  static List<int> birdFloutixSpriteId = [1, 2];
 
   static List<String> get preloadImageCacheKeys => <String>[
     plankCacheKey,
@@ -118,6 +139,12 @@ abstract final class AssetPaths {
       }
       return frogSpriteCacheKey(index + 1);
     }, growable: false).where((path) => path.isNotEmpty),
+    ...birdSpriteId.map((id) => birdAnimatedSpriteCacheKey(id)),
+    ...birdShadowSpriteId.map((id) => birdShadowAnimatedSpriteCacheKey(id)),
+    ...birdFloutixMaxSpriteId.map(
+      (id) => birdFloutixMaxAnimatedSpriteCacheKey(id),
+    ),
+    ...birdFloutixSpriteId.map((id) => birdFloutixAnimatedSpriteCacheKey(id)),
     waterTexture,
     ...List<String>.generate(croqueAnimationFrames, (index) {
       final frameNumber = index;

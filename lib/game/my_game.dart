@@ -26,7 +26,7 @@ import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/character/pools/character_pools_repository.dart';
 import 'package:game_jam/game/components/allies/egg_component.dart';
-import 'package:game_jam/game/components/enemies/bird_enemy_component.dart';
+import 'package:game_jam/game/components/enemies/bird/bird_component.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/environment/frog_house_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
@@ -166,9 +166,9 @@ class MyGame extends FlameGame<WorldRoot>
         .map((player) => WaterRippleComponent(player: player))
         .toList();
 
-    final bird = BirdEnemyComponent(
-      initialPosition: Vector2(180, 920) + Vector2.all(200),
-      initialSize: Vector2.all(100),
+    final bird = BirdComponent(
+      position: Vector2(GameConfig.worldSize.x - 200, 100),
+      size: Vector2(200, 100),
     );
 
     await world.add(_level);
