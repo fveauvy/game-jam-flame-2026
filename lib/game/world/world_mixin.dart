@@ -89,6 +89,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
 
     final List<Vector2> positions = <Vector2>[];
     if (count == 1) {
+      positions.add(center.clone());
       return positions;
     }
 
