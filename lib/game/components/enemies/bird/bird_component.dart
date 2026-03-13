@@ -158,6 +158,11 @@ class BirdComponent extends PositionComponent
     _bird.startRetreat();
   }
 
+  void resetForNewRun() {
+    position = _startPosition.clone();
+    _isAttacking = false;
+  }
+
   static bool shouldRunForPhase(GamePhase phase) {
     return phase == GamePhase.playing;
   }

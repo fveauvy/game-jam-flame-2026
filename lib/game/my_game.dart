@@ -44,7 +44,7 @@ import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_mixin.dart';
 import 'package:game_jam/game/world/world_root.dart';
 
-enum GamePhase { menu, playing, paused, gameOver, loading, win }
+enum GamePhase { intro, menu, playing, paused, gameOver, loading, win }
 
 class MyGame extends FlameGame<WorldRoot>
     with KeyboardEvents, HasGameReference<MyGame> {
@@ -53,6 +53,7 @@ class MyGame extends FlameGame<WorldRoot>
     CharacterPoolsRepository? characterPoolsRepository,
     String? characterSeedCode,
     Random? random,
+    LeaderboardClient leaderboardClient = const LeaderboardClient(),
   }) : _characterGenerator = characterGenerator,
        _characterPoolsRepository =
            characterPoolsRepository ?? JsonCharacterPoolsRepository(),
@@ -60,6 +61,7 @@ class MyGame extends FlameGame<WorldRoot>
          characterSeedCode ?? GameConfig.defaultCharacterSeedCode,
        ),
        _random = random ?? Random(),
+       _leaderboardClient = leaderboardClient,
        super(
          world: WorldRoot(),
          camera: CameraComponent.withFixedResolution(
@@ -84,6 +86,7 @@ class MyGame extends FlameGame<WorldRoot>
       ValueNotifier<CharacterGenerationState?>(null);
   final ValueNotifier<AudioSettings> audioSettings =
       ValueNotifier<AudioSettings>(AudioSettings.defaults);
+  final ValueNotifier<bool> gamepadConnected = ValueNotifier<bool>(false);
 
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
@@ -97,6 +100,7 @@ class MyGame extends FlameGame<WorldRoot>
   late final List<WaterRippleComponent> _waterRipples;
   bool _isPlayerReady = false;
   late final GameCameraController _cameraController;
+  late final BirdComponent _birdEnemy;
   GameState gameState = GameState();
 
   int _profileRequestId = 0;
@@ -110,7 +114,7 @@ class MyGame extends FlameGame<WorldRoot>
   AudioPlayer? _victoryMusicPlayer;
   int? _winningRunElapsedTimeInMs;
   final AudioSettingsStore _audioSettingsStore = AudioSettingsStore();
-  final LeaderboardClient _leaderboardClient = const LeaderboardClient();
+  final LeaderboardClient _leaderboardClient;
   static const String _menuBgmAsset = 'mud-ambient.mp3';
   static const String _gameplayBgmAsset = 'music.mp3';
   static const String _victoryBgmAsset = AssetPaths.victoryMusic;
@@ -167,7 +171,7 @@ class MyGame extends FlameGame<WorldRoot>
         .map((player) => WaterRippleComponent(player: player))
         .toList();
 
-    final bird = BirdComponent(
+    _birdEnemy = BirdComponent(
       position: Vector2(GameConfig.worldSize.x - 200, 100),
       size: Vector2(200, 100),
     );
@@ -181,7 +185,7 @@ class MyGame extends FlameGame<WorldRoot>
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
       _buildInitialWoodBoards(),
-      bird,
+      _birdEnemy,
     ]);
 
     // Bind the initially selected player.
@@ -192,7 +196,7 @@ class MyGame extends FlameGame<WorldRoot>
 
     keyboardInput = KeyboardInput(inputState);
     touchController = TouchController(inputState);
-    gamepadInput = GamepadInput(inputState);
+    gamepadInput = GamepadInput(inputState, connectionState: gamepadConnected);
 
     // Initialize gamepad input
     await gamepadInput.initialize();
@@ -207,9 +211,8 @@ class MyGame extends FlameGame<WorldRoot>
     _cameraController.attach();
 
     _menu = MenuComponent(onReroll: rerollCharacter);
-    await world.add(_menu);
 
-    phase.value = GamePhase.menu;
+    phase.value = GamePhase.intro;
     _startBgmIfNeeded();
 
     gameState = GameState();
@@ -369,7 +372,9 @@ class MyGame extends FlameGame<WorldRoot>
 
   Future<bool> publishWinningScore(String playerName) async {
     final String normalizedName = playerName.trim();
-    final int? score = _winningRunElapsedTimeInMs;
+    final int? score =
+        _winningRunElapsedTimeInMs ??
+        (phase.value == GamePhase.win ? gameState.elapsedTimeInMs : null);
     if (normalizedName.isEmpty || score == null) {
       return false;
     }
@@ -377,7 +382,58 @@ class MyGame extends FlameGame<WorldRoot>
     return _leaderboardClient.submitScore(
       playerName: normalizedName,
       elapsedTimeInMs: score,
+      seedCode: _characterSeedCode,
     );
+  }
+
+  Future<void> retrySeedFromWin() async {
+    await _restartRunFromWin();
+  }
+
+  Future<void> restartWithNewSeedFromWin() async {
+    await _restartRunFromWin(useNewSeed: true);
+  }
+
+  Future<void> _restartRunFromWin({
+    bool useNewSeed = false,
+    String? seedCode,
+  }) async {
+    if (phase.value != GamePhase.win) {
+      return;
+    }
+
+    phase.value = GamePhase.menu;
+    _applyAudioSettings();
+    _resetMenuInputState();
+    _resetRunState();
+    resumeEngine();
+    overlays
+      ..remove(AppOverlays.pause)
+      ..remove(AppOverlays.touchControls)
+      ..remove(AppOverlays.gameOver)
+      ..remove(AppOverlays.winOverlay);
+
+    if (isLoaded && _menu.parent == null) {
+      await world.add(_menu);
+    }
+
+    if (isLoaded) {
+      final String normalizedSeed = (seedCode ?? '').trim();
+      if (normalizedSeed.isNotEmpty) {
+        await setCharacterSeedCode(normalizedSeed);
+        await _rebuildMenuCandidates();
+      } else if (useNewSeed) {
+        await rerollCharacter();
+      } else {
+        await _rebuildMenuCandidates();
+      }
+
+      _cameraController.target = PositionComponent(
+        position: GameConfig.playerSpawn,
+      );
+    }
+
+    startGame();
   }
 
   bool _handleWebAutoplayError(Object error) {
@@ -446,6 +502,16 @@ class MyGame extends FlameGame<WorldRoot>
     if (isLoaded) {
       _player.applyProfile(nextState.profile);
       await _level.onUpdateSeed();
+    }
+  }
+
+  Future<void> setMenuSeedCode(String seedCode) async {
+    if (phase.value != GamePhase.menu) {
+      return;
+    }
+    await setCharacterSeedCode(seedCode);
+    if (isLoaded) {
+      await _rebuildMenuCandidates();
     }
   }
 
@@ -627,6 +693,9 @@ class MyGame extends FlameGame<WorldRoot>
     gameState.reset();
     world.reset();
     if (isLoaded) {
+      _birdEnemy.resetForNewRun();
+    }
+    if (isLoaded) {
       unawaited(_resetWorldPopulation());
     }
   }
@@ -789,6 +858,12 @@ class MyGame extends FlameGame<WorldRoot>
   void update(double dt) {
     super.update(clampDeltaTime(dt, GameConfig.maxDeltaTime));
 
+    if (phase.value == GamePhase.intro) {
+      if (inputState.confirmPressed || inputState.jumpPressed) {
+        unawaited(continueFromIntro());
+      }
+    }
+
     if (phase.value == GamePhase.menu) {
       _updateMenuNavigation(dt);
       if (inputState.confirmPressed) {
@@ -853,6 +928,19 @@ class MyGame extends FlameGame<WorldRoot>
       ..add(AppOverlays.touchControls);
   }
 
+  Future<void> continueFromIntro() async {
+    if (phase.value != GamePhase.intro) {
+      return;
+    }
+
+    phase.value = GamePhase.menu;
+    _resetMenuInputState();
+
+    if (isLoaded && _menu.parent == null) {
+      await world.add(_menu);
+    }
+  }
+
   void _startBgmIfNeeded() {
     if (_bgmStarted) {
       return;
@@ -862,7 +950,9 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   void togglePause() {
-    if (phase.value == GamePhase.menu || phase.value == GamePhase.gameOver) {
+    if (phase.value == GamePhase.intro ||
+        phase.value == GamePhase.menu ||
+        phase.value == GamePhase.gameOver) {
       return;
     }
 
@@ -929,8 +1019,7 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     if (isLoaded) {
-      // Reroll refreshes the full menu candidate carousel.
-      await rerollCharacter();
+      await _rebuildMenuCandidates();
 
       _cameraController.target = PositionComponent(
         position: GameConfig.playerSpawn,
