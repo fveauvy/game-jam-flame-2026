@@ -43,6 +43,7 @@ class PlayerComponent extends SpriteAnimationComponent
        _profile = profile,
        _baseSpeedMultiplier = speedMultiplier,
        _baseSizeMultiplier = sizeMultiplier,
+       moistureLevel = GameplayTuning.initialMoistureLevel,
        super(
          position: startPosition.clone(),
          size: Vector2.all(PhysicsTuning.playerBaseSize),
@@ -54,7 +55,7 @@ class PlayerComponent extends SpriteAnimationComponent
   }
 
   static const Duration _damageTextDuration = Duration(seconds: 1);
-  static const Duration _damageTextDelay = Duration(milliseconds: 500);
+  static const Duration _dryingDelay = Duration(milliseconds: 500);
   static const int _defaultHealth = 100;
   static ui.FragmentProgram? _frogOutlineProgram;
   static Future<ui.FragmentProgram>? _frogOutlineProgramLoader;
@@ -81,9 +82,10 @@ class PlayerComponent extends SpriteAnimationComponent
 
   CharacterProfile get profile => _profile;
   int get maxHealth => _maxHealth;
-  int get remainingHealth => _remainingHealth;
+  int moistureLevel;
 
-  bool _isDamageTextVisible = false;
+  int get remainingHealth => _remainingHealth;
+  bool _isDrying = false;
   bool isInWater = false;
   int _waterContacts = 0;
   int _frogHouseContacts = 0;
@@ -723,38 +725,23 @@ class PlayerComponent extends SpriteAnimationComponent
     previousPosition = PlayerVerticalPosition.land;
     removeWhere((child) => child is EggComponent);
     eggsCollected = 0;
+    moistureLevel = GameplayTuning.initialMoistureLevel;
   }
 
   Future<void> onHitGround(GroundComponent ground) async {
     if (game.phase.value != GamePhase.playing) {
       return;
     }
-    if (_isDamageTextVisible) return;
-    Future.delayed(_damageTextDelay, () {
-      _isDamageTextVisible = false;
+    if (_isDrying) return;
+    Future.delayed(_dryingDelay, () {
+      _isDrying = false;
     });
-    _isDamageTextVisible = true;
-    applyDamage(ground.damage);
-    final damageText = SimpleTextComponent(
-      color: Colors.red,
-      text: '- ${ground.damage}',
-      position: Vector2(size.x, -24),
-      priority: 50,
-    );
-    await damageText.add(
-      MoveEffect.by(
-        Vector2(
-          game.random.nextDouble() * size.x,
-          game.random.nextDouble() * size.y,
-        ),
-        EffectController(duration: 1.0, curve: Curves.linear, repeatCount: 1),
-      ),
-    );
-    add(damageText);
-    Future.delayed(_damageTextDuration, () {
-      if (damageText.parent == null) return;
-      damageText.removeFromParent();
-    });
+    _isDrying = true;
+    if (moistureLevel > 0) {
+      moistureLevel--;
+    } else {
+      await applyDamageWithInvincibilityDelay(ground.damage, 0.5);
+    }
   }
 
   Vector2 _resolveCollisionMidpoint(Set<Vector2> intersectionPoints) {
@@ -846,7 +833,7 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     _thornInvincibilityRemaining = PhysicsTuning.thornInvincibilitySeconds;
     _thornFlickerElapsed = 0;
-    applyDamage(PhysicsTuning.thornDamageAmount);
+    unawaited(applyDamage(PhysicsTuning.thornDamageAmount));
     await runDamageFlashEffect();
     await _spawnThornParticles(_resolveCollisionMidpoint(intersectionPoints));
   }
@@ -990,6 +977,7 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     if (other is WaterComponent) {
       _waterContacts = (_waterContacts - 1).clamp(0, 999999);
+      moistureLevel = GameplayTuning.initialMoistureLevel;
       isInWater = _waterContacts > 0;
     }
     if (other is WaterLilyComponent) {
@@ -1002,13 +990,34 @@ class PlayerComponent extends SpriteAnimationComponent
     super.onCollisionEnd(other);
   }
 
-  void applyDamage(int damage) {
+  Future<void> applyDamage(int damage) async {
     if (game.phase.value != GamePhase.playing) {
       return;
     }
     _remainingHealth = (_remainingHealth - damage).clamp(0, _maxHealth);
     if (_remainingHealth <= 0) {
       game.endGame();
+    } else {
+      final damageText = SimpleTextComponent(
+        color: Colors.red,
+        text: '- $damage',
+        position: Vector2(size.x, -24),
+        priority: 50,
+      );
+      await damageText.add(
+        MoveEffect.by(
+          Vector2(
+            game.random.nextDouble() * size.x,
+            game.random.nextDouble() * size.y,
+          ),
+          EffectController(duration: 1.0, curve: Curves.linear, repeatCount: 1),
+        ),
+      );
+      await add(damageText);
+      Future.delayed(_damageTextDuration, () {
+        if (damageText.parent == null) return;
+        damageText.removeFromParent();
+      });
     }
   }
 
@@ -1074,7 +1083,7 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     _thornInvincibilityRemaining = delay;
     _thornFlickerElapsed = 0;
-    applyDamage(damage);
+    await applyDamage(damage);
     await runDamageFlashEffect();
   }
 }

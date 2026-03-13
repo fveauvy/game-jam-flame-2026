@@ -3,6 +3,9 @@ abstract final class GameplayTuning {
   static const int frogSpriteCount = 30;
   static const int characterRerollAttempts = 8;
 
+  ///minus 1 every 0,5 seconds
+  static const int initialMoistureLevel = 10;
+
   // Initial world population.
   static const int initialFlyCount = 10;
   static const int initialEggCount = 20;

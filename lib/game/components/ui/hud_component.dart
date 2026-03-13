@@ -1,5 +1,5 @@
 import 'package:flame/components.dart';
-import 'package:flutter/painting.dart';
+import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -40,6 +40,24 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     textRenderer: TextPaint(style: healthTextStyle),
   );
 
+  static const double _barWidth = 120;
+  static const double _barHeight = 10;
+
+  late final RectangleComponent _moistureBarBg = RectangleComponent(
+    size: Vector2(_barWidth, _barHeight),
+    paint: Paint()..color = const Color(0x55FFFFFF),
+  );
+  late final RectangleComponent _moistureBarFill = RectangleComponent(
+    size: Vector2(_barWidth, _barHeight),
+    paint: Paint()..color = const Color(0xFF42A5F5),
+  );
+  late final TextComponent _moistureLabel = TextComponent(
+    text: 'Moisture',
+    textRenderer: TextPaint(
+      style: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 12),
+    ),
+  );
+
   late final TextComponent _fpsText = TextComponent(
     text: 'FPS: -',
     anchor: Anchor.topRight,
@@ -61,6 +79,9 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
       _nameText,
       _healthText,
       _eggsText,
+      _moistureBarBg,
+      _moistureBarFill,
+      _moistureLabel,
       _fpsText,
       _chronometerText,
     ]);
@@ -80,6 +101,7 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
       _syncHealthText();
       _syncEggsText();
       _syncChronometerText();
+      _syncMoistureBar();
       _layoutText();
       return;
     }
@@ -91,6 +113,7 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     _fpsElapsed = 0;
     _fpsFrames = 0;
     _syncHealthText();
+    _syncMoistureBar();
     _layoutText();
   }
 
@@ -110,6 +133,7 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
     }
     _nameText.text = profile.name.display;
     _syncHealthText();
+    _syncMoistureBar();
     _layoutText();
   }
 
@@ -121,6 +145,20 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
       return;
     }
     _healthText.text = 'Health: $remainingHealth/$maxHealth';
+  }
+
+  void _syncMoistureBar() {
+    final int? moisture = game.playerMoistureLevel;
+    final double fraction = moisture == null
+        ? 0
+        : (moisture / GameplayTuning.initialMoistureLevel).clamp(0.0, 1.0);
+    _moistureBarFill.size = Vector2(_barWidth * fraction, _barHeight);
+    final Color fill = Color.lerp(
+      const Color(0xFFF44336),
+      const Color(0xFF42A5F5),
+      fraction,
+    )!;
+    _moistureBarFill.paint = Paint()..color = fill;
   }
 
   void _syncEggsText() {
@@ -141,6 +179,15 @@ class HudComponent extends PositionComponent with HasGameReference<MyGame> {
       0,
       _healthText.position.y + _healthText.size.y + 4,
     );
+    _moistureLabel.position = Vector2(
+      0,
+      _eggsText.position.y + _eggsText.size.y + 6,
+    );
+    _moistureBarBg.position = Vector2(
+      0,
+      _moistureLabel.position.y + _moistureLabel.size.y + 2,
+    );
+    _moistureBarFill.position = _moistureBarBg.position.clone();
     _chronometerText.position = Vector2(game.size.x - 16, 4);
     _fpsText.position = Vector2(
       game.size.x - 16,
