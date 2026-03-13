@@ -81,10 +81,10 @@ class MenuComponent extends PositionComponent
   }
 
   @override
-  void onMount() {
+  Future<void> onMount() async {
     super.onMount();
     if (_statsPopover.parent == null) {
-      game.world.add(_statsPopover);
+      await game.world.add(_statsPopover);
     }
   }
 
