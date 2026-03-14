@@ -3,7 +3,10 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/experimental.dart';
+import 'package:flame/flame.dart';
+import 'package:flame/image_composition.dart';
 import 'package:flutter/material.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/ui_config.dart';
 import 'package:game_jam/game/character/model/character_generation_state.dart';
@@ -33,6 +36,14 @@ class MenuComponent extends PositionComponent
     // being proportional to the menu size.
     final plankWidth = math.min(menuSize.x * 0.8, 160.0);
     final plankHeight = math.min(menuSize.y * 0.4, 55.0);
+    final titleImage = await Flame.images.load(AssetPaths.titleCacheKey);
+    final titleRatio = titleImage.width / titleImage.height;
+
+    debugPrint('${titleImage.height} ${titleImage.width}');
+    debugPrint('$titleRatio');
+
+    final titleHeight = menuSize.y * 0.25;
+    final titleWidth = titleHeight * titleRatio;
 
     // Listen to character debug state changes to update the menu
     // 1. Add a semi-transparent background
@@ -44,6 +55,28 @@ class MenuComponent extends PositionComponent
         size: menuSize,
         anchor: Anchor.center,
         children: [
+          CircleComponent(
+            radius: menuSize.y * 0.35,
+            scale: Vector2(1, 0.40),
+            position: Vector2(menuSize.x / 2, menuSize.y * 0.4),
+            anchor: Anchor.center,
+            paint: Paint()
+              ..blendMode = BlendMode.multiply
+              ..color = Colors.black.withValues(
+                alpha: 0.8,
+                blue: 0.9,
+                green: 0.65,
+                red: 0.4,
+              )
+              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
+          ),
+          SpriteComponent(
+            size: Vector2(titleWidth, titleHeight),
+            sprite: Sprite(titleImage),
+            anchor: Anchor.center,
+            priority: 100,
+            position: Vector2(menuSize.x / 2, menuSize.y * 0.35),
+          ),
           SeedPanelComponent(
             size: Vector2(plankWidth, plankHeight),
             onReroll: onReroll,
