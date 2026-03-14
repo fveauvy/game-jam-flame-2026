@@ -57,7 +57,8 @@ class PlayerComponent extends SpriteAnimationComponent
   static const Duration _damageTextDuration = Duration(seconds: 1);
   static const Duration _dryingDelay = Duration(milliseconds: 500);
   static const int _defaultHealth = 100;
-  static const double _hitboxRadiusFactor = 1 / 3;
+  static const double _hitboxRadiusFactor = 1 / 2;
+  static const double _forcedSeparationThreshold = 1.5;
   static ui.FragmentProgram? _frogOutlineProgram;
   static Future<ui.FragmentProgram>? _frogOutlineProgramLoader;
 
@@ -243,7 +244,7 @@ class PlayerComponent extends SpriteAnimationComponent
       return;
     }
     hitbox.radius = resolveHitboxRadius(size.x);
-    hitbox.position = resolveHitboxPosition(size.x);
+    hitbox.position.setFrom(resolveHitboxPosition(size.x));
   }
 
   static double resolveHitboxRadius(double spriteSize) {
@@ -253,6 +254,13 @@ class PlayerComponent extends SpriteAnimationComponent
   static Vector2 resolveHitboxPosition(double spriteSize) {
     final double center = spriteSize / 2;
     return Vector2(center, center);
+  }
+
+  static double resolveCollisionSeparationDistance({
+    required double collisionRadius,
+    required double distanceToCollision,
+  }) {
+    return max(0.0, collisionRadius - distanceToCollision);
   }
 
   static int resolveMaxHealth(CharacterProfile profile) {
@@ -755,9 +763,28 @@ class PlayerComponent extends SpriteAnimationComponent
     }
   }
 
-  Vector2 _resolveCollisionMidpoint(Set<Vector2> intersectionPoints) {
-    if (intersectionPoints.isEmpty) {
+  Vector2 _resolveCollisionCenter() {
+    final CircleHitbox? hitbox = _hitbox;
+    if (hitbox == null) {
       return absoluteCenter.clone();
+    }
+    return hitbox.absoluteCenter;
+  }
+
+  double _resolveCollisionRadius() {
+    final CircleHitbox? hitbox = _hitbox;
+    if (hitbox == null) {
+      return resolveHitboxRadius(size.x);
+    }
+    return hitbox.radius;
+  }
+
+  Vector2 _resolveCollisionMidpoint(
+    Set<Vector2> intersectionPoints, {
+    Vector2? fallback,
+  }) {
+    if (intersectionPoints.isEmpty) {
+      return fallback?.clone() ?? _resolveCollisionCenter();
     }
     Vector2 sum = Vector2.zero();
     for (final Vector2 point in intersectionPoints) {
@@ -766,13 +793,48 @@ class PlayerComponent extends SpriteAnimationComponent
     return sum / intersectionPoints.length.toDouble();
   }
 
+  void _separateFromCollision({
+    required Set<Vector2> intersectionPoints,
+    required bool onlyWhenMovingInto,
+    Vector2? obstacleCenter,
+  }) {
+    final Vector2 collisionCenter = _resolveCollisionCenter();
+    final Vector2 collisionMid = _resolveCollisionMidpoint(
+      intersectionPoints,
+      fallback: obstacleCenter,
+    );
+    final Vector2 collisionNormal = resolveThornKnockbackDirection(
+      playerCenter: collisionCenter,
+      collisionMidpoint: collisionMid,
+      thornCenter: obstacleCenter,
+    );
+    final double separationDistance = resolveCollisionSeparationDistance(
+      collisionRadius: _resolveCollisionRadius(),
+      distanceToCollision: collisionCenter.distanceTo(collisionMid),
+    );
+    if (separationDistance <= 0) {
+      return;
+    }
+    if (onlyWhenMovingInto) {
+      final double moveDot = _movementDot(collisionNormal);
+      if (moveDot >= 0 && separationDistance <= _forcedSeparationThreshold) {
+        return;
+      }
+    }
+    position += collisionNormal.scaled(separationDistance);
+  }
+
   void _applyThornImpact(
     Set<Vector2> intersectionPoints,
     ThornComponent thorn,
   ) {
-    final Vector2 collisionMid = _resolveCollisionMidpoint(intersectionPoints);
+    final Vector2 collisionCenter = _resolveCollisionCenter();
+    final Vector2 collisionMid = _resolveCollisionMidpoint(
+      intersectionPoints,
+      fallback: thorn.absoluteCenter,
+    );
     final Vector2 collisionNormal = resolveThornKnockbackDirection(
-      playerCenter: absoluteCenter,
+      playerCenter: collisionCenter,
       collisionMidpoint: collisionMid,
       thornCenter: thorn.absoluteCenter,
     );
@@ -780,8 +842,10 @@ class PlayerComponent extends SpriteAnimationComponent
       collisionNormal.scaled(PhysicsTuning.thornKnockbackSpeed),
     );
 
-    final double separationDistance =
-        (size.x / 2) - absoluteCenter.distanceTo(collisionMid);
+    final double separationDistance = resolveCollisionSeparationDistance(
+      collisionRadius: _resolveCollisionRadius(),
+      distanceToCollision: collisionCenter.distanceTo(collisionMid),
+    );
     if (separationDistance > 0) {
       position += collisionNormal.scaled(separationDistance);
     }
@@ -846,7 +910,12 @@ class PlayerComponent extends SpriteAnimationComponent
     _thornFlickerElapsed = 0;
     unawaited(applyDamage(PhysicsTuning.thornDamageAmount));
     await runDamageFlashEffect();
-    await _spawnThornParticles(_resolveCollisionMidpoint(intersectionPoints));
+    await _spawnThornParticles(
+      _resolveCollisionMidpoint(
+        intersectionPoints,
+        fallback: thorn.absoluteCenter,
+      ),
+    );
   }
 
   @override
@@ -861,19 +930,11 @@ class PlayerComponent extends SpriteAnimationComponent
     if (other is GroundComponent) {
       await onHitGround(other);
       if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
-        if (intersectionPoints.length == 2) {
-          final mid =
-              (intersectionPoints.elementAt(0) +
-                  intersectionPoints.elementAt(1)) /
-              2;
-          final collisionNormal = absoluteCenter - mid;
-          final separationDistance = (size.x / 2) - collisionNormal.length;
-          collisionNormal.normalize();
-          final double moveDot = _movementDot(collisionNormal);
-          if (moveDot < 0 || separationDistance > 1.5) {
-            position += collisionNormal.scaled(separationDistance);
-          }
-        }
+        _separateFromCollision(
+          intersectionPoints: intersectionPoints,
+          onlyWhenMovingInto: true,
+          obstacleCenter: other.absoluteCenter,
+        );
       }
     }
     if (other is ThornComponent) {
@@ -881,30 +942,19 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     if (other is WaterLilyComponent &&
         levelPosition == PlayerVerticalPosition.waterLevel) {
-      if (intersectionPoints.length != 2) return;
-      final mid =
-          (intersectionPoints.elementAt(0) + intersectionPoints.elementAt(1)) /
-          2;
-      final collisionNormal = absoluteCenter - mid;
-      final separationDistance = (size.x / 2) - collisionNormal.length;
-      collisionNormal.normalize();
-      position += collisionNormal.scaled(separationDistance);
+      _separateFromCollision(
+        intersectionPoints: intersectionPoints,
+        onlyWhenMovingInto: false,
+        obstacleCenter: other.absoluteCenter,
+      );
     }
     if (other is FrogHouseComponent) {
       if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
-        if (intersectionPoints.length == 2) {
-          final mid =
-              (intersectionPoints.elementAt(0) +
-                  intersectionPoints.elementAt(1)) /
-              2;
-          final collisionNormal = absoluteCenter - mid;
-          final separationDistance = (size.x / 2) - collisionNormal.length;
-          collisionNormal.normalize();
-          final double moveDot = _movementDot(collisionNormal);
-          if (moveDot < 0 || separationDistance > 1.5) {
-            position += collisionNormal.scaled(separationDistance);
-          }
-        }
+        _separateFromCollision(
+          intersectionPoints: intersectionPoints,
+          onlyWhenMovingInto: true,
+          obstacleCenter: other.absoluteCenter,
+        );
       }
     }
 

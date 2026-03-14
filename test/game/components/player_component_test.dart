@@ -218,7 +218,7 @@ void main() {
   test('hitbox radius keeps consistent factor with sprite size', () {
     final double radius = PlayerComponent.resolveHitboxRadius(99);
 
-    expect(radius, closeTo(33, 0.000001));
+    expect(radius, closeTo(49.5, 0.000001));
   });
 
   test('hitbox position stays centered after size changes', () {
@@ -226,5 +226,25 @@ void main() {
 
     expect(center.x, closeTo(55, 0.000001));
     expect(center.y, closeTo(55, 0.000001));
+  });
+
+  test('collision separation clamps negative overlap to zero', () {
+    final double separation =
+        PlayerComponent.resolveCollisionSeparationDistance(
+          collisionRadius: 50,
+          distanceToCollision: 61,
+        );
+
+    expect(separation, 0);
+  });
+
+  test('collision separation returns penetration depth', () {
+    final double separation =
+        PlayerComponent.resolveCollisionSeparationDistance(
+          collisionRadius: 50,
+          distanceToCollision: 38,
+        );
+
+    expect(separation, 12);
   });
 }
