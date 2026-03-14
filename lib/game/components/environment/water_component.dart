@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/game/my_game.dart';
 
@@ -21,7 +21,7 @@ enum WaterAssetPosition {
   up,
 }
 
-class WaterComponent extends SpriteComponent with HasGameReference<MyGame> {
+class WaterComponent extends RectangleComponent with HasGameReference<MyGame> {
   final WaterAssetPosition assetPosition;
   WaterComponent({
     required Vector2 position,
@@ -32,17 +32,26 @@ class WaterComponent extends SpriteComponent with HasGameReference<MyGame> {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    paint = Paint()..color = const Color.fromARGB(255, 151, 200, 186);
+  }
+}
+
+class WaterSpriteComponent extends SpriteComponent
+    with HasGameReference<MyGame> {
+  final WaterAssetPosition assetPosition;
+  WaterSpriteComponent({
+    required Vector2 position,
+    required Vector2 size,
+    required this.assetPosition,
+  }) : super(position: position, size: size, priority: 0);
+
+  @override
+  Future<void> onLoad() async {
     sprite = Sprite(
       game.images.fromCache(assetPath),
       srcSize: Vector2(100, 100),
     );
-    add(
-      RectangleHitbox(
-        size: size,
-        priority: 1,
-        collisionType: CollisionType.passive,
-      ),
-    );
+    return super.onLoad();
   }
 
   String get assetPath => switch (assetPosition) {
