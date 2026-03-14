@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
+import 'package:game_jam/core/config/ui_config.dart';
 
 class YouWinOverlay extends StatefulWidget {
-  final VoidCallback onRestart;
+  final Future<void> Function() onRetrySeed;
+  final Future<void> Function() onRestartWithNewSeed;
   final String winningTime;
   final Future<bool> Function(String playerName) onPublishScore;
 
   const YouWinOverlay({
     super.key,
-    required this.onRestart,
+    required this.onRetrySeed,
+    required this.onRestartWithNewSeed,
     required this.winningTime,
     required this.onPublishScore,
   });
@@ -20,6 +23,7 @@ class YouWinOverlay extends StatefulWidget {
 class _YouWinOverlayState extends State<YouWinOverlay> {
   bool _isPublishing = false;
   bool _hasPublishedScore = false;
+  bool _isRestarting = false;
 
   Future<void> _publishScore() async {
     if (_hasPublishedScore) {
@@ -27,7 +31,7 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
         context,
       );
       messenger?.showSnackBar(
-        const SnackBar(content: Text('Score already published for this run.')),
+        const SnackBar(content: Text(WinOverlayUi.duplicatePublishMessage)),
       );
       return;
     }
@@ -37,14 +41,14 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
       builder: (BuildContext dialogContext) {
         final TextEditingController controller = TextEditingController();
         return AlertDialog(
-          title: const Text('Publish Score'),
+          title: const Text(WinOverlayUi.publishDialogTitle),
           content: TextField(
             controller: controller,
             autofocus: true,
             textInputAction: TextInputAction.done,
             decoration: const InputDecoration(
-              labelText: 'Player name',
-              hintText: 'Enter your name',
+              labelText: WinOverlayUi.publishNameLabel,
+              hintText: WinOverlayUi.publishNameHint,
             ),
             onSubmitted: (String value) {
               final String normalized = value.trim();
@@ -56,7 +60,7 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: const Text(WinOverlayUi.cancelAction),
             ),
             FilledButton(
               onPressed: () {
@@ -65,7 +69,7 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
                   dialogContext,
                 ).pop(normalized.isEmpty ? null : normalized);
               },
-              child: const Text('Publish'),
+              child: const Text(WinOverlayUi.publishAction),
             ),
           ],
         );
@@ -97,85 +101,164 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
     );
     messenger?.showSnackBar(
       SnackBar(
-        content: Text(success ? 'Score published.' : 'Score publish failed.'),
+        content: Text(
+          success
+              ? WinOverlayUi.publishSuccessMessage
+              : WinOverlayUi.publishFailMessage,
+        ),
       ),
     );
+  }
+
+  Future<void> _runRestart(Future<void> Function() action) async {
+    if (_isRestarting) {
+      return;
+    }
+    setState(() {
+      _isRestarting = true;
+    });
+    await action();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isRestarting = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: Colors.black.withValues(alpha: 0.45),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: AspectRatio(
-              aspectRatio: 773 / 801,
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage(AssetPaths.uiTooltip),
-                    fit: BoxFit.cover,
+      color: Colors.black.withValues(
+        alpha: WinOverlayUi.overlayBackgroundAlpha,
+      ),
+      child: SafeArea(
+        child: Center(
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final bool compact = constraints.maxHeight < 600;
+              final double spacing = compact ? 10 : WinOverlayUi.contentSpacing;
+              final double titleSize = compact
+                  ? 24
+                  : WinOverlayUi.titleFontSize + 6;
+              final double subtitleSize = compact
+                  ? 20
+                  : WinOverlayUi.titleFontSize;
+              final double summarySize = compact
+                  ? 14
+                  : WinOverlayUi.summaryFontSize;
+              final double timeSize = compact
+                  ? 16
+                  : WinOverlayUi.rescueTimeFontSize;
+              final double hPad = compact
+                  ? 20
+                  : WinOverlayUi.summaryHorizontalPadding;
+
+              final Widget content = Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: spacing,
+                children: [
+                  Text(
+                    WinOverlayUi.victoryExclamation,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w800,
+                      color: WinOverlayUi.titleColor,
+                    ),
                   ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 18,
-                  children: [
-                    const Text(
-                      'The little brothers are safe.',
+                  Text(
+                    WinOverlayUi.victoryTitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: subtitleSize,
+                      fontWeight: FontWeight.w700,
+                      color: WinOverlayUi.titleColor,
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: hPad),
+                    child: Text(
+                      WinOverlayUi.victorySummary,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF2A170E),
+                        fontSize: summarySize,
+                        fontWeight: FontWeight.w500,
+                        color: WinOverlayUi.summaryColor,
+                        height: WinOverlayUi.summaryLineHeight,
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 36),
-                      child: Text(
-                        'You brought every egg home before the marsh could take them.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF3B2418),
-                          height: 1.35,
-                        ),
-                      ),
+                  ),
+                  Text(
+                    '${WinOverlayUi.rescueTimePrefix} ${widget.winningTime}',
+                    style: TextStyle(
+                      fontSize: timeSize,
+                      fontWeight: FontWeight.w700,
+                      color: WinOverlayUi.rescueTimeColor,
                     ),
-                    Text(
-                      'Rescue time: ${widget.winningTime}',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A0C05),
-                      ),
+                  ),
+                  FilledButton(
+                    onPressed: (_isPublishing || _hasPublishedScore)
+                        ? null
+                        : _publishScore,
+                    child: Text(
+                      _isPublishing
+                          ? WinOverlayUi.publishingLabel
+                          : (_hasPublishedScore
+                                ? WinOverlayUi.publishedLabel
+                                : WinOverlayUi.publishAction),
                     ),
-                    FilledButton(
-                      onPressed: (_isPublishing || _hasPublishedScore)
-                          ? null
-                          : _publishScore,
-                      child: Text(
-                        _isPublishing
-                            ? 'Publishing...'
-                            : (_hasPublishedScore
-                                  ? 'Published'
-                                  : 'Publish Score'),
-                      ),
+                  ),
+                  FilledButton(
+                    onPressed: _isRestarting
+                        ? null
+                        : () => _runRestart(widget.onRetrySeed),
+                    child: Text(
+                      _isRestarting
+                          ? WinOverlayUi.restartingLabel
+                          : WinOverlayUi.retrySeedAction,
                     ),
-                    FilledButton(
-                      onPressed: widget.onRestart,
-                      child: const Text('Play Again'),
-                    ),
-                  ],
+                  ),
+                  FilledButton(
+                    onPressed: _isRestarting
+                        ? null
+                        : () => _runRestart(widget.onRestartWithNewSeed),
+                    child: const Text(WinOverlayUi.restartNewSeedAction),
+                  ),
+                ],
+              );
+
+              return ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: WinOverlayUi.maxWidth,
                 ),
-              ),
-            ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(WinOverlayUi.cardRadius),
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage(AssetPaths.uiTooltip),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    child: compact
+                        ? SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 20,
+                            ),
+                            child: content,
+                          )
+                        : AspectRatio(
+                            aspectRatio: WinOverlayUi.cardAspectRatio,
+                            child: content,
+                          ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),

@@ -15,6 +15,7 @@ abstract final class AssetPaths {
   static const String thorns1 = 'assets/images/environment/Ronces1.png';
   static const String thorns2 = 'assets/images/environment/Ronces2.png';
   static const String thorns3 = 'assets/images/environment/Ronces3.png';
+  static const String leaf = 'assets/images/environment/Feuille.png';
 
   // HUD and overlay art.
   static const String uiTooltip = 'assets/images/ui/tooltip.png';
@@ -23,6 +24,7 @@ abstract final class AssetPaths {
   static const String uiIntelligenceLogo =
       'assets/images/ui/intelligence_logo.png';
   static const String uiSpeedLogo = 'assets/images/ui/speed_logo.png';
+  static const String uiTitle = 'assets/images/ui/title.png';
 
   // Data and audio assets.
   static const String characterPools = 'assets/data/character_pools.json';
@@ -34,6 +36,7 @@ abstract final class AssetPaths {
   static const String tongueLickSfx = 'sound_effects/coup-de-langue.mp3';
 
   // Flame image cache keys.
+  static const String titleCacheKey = 'ui/title.png';
   static const String uiRefreshLogoCacheKey = 'ui/refresh_logo.png';
   static const String splashScreenCacheKey = 'splash_screen.png';
   static const String plankCacheKey = 'plank.png';
@@ -46,6 +49,7 @@ abstract final class AssetPaths {
   static const String thorns1CacheKey = 'environment/Ronces1.png';
   static const String thorns2CacheKey = 'environment/Ronces2.png';
   static const String thorns3CacheKey = 'environment/Ronces3.png';
+  static const String leafCacheKey = 'environment/Feuille.png';
   static const String tongue1CacheKey = 'gronouy/Langue1.png';
   static const String tongue2CacheKey = 'gronouy/Langue2.png';
   static const String tongue3CacheKey = 'gronouy/Langue3.png';
@@ -86,6 +90,22 @@ abstract final class AssetPaths {
     ];
   }
 
+  static String birdAnimatedSpriteCacheKey(int number) {
+    return 'birds/oiseau$number.webp';
+  }
+
+  static String birdShadowAnimatedSpriteCacheKey(int number) {
+    return 'birds/ombre$number.webp';
+  }
+
+  static String birdFloutixMaxAnimatedSpriteCacheKey(int number) {
+    return 'birds/floutix$number.webp';
+  }
+
+  static String birdFloutixAnimatedSpriteCacheKey(int number) {
+    return 'birds/floutix$number.webp';
+  }
+
   static String imageCacheKeyFromAssetPath(String path) {
     const String imageAssetPrefix = 'assets/images/';
     if (path.startsWith(imageAssetPrefix)) {
@@ -95,6 +115,11 @@ abstract final class AssetPaths {
   }
 
   static List<int> animatedFrogSpriteId = [10, 11, 12, 13, 14];
+
+  static List<int> birdSpriteId = [1, 2];
+  static List<int> birdShadowSpriteId = [1, 2];
+  static List<int> birdFloutixMaxSpriteId = [1, 2];
+  static List<int> birdFloutixSpriteId = [1, 2];
 
   static List<String> get preloadImageCacheKeys => <String>[
     plankCacheKey,
@@ -106,7 +131,9 @@ abstract final class AssetPaths {
     waterLilyAltCacheKey,
     flyCacheKey,
     eggsCacheKey,
+    titleCacheKey,
     ...thornsAnimationCacheKeys,
+    leafCacheKey,
     tongue1CacheKey,
     tongue2CacheKey,
     tongue3CacheKey,
@@ -118,6 +145,12 @@ abstract final class AssetPaths {
       }
       return frogSpriteCacheKey(index + 1);
     }, growable: false).where((path) => path.isNotEmpty),
+    ...birdSpriteId.map((id) => birdAnimatedSpriteCacheKey(id)),
+    ...birdShadowSpriteId.map((id) => birdShadowAnimatedSpriteCacheKey(id)),
+    ...birdFloutixMaxSpriteId.map(
+      (id) => birdFloutixMaxAnimatedSpriteCacheKey(id),
+    ),
+    ...birdFloutixSpriteId.map((id) => birdFloutixAnimatedSpriteCacheKey(id)),
     waterTexture,
     ...List<String>.generate(croqueAnimationFrames, (index) {
       final frameNumber = index;

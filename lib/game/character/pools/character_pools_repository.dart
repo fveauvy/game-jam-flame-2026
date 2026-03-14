@@ -9,12 +9,12 @@ class CharacterNamePool {
   const CharacterNamePool({
     required this.adjectives,
     required this.nouns,
-    required this.batches,
+    required this.titles,
   });
 
   final List<String> adjectives;
   final List<String> nouns;
-  final List<String> batches;
+  final List<String> titles;
 }
 
 class CharacterPools {

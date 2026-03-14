@@ -27,7 +27,7 @@ function renderRows(entries) {
   if (!Array.isArray(entries) || entries.length === 0) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 3;
+    cell.colSpan = 4;
     cell.textContent = 'No scores yet.';
     row.appendChild(cell);
     body.appendChild(row);
@@ -43,11 +43,17 @@ function renderRows(entries) {
     const nameCell = document.createElement('td');
     nameCell.textContent = entry.name;
 
+    const seedCell = document.createElement('td');
+    seedCell.textContent = typeof entry.seed === 'string' && entry.seed.length > 0
+      ? entry.seed
+      : '-';
+
     const timeCell = document.createElement('td');
     timeCell.textContent = formatTime(entry.timeMs);
 
     row.appendChild(rankCell);
     row.appendChild(nameCell);
+    row.appendChild(seedCell);
     row.appendChild(timeCell);
     body.appendChild(row);
   }

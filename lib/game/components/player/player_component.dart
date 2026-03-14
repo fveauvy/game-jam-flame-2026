@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
@@ -27,7 +28,11 @@ import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class PlayerComponent extends SpriteAnimationComponent
-    with HasGameReference<MyGame>, CollisionCallbacks, TapCallbacks {
+    with
+        HasGameReference<MyGame>,
+        CollisionCallbacks,
+        TapCallbacks,
+        HoverCallbacks {
   PlayerComponent({
     required this.inputState,
     required CharacterProfile profile,
@@ -38,6 +43,7 @@ class PlayerComponent extends SpriteAnimationComponent
        _profile = profile,
        _baseSpeedMultiplier = speedMultiplier,
        _baseSizeMultiplier = sizeMultiplier,
+       moistureLevel = GameplayTuning.initialMoistureLevel,
        super(
          position: startPosition.clone(),
          size: Vector2.all(PhysicsTuning.playerBaseSize),
@@ -49,8 +55,12 @@ class PlayerComponent extends SpriteAnimationComponent
   }
 
   static const Duration _damageTextDuration = Duration(seconds: 1);
-  static const Duration _damageTextDelay = Duration(milliseconds: 500);
+  static const Duration _dryingDelay = Duration(milliseconds: 500);
   static const int _defaultHealth = 100;
+  static const double _hitboxRadiusFactor = 1 / 2;
+  static const double _forcedSeparationThreshold = 1.5;
+  static ui.FragmentProgram? _frogOutlineProgram;
+  static Future<ui.FragmentProgram>? _frogOutlineProgramLoader;
 
   final InputState inputState;
   final Vector2 _startPosition;
@@ -59,6 +69,9 @@ class PlayerComponent extends SpriteAnimationComponent
 
   CharacterProfile _profile;
   double _spriteOpacity = 1.0;
+  bool _isHoveredInMenu = false;
+  bool _isMenuSelected = false;
+  ui.FragmentShader? _frogOutlineShader;
   CircleHitbox? _hitbox;
   late double _speedMultiplier;
   late double _sizeMultiplier;
@@ -71,9 +84,10 @@ class PlayerComponent extends SpriteAnimationComponent
 
   CharacterProfile get profile => _profile;
   int get maxHealth => _maxHealth;
-  int get remainingHealth => _remainingHealth;
+  int moistureLevel;
 
-  bool _isDamageTextVisible = false;
+  int get remainingHealth => _remainingHealth;
+  bool _isDrying = false;
   bool isInWater = false;
   int _waterContacts = 0;
   int _frogHouseContacts = 0;
@@ -81,6 +95,7 @@ class PlayerComponent extends SpriteAnimationComponent
   int _lilyContacts = 0;
   bool _jumpActive = false;
   double _jumpElapsed = 0;
+  double _outlinePulseTime = 0;
   double _underwaterSurfaceGraceRemaining = 0;
   Vector2 _jumpDirection = Vector2.zero();
   final Vector2 _thornKnockbackVelocity = Vector2.zero();
@@ -113,13 +128,53 @@ class PlayerComponent extends SpriteAnimationComponent
   }
 
   @override
+  void onHoverEnter() {
+    super.onHoverEnter();
+    if (game.phase.value != GamePhase.menu) {
+      return;
+    }
+    _isHoveredInMenu = true;
+    final int index = game.playerCandidates.indexOf(this);
+    if (index != -1) {
+      game.pointCharacterCandidate(index);
+    }
+  }
+
+  @override
+  void onHoverExit() {
+    super.onHoverExit();
+    _isHoveredInMenu = false;
+  }
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    await _ensureOutlineShader();
+  }
+
+  Future<void> _ensureOutlineShader() async {
+    try {
+      final ui.FragmentProgram program =
+          _frogOutlineProgram ??
+          await (_frogOutlineProgramLoader ??= ui.FragmentProgram.fromAsset(
+            'shaders/frog_outline.frag',
+          ));
+      _frogOutlineProgram = program;
+      _frogOutlineShader = program.fragmentShader();
+    } catch (error) {
+      _frogOutlineShader = null;
+      debugPrint('[shader] frog outline unavailable: $error');
+    }
+  }
+
+  @override
   Future<void> onMount() async {
     super.onMount();
     paint = Paint()
       ..color = Colors.white.withAlpha((_spriteOpacity * 255).toInt());
     _hitbox = CircleHitbox(
-      radius: (size.x / 3),
-      position: Vector2(size.x / 2, size.y / 2),
+      radius: resolveHitboxRadius(size.x),
+      position: resolveHitboxPosition(size.x),
       anchor: Anchor.center,
     );
     // Players always spawn on land; initialise the shared input state so that
@@ -188,7 +243,24 @@ class PlayerComponent extends SpriteAnimationComponent
     if (hitbox == null) {
       return;
     }
-    hitbox.radius = size.x / 2;
+    hitbox.radius = resolveHitboxRadius(size.x);
+    hitbox.position.setFrom(resolveHitboxPosition(size.x));
+  }
+
+  static double resolveHitboxRadius(double spriteSize) {
+    return spriteSize * _hitboxRadiusFactor;
+  }
+
+  static Vector2 resolveHitboxPosition(double spriteSize) {
+    final double center = spriteSize / 2;
+    return Vector2(center, center);
+  }
+
+  static double resolveCollisionSeparationDistance({
+    required double collisionRadius,
+    required double distanceToCollision,
+  }) {
+    return max(0.0, collisionRadius - distanceToCollision);
   }
 
   static int resolveMaxHealth(CharacterProfile profile) {
@@ -436,9 +508,68 @@ class PlayerComponent extends SpriteAnimationComponent
     }
   }
 
+  void _syncMenuPointedVisual() {
+    if (game.phase.value != GamePhase.menu) {
+      _isHoveredInMenu = false;
+      _isMenuSelected = false;
+      scale = Vector2.all(1.0);
+      paint.color = Colors.white.withValues(alpha: _spriteOpacity);
+      return;
+    }
+
+    final state = game.characterGenerationState.value;
+    final int index = game.playerCandidates.indexOf(this);
+    final bool isSelected =
+        state != null && index != -1 && index == state.selectedIndex;
+    _isMenuSelected = isSelected;
+    final bool isPointed = isSelected || _isHoveredInMenu;
+
+    scale = Vector2.all(isPointed ? 1.08 : 1.0);
+    paint.color = Colors.white.withValues(alpha: isPointed ? 1.0 : 0.9);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final Sprite? currentSprite = animationTicker?.getSprite();
+    if (currentSprite == null) {
+      super.render(canvas);
+      return;
+    }
+
+    final bool shouldUseShader =
+        game.phase.value == GamePhase.menu && _isMenuSelected;
+    if (!shouldUseShader) {
+      super.render(canvas);
+      return;
+    }
+
+    final ui.FragmentShader? shader = _frogOutlineShader;
+    if (shader == null) {
+      super.render(canvas);
+      return;
+    }
+
+    shader
+      ..setFloat(0, size.x)
+      ..setFloat(1, size.y)
+      ..setFloat(2, 2.0)
+      ..setFloat(3, 1.0)
+      ..setFloat(4, 1.0)
+      ..setFloat(5, 1.0)
+      ..setFloat(6, 1.0)
+      ..setFloat(7, _outlinePulseTime)
+      ..setImageSampler(0, currentSprite.image);
+
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.x, size.y),
+      Paint()..shader = shader,
+    );
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
+    _outlinePulseTime += dt;
     final Vector2 movement = normalizeMoveAxis(
       inputState.moveAxisX,
       inputState.moveAxisY,
@@ -458,8 +589,11 @@ class PlayerComponent extends SpriteAnimationComponent
     _thornFlickerElapsed += dt;
 
     if (game.phase.value != GamePhase.playing) {
+      _syncMenuPointedVisual();
       return;
     }
+
+    scale = Vector2.all(1.0);
 
     _syncMovementAnimation();
 
@@ -610,43 +744,47 @@ class PlayerComponent extends SpriteAnimationComponent
     previousPosition = PlayerVerticalPosition.land;
     removeWhere((child) => child is EggComponent);
     eggsCollected = 0;
+    moistureLevel = GameplayTuning.initialMoistureLevel;
   }
 
   Future<void> onHitGround(GroundComponent ground) async {
     if (game.phase.value != GamePhase.playing) {
       return;
     }
-    if (_isDamageTextVisible) return;
-    Future.delayed(_damageTextDelay, () {
-      _isDamageTextVisible = false;
+    if (_isDrying) return;
+    Future.delayed(_dryingDelay, () {
+      _isDrying = false;
     });
-    _isDamageTextVisible = true;
-    applyDamage(ground.damage);
-    final damageText = SimpleTextComponent(
-      color: Colors.red,
-      text: '- ${ground.damage}',
-      position: Vector2(size.x, -24),
-      priority: 50,
-    );
-    await damageText.add(
-      MoveEffect.by(
-        Vector2(
-          game.random.nextDouble() * size.x,
-          game.random.nextDouble() * size.y,
-        ),
-        EffectController(duration: 1.0, curve: Curves.linear, repeatCount: 1),
-      ),
-    );
-    add(damageText);
-    Future.delayed(_damageTextDuration, () {
-      if (damageText.parent == null) return;
-      damageText.removeFromParent();
-    });
+    _isDrying = true;
+    if (moistureLevel > 0) {
+      moistureLevel--;
+    } else {
+      await applyDamageWithInvincibilityDelay(ground.damage, 0.5);
+    }
   }
 
-  Vector2 _resolveCollisionMidpoint(Set<Vector2> intersectionPoints) {
-    if (intersectionPoints.isEmpty) {
+  Vector2 _resolveCollisionCenter() {
+    final CircleHitbox? hitbox = _hitbox;
+    if (hitbox == null) {
       return absoluteCenter.clone();
+    }
+    return hitbox.absoluteCenter;
+  }
+
+  double _resolveCollisionRadius() {
+    final CircleHitbox? hitbox = _hitbox;
+    if (hitbox == null) {
+      return resolveHitboxRadius(size.x);
+    }
+    return hitbox.radius;
+  }
+
+  Vector2 _resolveCollisionMidpoint(
+    Set<Vector2> intersectionPoints, {
+    Vector2? fallback,
+  }) {
+    if (intersectionPoints.isEmpty) {
+      return fallback?.clone() ?? _resolveCollisionCenter();
     }
     Vector2 sum = Vector2.zero();
     for (final Vector2 point in intersectionPoints) {
@@ -655,13 +793,48 @@ class PlayerComponent extends SpriteAnimationComponent
     return sum / intersectionPoints.length.toDouble();
   }
 
+  void _separateFromCollision({
+    required Set<Vector2> intersectionPoints,
+    required bool onlyWhenMovingInto,
+    Vector2? obstacleCenter,
+  }) {
+    final Vector2 collisionCenter = _resolveCollisionCenter();
+    final Vector2 collisionMid = _resolveCollisionMidpoint(
+      intersectionPoints,
+      fallback: obstacleCenter,
+    );
+    final Vector2 collisionNormal = resolveThornKnockbackDirection(
+      playerCenter: collisionCenter,
+      collisionMidpoint: collisionMid,
+      thornCenter: obstacleCenter,
+    );
+    final double separationDistance = resolveCollisionSeparationDistance(
+      collisionRadius: _resolveCollisionRadius(),
+      distanceToCollision: collisionCenter.distanceTo(collisionMid),
+    );
+    if (separationDistance <= 0) {
+      return;
+    }
+    if (onlyWhenMovingInto) {
+      final double moveDot = _movementDot(collisionNormal);
+      if (moveDot >= 0 && separationDistance <= _forcedSeparationThreshold) {
+        return;
+      }
+    }
+    position += collisionNormal.scaled(separationDistance);
+  }
+
   void _applyThornImpact(
     Set<Vector2> intersectionPoints,
     ThornComponent thorn,
   ) {
-    final Vector2 collisionMid = _resolveCollisionMidpoint(intersectionPoints);
+    final Vector2 collisionCenter = _resolveCollisionCenter();
+    final Vector2 collisionMid = _resolveCollisionMidpoint(
+      intersectionPoints,
+      fallback: thorn.absoluteCenter,
+    );
     final Vector2 collisionNormal = resolveThornKnockbackDirection(
-      playerCenter: absoluteCenter,
+      playerCenter: collisionCenter,
       collisionMidpoint: collisionMid,
       thornCenter: thorn.absoluteCenter,
     );
@@ -669,8 +842,10 @@ class PlayerComponent extends SpriteAnimationComponent
       collisionNormal.scaled(PhysicsTuning.thornKnockbackSpeed),
     );
 
-    final double separationDistance =
-        (size.x / 2) - absoluteCenter.distanceTo(collisionMid);
+    final double separationDistance = resolveCollisionSeparationDistance(
+      collisionRadius: _resolveCollisionRadius(),
+      distanceToCollision: collisionCenter.distanceTo(collisionMid),
+    );
     if (separationDistance > 0) {
       position += collisionNormal.scaled(separationDistance);
     }
@@ -733,9 +908,14 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     _thornInvincibilityRemaining = PhysicsTuning.thornInvincibilitySeconds;
     _thornFlickerElapsed = 0;
-    applyDamage(PhysicsTuning.thornDamageAmount);
+    unawaited(applyDamage(PhysicsTuning.thornDamageAmount));
     await runDamageFlashEffect();
-    await _spawnThornParticles(_resolveCollisionMidpoint(intersectionPoints));
+    await _spawnThornParticles(
+      _resolveCollisionMidpoint(
+        intersectionPoints,
+        fallback: thorn.absoluteCenter,
+      ),
+    );
   }
 
   @override
@@ -750,19 +930,11 @@ class PlayerComponent extends SpriteAnimationComponent
     if (other is GroundComponent) {
       await onHitGround(other);
       if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
-        if (intersectionPoints.length == 2) {
-          final mid =
-              (intersectionPoints.elementAt(0) +
-                  intersectionPoints.elementAt(1)) /
-              2;
-          final collisionNormal = absoluteCenter - mid;
-          final separationDistance = (size.x / 2) - collisionNormal.length;
-          collisionNormal.normalize();
-          final double moveDot = _movementDot(collisionNormal);
-          if (moveDot < 0 || separationDistance > 1.5) {
-            position += collisionNormal.scaled(separationDistance);
-          }
-        }
+        _separateFromCollision(
+          intersectionPoints: intersectionPoints,
+          onlyWhenMovingInto: true,
+          obstacleCenter: other.absoluteCenter,
+        );
       }
     }
     if (other is ThornComponent) {
@@ -770,30 +942,19 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     if (other is WaterLilyComponent &&
         levelPosition == PlayerVerticalPosition.waterLevel) {
-      if (intersectionPoints.length != 2) return;
-      final mid =
-          (intersectionPoints.elementAt(0) + intersectionPoints.elementAt(1)) /
-          2;
-      final collisionNormal = absoluteCenter - mid;
-      final separationDistance = (size.x / 2) - collisionNormal.length;
-      collisionNormal.normalize();
-      position += collisionNormal.scaled(separationDistance);
+      _separateFromCollision(
+        intersectionPoints: intersectionPoints,
+        onlyWhenMovingInto: false,
+        obstacleCenter: other.absoluteCenter,
+      );
     }
     if (other is FrogHouseComponent) {
       if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
-        if (intersectionPoints.length == 2) {
-          final mid =
-              (intersectionPoints.elementAt(0) +
-                  intersectionPoints.elementAt(1)) /
-              2;
-          final collisionNormal = absoluteCenter - mid;
-          final separationDistance = (size.x / 2) - collisionNormal.length;
-          collisionNormal.normalize();
-          final double moveDot = _movementDot(collisionNormal);
-          if (moveDot < 0 || separationDistance > 1.5) {
-            position += collisionNormal.scaled(separationDistance);
-          }
-        }
+        _separateFromCollision(
+          intersectionPoints: intersectionPoints,
+          onlyWhenMovingInto: true,
+          obstacleCenter: other.absoluteCenter,
+        );
       }
     }
 
@@ -877,6 +1038,7 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     if (other is WaterComponent) {
       _waterContacts = (_waterContacts - 1).clamp(0, 999999);
+      moistureLevel = GameplayTuning.initialMoistureLevel;
       isInWater = _waterContacts > 0;
     }
     if (other is WaterLilyComponent) {
@@ -889,13 +1051,34 @@ class PlayerComponent extends SpriteAnimationComponent
     super.onCollisionEnd(other);
   }
 
-  void applyDamage(int damage) {
+  Future<void> applyDamage(int damage) async {
     if (game.phase.value != GamePhase.playing) {
       return;
     }
     _remainingHealth = (_remainingHealth - damage).clamp(0, _maxHealth);
     if (_remainingHealth <= 0) {
       game.endGame();
+    } else {
+      final damageText = SimpleTextComponent(
+        color: Colors.red,
+        text: '- $damage',
+        position: Vector2(size.x, -24),
+        priority: 50,
+      );
+      await damageText.add(
+        MoveEffect.by(
+          Vector2(
+            game.random.nextDouble() * size.x,
+            game.random.nextDouble() * size.y,
+          ),
+          EffectController(duration: 1.0, curve: Curves.linear, repeatCount: 1),
+        ),
+      );
+      await add(damageText);
+      Future.delayed(_damageTextDuration, () {
+        if (damageText.parent == null) return;
+        damageText.removeFromParent();
+      });
     }
   }
 
@@ -961,7 +1144,7 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     _thornInvincibilityRemaining = delay;
     _thornFlickerElapsed = 0;
-    applyDamage(damage);
+    await applyDamage(damage);
     await runDamageFlashEffect();
   }
 }

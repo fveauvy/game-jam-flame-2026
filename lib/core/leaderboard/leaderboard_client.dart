@@ -10,6 +10,7 @@ class LeaderboardClient {
   Future<bool> submitScore({
     required String playerName,
     required int elapsedTimeInMs,
+    String? seedCode,
   }) async {
     final String endpoint = LeaderboardConfig.submitUrl.trim();
     if (endpoint.isEmpty) {
@@ -50,10 +51,19 @@ class LeaderboardClient {
       121,
     ]);
 
+    final Map<String, Object> payload = <String, Object>{
+      'name': playerName,
+      'timeMs': elapsedTimeInMs,
+    };
+    final String normalizedSeed = (seedCode ?? '').trim();
+    if (normalizedSeed.isNotEmpty) {
+      payload['seed'] = normalizedSeed;
+    }
+
     final http.Request request = http.Request(method, uri)
       ..headers['content-type'] = 'application/json'
       ..headers[authHeader] = key
-      ..body = jsonEncode({'name': playerName, 'timeMs': elapsedTimeInMs});
+      ..body = jsonEncode(payload);
 
     try {
       final http.StreamedResponse response = await request.send();

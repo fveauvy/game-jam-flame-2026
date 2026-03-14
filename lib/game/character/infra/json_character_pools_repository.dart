@@ -37,7 +37,7 @@ class JsonCharacterPoolsRepository implements CharacterPoolsRepository {
 
     final List<String> adjectives = _readStringList(namesRaw['adjectives']);
     final List<String> nouns = _readStringList(namesRaw['nouns']);
-    final List<String> batches = _readStringList(namesRaw['batches']);
+    final List<String> titles = _readNamesTitles(namesRaw);
     final List<CharacterColorPoolItem> colors = colorsRaw
         .map((Object? entry) {
           if (entry is! Map<String, dynamic>) {
@@ -59,10 +59,22 @@ class JsonCharacterPoolsRepository implements CharacterPoolsRepository {
       namePool: CharacterNamePool(
         adjectives: adjectives,
         nouns: nouns,
-        batches: batches,
+        titles: titles,
       ),
       colors: colors,
     );
+  }
+
+  List<String> _readNamesTitles(Map<String, dynamic> namesRaw) {
+    final Object? titlesRaw = namesRaw['titles'];
+    if (titlesRaw != null) {
+      return _readStringList(titlesRaw);
+    }
+    final Object? legacyBatchesRaw = namesRaw['batches'];
+    if (legacyBatchesRaw != null) {
+      return _readStringList(legacyBatchesRaw);
+    }
+    throw const FormatException('Missing or invalid "titles" list');
   }
 
   List<String> _readStringList(Object? value) {

@@ -1,4 +1,5 @@
 import 'package:game_jam/game/input/input_state.dart';
+import 'package:game_jam/game/input/contextual_action_helper.dart';
 
 /// Abstract base class for all input controllers (keyboard, touch, gamepad, etc.)
 /// Handles common movement logic (axes and layer changes).
@@ -15,16 +16,22 @@ abstract class Controller {
 
   /// Protected helper to request a jump.
   void moveUpLayer() {
-    state.queueJump();
+    if (ContextualActionHelper.canJump(state.playerVerticalPosition)) {
+      state.queueJump();
+    }
   }
 
   /// Protected helper to request a dive.
   void moveDownLayer() {
-    state.queueDive();
+    if (ContextualActionHelper.canDive(state.playerVerticalPosition)) {
+      state.queueDive();
+    }
   }
 
   void pause() {
-    state.queuePause();
+    if (ContextualActionHelper.canPause(state.playerVerticalPosition)) {
+      state.queuePause();
+    }
   }
 
   void confirm() {
@@ -32,6 +39,8 @@ abstract class Controller {
   }
 
   void attack() {
-    state.queueAttack();
+    if (ContextualActionHelper.canLick(state.playerVerticalPosition)) {
+      state.queueAttack();
+    }
   }
 }

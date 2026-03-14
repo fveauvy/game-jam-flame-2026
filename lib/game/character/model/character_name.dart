@@ -2,28 +2,28 @@ class CharacterName {
   const CharacterName({
     required this.adjective,
     required this.noun,
-    this.batch,
+    this.title,
   });
 
   final String adjective;
   final String noun;
-  final String? batch;
+  final String? title;
 
-  static final RegExp _noCommaBatchStart = RegExp(
+  static final RegExp _noCommaTitleStart = RegExp(
     r'^(of|from|in|on|that|the|who|which)\b',
     caseSensitive: false,
   );
 
   String get display {
-    final String trimmedBatch = (batch ?? '').trim();
-    if (trimmedBatch.isEmpty) {
+    final String trimmedTitle = (title ?? '').trim();
+    if (trimmedTitle.isEmpty) {
       return '$adjective $noun';
     }
 
-    final String separator = _noCommaBatchStart.hasMatch(trimmedBatch)
+    final String separator = _noCommaTitleStart.hasMatch(trimmedTitle)
         ? ' '
         : ', ';
-    return '$adjective $noun$separator$trimmedBatch';
+    return '$adjective $noun$separator$trimmedTitle';
   }
 
   @override
@@ -34,9 +34,9 @@ class CharacterName {
     return other is CharacterName &&
         other.adjective == adjective &&
         other.noun == noun &&
-        other.batch == batch;
+        other.title == title;
   }
 
   @override
-  int get hashCode => Object.hash(adjective, noun, batch);
+  int get hashCode => Object.hash(adjective, noun, title);
 }

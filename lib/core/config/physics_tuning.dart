@@ -23,16 +23,32 @@ abstract final class PhysicsTuning {
   static const double underwaterSurfaceGraceSeconds = 0.2;
 
   // Bird enemy component.
-  static const double birdEnemySpeed = 200;
-  static const double birdEnemyDirectionChangeInterval = 2;
-  static const double birdEnemyMargin = 60;
-  static const double birdEnemyFacingFlipDeadZone = 8;
-  static const double birdEnemyScaleUpDistance = 400;
-  static const double birdEnemyDamageInterval = 1;
-  static const double birdEnemyDamageRange = 80;
-  static const int birdEnemyDamageAmount = 10;
-  static const double birdEnemyDescentDuration = 1;
-  static const double birdEnemyDescentHeight = 140;
+  static const double birdEnemySpeed = 100;
+  static const double birdEnemyAttackSpeed = 300;
+  static const double birdEnemyRotationSpeed = 6.0;
+  static const double birdEnemyScaleSpeed = 2.0;
+  static const double birdEnemyFadeOutSpeed = 1.5;
+  static const double birdEnemyMegaSizeWidth = 1000;
+  static const double birdEnemyMegaSizeHeight = 1100;
+  static const int birdEnemyDamageAmount = 5;
+  static const double birdEnemyDamageInvincibilitySeconds = 5;
+  // Shadow distances and alpha curve.
+  static const double birdShadowAttackTriggerDistance = 150;
+  static const double birdShadowFadeInStartDistance = 600;
+  static const double birdShadowAlphaPeakDistance = 300;
+  static const double birdShadowFadeOutEndDistance = 100;
+  static const double birdShadowMaxDistance = 2500 / 2;
+  static const double birdShadowMinAlpha = 0.4;
+  static const double birdShadowMaxAlpha = 1.0;
+  static const double birdShadowMaxTypeDistance = 600;
+  static const double birdShadowNormalTypeDistance = 450;
+  // Shadow scale and position animation.
+  static const double birdShadowMaxSizeMultiplier = 1.5;
+  static const double birdShadowScaleSpeed = 2.0;
+  static const double birdShadowRetractScaleSpeed = 1.0;
+  static const double birdShadowPositionLerpSpeed = 0.5;
+  static const double birdShadowPositionOffsetX = 50;
+  static const double birdShadowPositionOffsetY = 25;
 
   // Thorn hazard.
   static const int thornDamageAmount = 20;

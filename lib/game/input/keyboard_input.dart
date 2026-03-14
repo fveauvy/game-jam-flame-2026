@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:game_jam/game/input/controler.dart';
+import 'package:game_jam/game/input/controller.dart';
 
 class KeyboardInput extends Controller {
   KeyboardInput(super.state);
@@ -21,6 +21,7 @@ class KeyboardInput extends Controller {
 
   void _queueActions(LogicalKeyboardKey key) {
     if (key == LogicalKeyboardKey.space) {
+      confirm();
       moveUpLayer();
     } else if (key == LogicalKeyboardKey.shiftLeft ||
         key == LogicalKeyboardKey.shiftRight) {
