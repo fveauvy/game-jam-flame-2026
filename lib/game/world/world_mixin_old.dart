@@ -15,7 +15,7 @@ import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
 import 'package:game_jam/game/my_game.dart';
 
-mixin WorldMixin on HasGameReference<MyGame>, Component {
+mixin WorldMixinOld on HasGameReference<MyGame>, Component {
   Random get random => game.random;
 
   static const double _cellSize = 100;
@@ -260,6 +260,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         if (isWaterCell) {
           await add(
             WaterComponent(
+              assetPosition: WaterAssetPosition.bottom,
               position: cellOrigin.clone(),
               size: cellSizeVec.clone(),
             ),

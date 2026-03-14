@@ -65,6 +65,7 @@ abstract final class AssetPaths {
   static const waterCornerUpRight =
       'environment/water/water-corner-up-right.webp';
   static const waterLeft = 'environment/water/water-left.webp';
+  static const waterPlain = 'environment/water/water-plain.webp';
   static const waterRight = 'environment/water/water-right.webp';
   static const waterUp = 'environment/water/water-up.webp';
 
@@ -75,6 +76,7 @@ abstract final class AssetPaths {
     waterCornerUpLeft,
     waterCornerUpRight,
     waterLeft,
+    waterPlain,
     waterRight,
     waterUp,
   ];
