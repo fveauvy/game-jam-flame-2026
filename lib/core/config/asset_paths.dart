@@ -81,6 +81,17 @@ abstract final class AssetPaths {
     waterUp,
   ];
 
+  // ground components.
+  static const ground = 'environment/ground/ground.webp';
+  static const ground1 = 'environment/ground/ground2.webp';
+  static const ground2 = 'environment/ground/ground3.webp';
+
+  static List<String> get groundAnimationCacheKeys => <String>[
+    ground,
+    ground1,
+    ground2,
+  ];
+
   static const int croqueAnimationFrames = 20;
   static const String croqueAnimationPrefix = "croque/croque_";
 
@@ -166,6 +177,7 @@ abstract final class AssetPaths {
     tongue3CacheKey,
     uiRefreshLogoCacheKey,
     ...waterAnimationCacheKeys,
+    ...groundAnimationCacheKeys,
     ...animatedFrogSpriteId.expand((id) => frogAnimatedSpriteCacheKey(id)),
     ...List<String>.generate(GameplayTuning.frogSpriteCount, (int index) {
       if (animatedFrogSpriteId.contains(index + 1)) {
