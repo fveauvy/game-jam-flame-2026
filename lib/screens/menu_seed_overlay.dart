@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_jam/core/config/ui_config.dart';
 import 'package:game_jam/game/character/infra/seed_code.dart';
+import 'package:game_jam/screens/credits_overlay.dart';
 
 class MenuSeedOverlay extends StatefulWidget {
   const MenuSeedOverlay({super.key, required this.onStartWithSeed});
@@ -14,6 +15,7 @@ class MenuSeedOverlay extends StatefulWidget {
 
 class _MenuSeedOverlayState extends State<MenuSeedOverlay> {
   bool _isApplyingSeed = false;
+  bool _showCredits = false;
 
   Future<void> _openSeedDialog() async {
     if (_isApplyingSeed) {
@@ -103,21 +105,37 @@ class _MenuSeedOverlayState extends State<MenuSeedOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: FilledButton(
-            onPressed: _isApplyingSeed ? null : _openSeedDialog,
-            child: Text(
-              _isApplyingSeed
-                  ? WinOverlayUi.restartingLabel
-                  : WinOverlayUi.startWithSeedAction,
+    return Stack(
+      children: [
+        SafeArea(
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 12,
+                children: [
+                  FilledButton(
+                    onPressed: _isApplyingSeed ? null : _openSeedDialog,
+                    child: Text(
+                      _isApplyingSeed
+                          ? WinOverlayUi.restartingLabel
+                          : WinOverlayUi.startWithSeedAction,
+                    ),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: () => setState(() => _showCredits = true),
+                    child: const Text('Credits'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
+        if (_showCredits)
+          CreditsOverlay(onClose: () => setState(() => _showCredits = false)),
+      ],
     );
   }
 }

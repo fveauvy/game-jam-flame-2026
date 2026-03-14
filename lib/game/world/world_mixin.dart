@@ -9,6 +9,7 @@ import 'package:game_jam/game/character/infra/seed_code.dart';
 import 'package:game_jam/game/components/enemies/fish_enemy_component.dart';
 import 'package:game_jam/game/components/environment/cloud_shadow_component.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
+import 'package:game_jam/game/components/environment/leaf_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
@@ -106,6 +107,51 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     return positions;
   }
 
+  static bool canSpawnFishInPatch({
+    required List<List<bool>> fishSpawnableCells,
+    required int column,
+    required int row,
+  }) {
+    if (fishSpawnableCells.isEmpty ||
+        column < 0 ||
+        row < 0 ||
+        column + 1 >= fishSpawnableCells.length ||
+        row + 1 >= fishSpawnableCells.first.length) {
+      return false;
+    }
+
+    for (int dx = 0; dx < 2; dx++) {
+      for (int dy = 0; dy < 2; dy++) {
+        if (!fishSpawnableCells[column + dx][row + dy]) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  static Vector2 fishSpawnCenter({required int column, required int row}) {
+    return Vector2((column + 1) * _cellSize, (row + 1) * _cellSize);
+  }
+
+  static bool isLeafSpawnableCell({
+    required bool isWaterCell,
+    required bool isThornCell,
+  }) {
+    return !isWaterCell && !isThornCell;
+  }
+
+  static bool isLeafPositionFarEnoughFromFish({
+    required Vector2 leafCenter,
+    required List<Vector2> spawnedFishPositions,
+  }) {
+    return !spawnedFishPositions.any(
+      (Vector2 fishCenter) =>
+          fishCenter.distanceTo(leafCenter) < GameplayTuning.fishLeafClearance,
+    );
+  }
+
   BiomeType computeBiome() {
     final biome = BiomeType.from(
       humidityPercent: random.nextDouble(),
@@ -127,6 +173,11 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         .toList();
     for (final FishEnemyComponent fish in fishEnemies) {
       fish.removeFromParent();
+    }
+
+    for (final LeafComponent leaf
+        in game.world.children.whereType<LeafComponent>().toList()) {
+      leaf.removeFromParent();
     }
 
     final worldSize = GameConfig.worldSize;
@@ -170,7 +221,13 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         );
     final lilyPositions = <Vector2>[];
     final fishCandidates = <Vector2>[];
+    final leafCandidates = <Vector2>[];
     final cellSizeVec = Vector2(_cellSize, _cellSize);
+    final fishSpawnableCells = List.generate(
+      gridW,
+      (_) => List<bool>.filled(gridH, false),
+      growable: false,
+    );
 
     for (var i = 0; i < gridW; i++) {
       for (var j = 0; j < gridH; j++) {
@@ -225,6 +282,16 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
               thornNoiseValue: t,
               thornPatchRoll: random.nextDouble(),
             );
+        fishSpawnableCells[i][j] =
+            isWaterCell && !isThornCell && !inSpawnZone && !inCandidateSafeZone;
+
+        if (isLeafSpawnableCell(
+          isWaterCell: isWaterCell,
+          isThornCell: isThornCell,
+        )) {
+          leafCandidates.add(cellCenter.clone());
+        }
+
         if (isThornCell) {
           await add(
             ThornComponent(
@@ -233,15 +300,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
               drawLandBackground: !isWaterCell,
             ),
           );
-        }
-
-        if (isWaterCell &&
-            !isThornCell &&
-            !inSpawnZone &&
-            !inCandidateSafeZone &&
-            cellCenter.distanceTo(spawn) >=
-                GameplayTuning.fishMinSpawnDistance) {
-          fishCandidates.add(cellCenter.clone());
         }
 
         if (isWaterCell &&
@@ -278,7 +336,25 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       }
     }
 
-    // Spawn fish enemies on water cells far from the player spawn.
+    for (int i = 0; i < gridW - 1; i++) {
+      for (int j = 0; j < gridH - 1; j++) {
+        if (!canSpawnFishInPatch(
+          fishSpawnableCells: fishSpawnableCells,
+          column: i,
+          row: j,
+        )) {
+          continue;
+        }
+
+        final spawnCenter = fishSpawnCenter(column: i, row: j);
+        if (spawnCenter.distanceTo(spawn) >=
+            GameplayTuning.fishMinSpawnDistance) {
+          fishCandidates.add(spawnCenter);
+        }
+      }
+    }
+
+    // Spawn fish enemies inside full 2x2 water patches so the sprite stays off land.
     fishCandidates.shuffle(random);
     final spawnedFishPositions = <Vector2>[];
     for (final pos in fishCandidates) {
@@ -290,12 +366,41 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         spawnedFishPositions.add(pos.clone());
         await game.world.add(
           FishEnemyComponent(
-            initialPosition:
-                pos - Vector2.all(GameplayTuning.fishEnemySize / 2),
+            initialPosition: pos.clone(),
             initialSize: Vector2.all(GameplayTuning.fishEnemySize),
           ),
         );
       }
+    }
+
+    leafCandidates.shuffle(random);
+    final List<Vector2> spawnedLeafPositions = <Vector2>[];
+    for (final Vector2 cellCenter in leafCandidates) {
+      if (spawnedLeafPositions.length >= GameplayTuning.leafCount) {
+        break;
+      }
+
+      final bool tooCloseToLeaf = spawnedLeafPositions.any(
+        (Vector2 p) => p.distanceTo(cellCenter) < GameplayTuning.minLeafSpacing,
+      );
+      if (tooCloseToLeaf) {
+        continue;
+      }
+
+      if (!isLeafPositionFarEnoughFromFish(
+        leafCenter: cellCenter,
+        spawnedFishPositions: spawnedFishPositions,
+      )) {
+        continue;
+      }
+
+      spawnedLeafPositions.add(cellCenter.clone());
+      await game.world.add(
+        LeafComponent(
+          position: cellCenter - Vector2.all(GameplayTuning.leafSize / 2),
+          size: Vector2.all(GameplayTuning.leafSize),
+        ),
+      );
     }
 
     for (final Vector2 center in candidateSafeZoneCenters) {

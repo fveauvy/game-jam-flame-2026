@@ -53,61 +53,60 @@ class PauseOverlay extends StatelessWidget {
 
     return ColoredBox(
       color: Colors.black.withValues(alpha: 0.45),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: AspectRatio(
-              aspectRatio: 773 / 801,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.asset(
-                    AssetPaths.uiTooltip,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const ColoredBox(color: Color(0xFFD9B89C));
-                    },
-                  ),
-                  DefaultTabController(
-                    length: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(40, 28, 40, 28),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Paused',
-                            style: TextStyle(
-                              color: panelTextColor,
-                              fontSize: 44,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Seed: $seedCode',
-                            style: const TextStyle(
-                              color: panelLabelColor,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const TabBar(
-                            labelColor: panelTextColor,
-                            unselectedLabelColor: panelLabelColor,
-                            indicatorColor: panelTextColor,
-                            tabs: [
-                              Tab(text: 'Stats'),
-                              Tab(text: 'Audio'),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Expanded(
-                            child: TabBarView(
-                              children: [
-                                _StatsSection(
+      child: SafeArea(
+        child: Center(
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final bool compact = constraints.maxHeight < 600;
+              final double titleSize = compact ? 28 : 44;
+              final double seedSize = compact ? 14 : 18;
+              final double buttonFontSize = compact ? 16 : 22;
+              final EdgeInsets innerPad = compact
+                  ? const EdgeInsets.fromLTRB(20, 16, 20, 16)
+                  : const EdgeInsets.fromLTRB(40, 28, 40, 28);
+
+              final Widget panelBody = DefaultTabController(
+                length: 2,
+                child: Padding(
+                  padding: innerPad,
+                  child: Column(
+                    mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+                    children: [
+                      Text(
+                        'Paused',
+                        style: TextStyle(
+                          color: panelTextColor,
+                          fontSize: titleSize,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Seed: $seedCode',
+                        style: TextStyle(
+                          color: panelLabelColor,
+                          fontSize: seedSize,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: compact ? 8 : 12),
+                      const TabBar(
+                        labelColor: panelTextColor,
+                        unselectedLabelColor: panelLabelColor,
+                        indicatorColor: panelTextColor,
+                        tabs: [
+                          Tab(text: 'Stats'),
+                          Tab(text: 'Audio'),
+                        ],
+                      ),
+                      SizedBox(height: compact ? 8 : 12),
+                      if (compact)
+                        SizedBox(
+                          height: 180,
+                          child: TabBarView(
+                            children: [
+                              SingleChildScrollView(
+                                child: _StatsSection(
                                   name: name,
                                   intelligence: intelligence,
                                   health: health,
@@ -115,8 +114,11 @@ class PauseOverlay extends StatelessWidget {
                                   speed: speed,
                                   panelLabelColor: panelLabelColor,
                                   panelTextColor: panelTextColor,
+                                  compact: true,
                                 ),
-                                _VolumeSection(
+                              ),
+                              SingleChildScrollView(
+                                child: _VolumeSection(
                                   muted: muted,
                                   masterVolume: masterVolume,
                                   musicVolume: musicVolume,
@@ -128,61 +130,113 @@ class PauseOverlay extends StatelessWidget {
                                   panelLabelColor: panelLabelColor,
                                   panelTextColor: panelTextColor,
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: FilledButton(
-                                  onPressed: onResume,
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFFF1B765),
-                                    foregroundColor: panelTextColor,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Resume',
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: FilledButton(
-                                  onPressed: onRestart,
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFFCE8A53),
-                                    foregroundColor: panelTextColor,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Restart',
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 20),
+                        )
+                      else
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              _StatsSection(
+                                name: name,
+                                intelligence: intelligence,
+                                health: health,
+                                size: size,
+                                speed: speed,
+                                panelLabelColor: panelLabelColor,
+                                panelTextColor: panelTextColor,
+                              ),
+                              _VolumeSection(
+                                muted: muted,
+                                masterVolume: masterVolume,
+                                musicVolume: musicVolume,
+                                sfxVolume: sfxVolume,
+                                onToggleMute: onToggleMute,
+                                onMasterVolumeChanged: onMasterVolumeChanged,
+                                onMusicVolumeChanged: onMusicVolumeChanged,
+                                onSfxVolumeChanged: onSfxVolumeChanged,
+                                panelLabelColor: panelLabelColor,
+                                panelTextColor: panelTextColor,
+                              ),
+                            ],
+                          ),
+                        ),
+                      SizedBox(height: compact ? 8 : 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: onResume,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xFFF1B765),
+                                foregroundColor: panelTextColor,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: compact ? 6 : 10,
+                                ),
+                              ),
+                              child: Text(
+                                'Resume',
+                                style: TextStyle(
+                                  fontSize: buttonFontSize,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: onRestart,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xFFCE8A53),
+                                foregroundColor: panelTextColor,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: compact ? 6 : 10,
+                                ),
+                              ),
+                              child: Text(
+                                'Restart',
+                                style: TextStyle(
+                                  fontSize: buttonFontSize,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
-                    ),
+                      SizedBox(height: compact ? 8 : 20),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+
+              return ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: Stack(
+                    fit: StackFit.passthrough,
+                    children: [
+                      Positioned.fill(
+                        child: Image.asset(
+                          AssetPaths.uiTooltip,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const ColoredBox(color: Color(0xFFD9B89C));
+                          },
+                        ),
+                      ),
+                      if (compact)
+                        panelBody
+                      else
+                        AspectRatio(aspectRatio: 773 / 801, child: panelBody),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -196,24 +250,29 @@ class _StatRow extends StatelessWidget {
     required this.value,
     required this.labelColor,
     required this.valueColor,
+    this.fontSize = 24,
   });
 
   final String label;
   final String value;
   final Color labelColor;
   final Color valueColor;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(label, style: TextStyle(color: labelColor, fontSize: 24)),
+        Text(
+          label,
+          style: TextStyle(color: labelColor, fontSize: fontSize),
+        ),
         const Spacer(),
         Text(
           value,
           style: TextStyle(
             color: valueColor,
-            fontSize: 24,
+            fontSize: fontSize,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -229,6 +288,8 @@ class _IconStatRow extends StatelessWidget {
     required this.value,
     required this.labelColor,
     required this.valueColor,
+    this.fontSize = 24,
+    this.iconSize = 34,
   });
 
   final Widget icon;
@@ -236,20 +297,25 @@ class _IconStatRow extends StatelessWidget {
   final String value;
   final Color labelColor;
   final Color valueColor;
+  final double fontSize;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(width: 34, height: 34, child: icon),
+        SizedBox(width: iconSize, height: iconSize, child: icon),
         const SizedBox(width: 12),
-        Text(label, style: TextStyle(color: labelColor, fontSize: 24)),
+        Text(
+          label,
+          style: TextStyle(color: labelColor, fontSize: fontSize),
+        ),
         const Spacer(),
         Text(
           value,
           style: TextStyle(
             color: valueColor,
-            fontSize: 24,
+            fontSize: fontSize,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -291,6 +357,7 @@ class _StatsSection extends StatelessWidget {
     required this.speed,
     required this.panelLabelColor,
     required this.panelTextColor,
+    this.compact = false,
   });
 
   final String name;
@@ -300,9 +367,14 @@ class _StatsSection extends StatelessWidget {
   final String speed;
   final Color panelLabelColor;
   final Color panelTextColor;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final double fontSize = compact ? 18 : 24;
+    final double iconSize = compact ? 26 : 34;
+    final double gap = compact ? 4 : 8;
+
     return Column(
       children: [
         _StatRow(
@@ -310,62 +382,71 @@ class _StatsSection extends StatelessWidget {
           value: name,
           labelColor: panelLabelColor,
           valueColor: panelTextColor,
+          fontSize: fontSize,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: gap),
         _IconStatRow(
           icon: Image.asset(
             AssetPaths.uiIntelligenceLogo,
-            width: 34,
-            height: 34,
+            width: iconSize,
+            height: iconSize,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
-              return const SizedBox(width: 34, height: 34);
+              return SizedBox(width: iconSize, height: iconSize);
             },
           ),
           label: 'Intelligence',
           value: intelligence,
           labelColor: panelLabelColor,
           valueColor: panelTextColor,
+          fontSize: fontSize,
+          iconSize: iconSize,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: gap),
         _IconStatRow(
           icon: Image.asset(
             AssetPaths.uiHeartLogo,
-            width: 34,
-            height: 34,
+            width: iconSize,
+            height: iconSize,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
-              return const SizedBox(width: 34, height: 34);
+              return SizedBox(width: iconSize, height: iconSize);
             },
           ),
           label: 'Health',
           value: health,
           labelColor: panelLabelColor,
           valueColor: panelTextColor,
+          fontSize: fontSize,
+          iconSize: iconSize,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: gap),
         _IconStatRow(
           icon: const _SizePlaceholderIcon(),
           label: 'Size',
           value: size,
           labelColor: panelLabelColor,
           valueColor: panelTextColor,
+          fontSize: fontSize,
+          iconSize: iconSize,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: gap),
         _IconStatRow(
           icon: Image.asset(
             AssetPaths.uiSpeedLogo,
-            width: 34,
-            height: 34,
+            width: iconSize,
+            height: iconSize,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
-              return const SizedBox(width: 34, height: 34);
+              return SizedBox(width: iconSize, height: iconSize);
             },
           ),
           label: 'Speed',
           value: speed,
           labelColor: panelLabelColor,
           valueColor: panelTextColor,
+          fontSize: fontSize,
+          iconSize: iconSize,
         ),
       ],
     );

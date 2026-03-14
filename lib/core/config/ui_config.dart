@@ -126,6 +126,7 @@ abstract final class WinOverlayUi {
       'Invalid seed. Use 2-9 and A-Z (no 0, 1, I, O).';
   static const String publishSuccessMessage = 'Score published.';
   static const String publishFailMessage = 'Score publish failed.';
+  static const String victoryExclamation = 'You did it ribbit!';
   static const String victoryTitle = 'The little brothers are safe.';
   static const String victorySummary =
       'You brought every egg home before the marsh could take them.';

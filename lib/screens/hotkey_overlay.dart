@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/ui_config.dart';
 
-class HotkeyOverlay extends StatelessWidget {
+class HotkeyOverlay extends StatefulWidget {
   const HotkeyOverlay({super.key, required this.isGamepadConnected});
 
   final bool isGamepadConnected;
 
   @override
+  State<HotkeyOverlay> createState() => _HotkeyOverlayState();
+}
+
+class _HotkeyOverlayState extends State<HotkeyOverlay> {
+  bool? _manualToggle;
+
+  @override
   Widget build(BuildContext context) {
-    final List<_HotkeyRow> rows = isGamepadConnected
+    final bool smallScreen = MediaQuery.sizeOf(context).width < 600;
+    final bool visible = _manualToggle ?? !smallScreen;
+
+    final List<_HotkeyRow> rows = widget.isGamepadConnected
         ? const <_HotkeyRow>[
             _HotkeyRow(Icons.gamepad, 'Movement', <String>[
               'Left Stick',
@@ -27,62 +37,91 @@ class HotkeyOverlay extends StatelessWidget {
             _HotkeyRow(Icons.pause, 'Pause', <String>['Esc']),
           ];
 
-    return IgnorePointer(
-      child: SafeArea(
-        child: Align(
-          alignment: Alignment.bottomRight,
-          child: Padding(
-            padding: const EdgeInsets.only(
-              right: HotkeyOverlayUi.panelRight,
-              bottom: HotkeyOverlayUi.panelBottom,
-            ),
-            child: Container(
-              width: HotkeyOverlayUi.panelWidth,
-              padding: const EdgeInsets.all(HotkeyOverlayUi.panelPadding),
-              decoration: BoxDecoration(
-                color: HotkeyOverlayUi.panelBackground,
-                borderRadius: BorderRadius.circular(
-                  HotkeyOverlayUi.panelRadius,
-                ),
-                border: Border.all(
-                  color: HotkeyOverlayUi.panelBorder,
-                  width: HotkeyOverlayUi.panelBorderWidth,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        isGamepadConnected
-                            ? Icons.sports_esports
-                            : Icons.keyboard,
-                        size: HotkeyOverlayUi.iconSize,
-                        color: HotkeyOverlayUi.titleColor,
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.bottomRight,
+        child: Padding(
+          padding: const EdgeInsets.only(
+            right: HotkeyOverlayUi.panelRight,
+            bottom: HotkeyOverlayUi.panelBottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (visible)
+                IgnorePointer(
+                  child: Container(
+                    width: HotkeyOverlayUi.panelWidth,
+                    padding: const EdgeInsets.all(HotkeyOverlayUi.panelPadding),
+                    decoration: BoxDecoration(
+                      color: HotkeyOverlayUi.panelBackground,
+                      borderRadius: BorderRadius.circular(
+                        HotkeyOverlayUi.panelRadius,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        isGamepadConnected
-                            ? HotkeyOverlayUi.gamepadTitle
-                            : HotkeyOverlayUi.keyboardTitle,
-                        style: const TextStyle(
-                          color: HotkeyOverlayUi.titleColor,
-                          fontSize: HotkeyOverlayUi.titleFontSize,
-                          fontWeight: FontWeight.w700,
+                      border: Border.all(
+                        color: HotkeyOverlayUi.panelBorder,
+                        width: HotkeyOverlayUi.panelBorderWidth,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              widget.isGamepadConnected
+                                  ? Icons.sports_esports
+                                  : Icons.keyboard,
+                              size: HotkeyOverlayUi.iconSize,
+                              color: HotkeyOverlayUi.titleColor,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              widget.isGamepadConnected
+                                  ? HotkeyOverlayUi.gamepadTitle
+                                  : HotkeyOverlayUi.keyboardTitle,
+                              style: const TextStyle(
+                                color: HotkeyOverlayUi.titleColor,
+                                fontSize: HotkeyOverlayUi.titleFontSize,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: HotkeyOverlayUi.panelSectionGap),
+                        for (final _HotkeyRow row in rows) ...[
+                          _HotkeyRowWidget(row: row),
+                          const SizedBox(height: HotkeyOverlayUi.panelRowGap),
+                        ],
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: HotkeyOverlayUi.panelSectionGap),
-                  for (final _HotkeyRow row in rows) ...[
-                    _HotkeyRowWidget(row: row),
-                    const SizedBox(height: HotkeyOverlayUi.panelRowGap),
-                  ],
-                ],
+                ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () => setState(() => _manualToggle = !visible),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: HotkeyOverlayUi.panelBackground,
+                    borderRadius: BorderRadius.circular(
+                      HotkeyOverlayUi.panelRadius,
+                    ),
+                    border: Border.all(
+                      color: HotkeyOverlayUi.panelBorder,
+                      width: HotkeyOverlayUi.panelBorderWidth,
+                    ),
+                  ),
+                  child: Icon(
+                    visible ? Icons.keyboard_hide : Icons.keyboard,
+                    size: 20,
+                    color: HotkeyOverlayUi.titleColor,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
