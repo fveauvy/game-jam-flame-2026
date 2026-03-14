@@ -79,13 +79,24 @@ class CloudShadowComponent extends PositionComponent
   void render(Canvas canvas) {
     canvas.save();
     canvas.clipRect(Rect.fromLTWH(0, 0, size.x, size.y));
+
+    final Path allCloudsPath = Path();
     for (final _CloudShadow cloud in _clouds) {
       final Vector2 center = _bounds.toWorld(
         along: cloud.along,
         across: cloud.across,
       );
-      _drawCloud(canvas, cloud: cloud, center: center);
+      allCloudsPath.addPath(
+        _buildCloudPath(cloud: cloud, center: center),
+        Offset.zero,
+      );
     }
+
+    final Paint paint = Paint()
+      ..color = CloudTuning.overlayColor.withValues(alpha: 0.7)
+      ..blendMode = CloudTuning.baseBlendMode;
+    canvas.drawPath(allCloudsPath, paint);
+
     canvas.restore();
   }
 
@@ -165,46 +176,27 @@ class CloudShadowComponent extends PositionComponent
     return lobes;
   }
 
-  void _drawCloud(
-    Canvas canvas, {
-    required _CloudShadow cloud,
-    required Vector2 center,
-  }) {
-    _drawCloudBody(canvas, cloud: cloud, center: center);
-    _drawCloudBody(canvas, cloud: cloud, center: center);
-  }
-
-  void _drawCloudBody(
-    Canvas canvas, {
-    required _CloudShadow cloud,
-    required Vector2 center,
-  }) {
-    final Paint overlayPaint = Paint()
-      ..color = CloudTuning.overlayColor.withValues(
-        alpha: cloud.opacity * CloudTuning.overlayOpacityFactor,
-      )
-      ..blendMode = CloudTuning.baseBlendMode;
-    // ..maskFilter = MaskFilter.blur(BlurStyle.normal, cloud.blurSigma);
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(center.x, center.y),
-        width: cloud.width,
-        height: cloud.height,
-      ),
-      overlayPaint,
-    );
+  Path _buildCloudPath({required _CloudShadow cloud, required Vector2 center}) {
+    final Path path = Path()
+      ..addOval(
+        Rect.fromCenter(
+          center: Offset(center.x, center.y),
+          width: cloud.width,
+          height: cloud.height,
+        ),
+      );
 
     for (final _CloudLobe lobe in cloud.lobes) {
-      canvas.drawOval(
+      path.addOval(
         Rect.fromCenter(
           center: Offset(center.x + lobe.offset.x, center.y + lobe.offset.y),
           width: lobe.width,
           height: lobe.height,
         ),
-        overlayPaint,
       );
     }
+
+    return path;
   }
 
   static _ProjectedBounds _computeBounds({
