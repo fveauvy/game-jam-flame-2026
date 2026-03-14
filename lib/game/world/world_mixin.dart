@@ -37,6 +37,11 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   /// Zone 3: noise value > threshold → water. Top 45% → water, bottom 55% → ground.
   static const double _outerWaterThreshold = 0.65;
 
+  /// Maximum rectangle side length (in cells) for zone-2 and zone-3 water bodies.
+  /// Minimum is always 2 (enforced in _buildWaterRectangles).
+  static const int _ringMaxRectCells = 6;
+  static const int _outerMaxRectCells = 3;
+
   static const double _candidateSafeZoneHalfSize = 260;
   static const double _candidateSafeZoneRingRadius = 210;
 
@@ -191,31 +196,85 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       (_) => List.filled(gridH, 0.0),
     );
 
+    // Pass 1: classify every cell using rectangular water bodies.
+    // Water is always placed as axis-aligned rectangles of minimum 2×2 cells.
+    final List<({int minI, int minJ, int maxI, int maxJ, bool isCenterZone})>
+    waterRects = _buildWaterRectangles(
+      gridW: gridW,
+      gridH: gridH,
+      worldCenter: worldCenter,
+      ringNoise: ringNoise,
+      outerNoise: outerNoise,
+    );
+
+    for (final rect in waterRects) {
+      for (int i = rect.minI; i <= rect.maxI; i++) {
+        for (int j = rect.minJ; j <= rect.maxJ; j++) {
+          if (i < 0 || i >= gridW || j < 0 || j >= gridH) continue;
+          isWaterGrid[i][j] = true;
+
+          final Vector2 cellOrigin = Vector2(i * _cellSize, j * _cellSize);
+          final Vector2 cellCenter = cellOrigin + cellSizeVec / 2;
+          final bool farFromSpawn =
+              cellCenter.distanceTo(GameConfig.playerSpawn) >=
+              GameplayTuning.fishMinSpawnDistance;
+          if (!rect.isCenterZone && farFromSpawn) {
+            isFishZoneGrid[i][j] = true;
+          }
+        }
+      }
+    }
+
+    for (int i = 0; i < gridW; i++) {
+      for (int j = 0; j < gridH; j++) {
+        thornCandidateNoise[i][j] = thornNoise[i][j];
+
+        final Vector2 cellOrigin = Vector2(i * _cellSize, j * _cellSize);
+        final Vector2 cellCenter = cellOrigin + cellSizeVec / 2;
+        final bool inOuterSquare =
+            cellCenter.x >= worldCenter.x - _ringZoneHalfSize &&
+            cellCenter.x <= worldCenter.x + _ringZoneHalfSize &&
+            cellCenter.y >= worldCenter.y - _ringZoneHalfSize &&
+            cellCenter.y <= worldCenter.y + _ringZoneHalfSize;
+        if (!isWaterGrid[i][j] && !inOuterSquare) {
+          isZone3GroundGrid[i][j] = true;
+        }
+      }
+    }
+
+    // Pass 2: add components now that neighbour info is available.
     for (int i = 0; i < gridW; i++) {
       for (int j = 0; j < gridH; j++) {
         final Vector2 cellOrigin = Vector2(i * _cellSize, j * _cellSize);
-        final Vector2 cellCenter = cellOrigin + cellSizeVec / 2;
         final bool isBorderCell =
             i == 0 || j == 0 || i == gridW - 1 || j == gridH - 1;
+        final bool isWater = isWaterGrid[i][j];
 
-        final (
-          bool isWater,
-          bool isFishZone,
-          bool isZone3Ground,
-        ) = await processCellAt(
-          cellOrigin: cellOrigin,
-          cellCenter: cellCenter,
-          cellSizeVec: cellSizeVec,
-          isBorderCell: isBorderCell,
-          worldCenter: worldCenter,
-          ringNoiseValue: ringNoise[i][j],
-          outerNoiseValue: outerNoise[i][j],
-        );
-
-        isWaterGrid[i][j] = isWater;
-        isFishZoneGrid[i][j] = isFishZone;
-        isZone3GroundGrid[i][j] = isZone3Ground;
-        thornCandidateNoise[i][j] = thornNoise[i][j];
+        if (isWater) {
+          final bool groundUp = j == 0 || !isWaterGrid[i][j - 1];
+          final bool groundDown = j == gridH - 1 || !isWaterGrid[i][j + 1];
+          final bool groundLeft = i == 0 || !isWaterGrid[i - 1][j];
+          final bool groundRight = i == gridW - 1 || !isWaterGrid[i + 1][j];
+          await add(
+            WaterComponent(
+              position: cellOrigin.clone(),
+              size: cellSizeVec.clone(),
+              assetPosition: waterAssetPositionFromNeighbours(
+                groundUp: groundUp,
+                groundDown: groundDown,
+                groundLeft: groundLeft,
+                groundRight: groundRight,
+              ),
+            ),
+          );
+        } else {
+          await add(
+            GroundComponent(
+              position: cellOrigin.clone(),
+              size: cellSizeVec.clone(),
+            ),
+          );
+        }
 
         if (isBorderCell) {
           await add(
@@ -468,7 +527,43 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
 
     final bool isZone3Ground = !isWaterCell && inOuterZone;
 
-    return (isWater: isWaterCell, isFishZone: isFishZone, isZone3Ground: isZone3Ground);
+    return (
+      isWater: isWaterCell,
+      isFishZone: isFishZone,
+      isZone3Ground: isZone3Ground,
+    );
+  }
+
+  /// Derives the [WaterAssetPosition] for a water cell from its four cardinal
+  /// neighbours.  [groundUp], [groundDown], [groundLeft], [groundRight] are
+  /// true when the neighbour in that direction is ground (or out-of-bounds).
+  @visibleForTesting
+  static WaterAssetPosition waterAssetPositionFromNeighbours({
+    required bool groundUp,
+    required bool groundDown,
+    required bool groundLeft,
+    required bool groundRight,
+  }) {
+    final int exposedCount =
+        (groundUp ? 1 : 0) +
+        (groundDown ? 1 : 0) +
+        (groundLeft ? 1 : 0) +
+        (groundRight ? 1 : 0);
+
+    if (exposedCount == 2) {
+      if (groundUp && groundLeft) return WaterAssetPosition.cornerUpLeft;
+      if (groundUp && groundRight) return WaterAssetPosition.cornerUpRight;
+      if (groundDown && groundLeft) return WaterAssetPosition.cornerBottomLeft;
+      if (groundDown && groundRight)
+        return WaterAssetPosition.cornerBottomRight;
+    }
+    if (exposedCount == 1) {
+      if (groundUp) return WaterAssetPosition.up;
+      if (groundDown) return WaterAssetPosition.bottom;
+      if (groundLeft) return WaterAssetPosition.left;
+      if (groundRight) return WaterAssetPosition.right;
+    }
+    return WaterAssetPosition.plain;
   }
 
   @visibleForTesting
@@ -480,12 +575,12 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     required Vector2 worldCenter,
     required double ringNoiseValue,
     required double outerNoiseValue,
+    required bool groundUp,
+    required bool groundDown,
+    required bool groundLeft,
+    required bool groundRight,
   }) async {
-    final (
-      :bool isWater,
-      :bool isFishZone,
-      :bool isZone3Ground,
-    ) = classifyCell(
+    final (:bool isWater, :bool isFishZone, :bool isZone3Ground) = classifyCell(
       cellCenter: cellCenter,
       worldCenter: worldCenter,
       ringNoiseValue: ringNoiseValue,
@@ -493,8 +588,18 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     );
 
     if (isWater) {
+      final WaterAssetPosition assetPosition = waterAssetPositionFromNeighbours(
+        groundUp: groundUp,
+        groundDown: groundDown,
+        groundLeft: groundLeft,
+        groundRight: groundRight,
+      );
       await add(
-        WaterComponent(position: cellOrigin.clone(), size: cellSizeVec.clone()),
+        WaterComponent(
+          position: cellOrigin.clone(),
+          size: cellSizeVec.clone(),
+          assetPosition: assetPosition,
+        ),
       );
     } else {
       await add(
@@ -506,6 +611,116 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     }
 
     return (isWater, isFishZone, isZone3Ground);
+  }
+
+  /// Builds a list of axis-aligned water rectangles (in grid-cell coordinates).
+  ///
+  /// Every water body is always a rectangle of at least 2×2 cells.
+  /// Zone 1 (center) produces a single large rectangle.
+  /// Zone 2 (ring) and Zone 3 (outer) sample noise to seed rectangles of
+  /// random sizes, snapping each candidate cell to the top-left of its
+  /// rectangle so that overlapping seeds don't create duplicate rects.
+  List<({int minI, int minJ, int maxI, int maxJ, bool isCenterZone})>
+  _buildWaterRectangles({
+    required int gridW,
+    required int gridH,
+    required Vector2 worldCenter,
+    required List<List<double>> ringNoise,
+    required List<List<double>> outerNoise,
+  }) {
+    final results =
+        <({int minI, int minJ, int maxI, int maxJ, bool isCenterZone})>[];
+
+    // Zone 1: entire center water square as one rectangle.
+    final int centerMinI =
+        ((worldCenter.x - _centerWaterZoneHalfSize) / _cellSize).floor().clamp(
+          0,
+          gridW - 1,
+        );
+    final int centerMaxI =
+        ((worldCenter.x + _centerWaterZoneHalfSize) / _cellSize).ceil() - 1;
+    final int centerMinJ =
+        ((worldCenter.y - _centerWaterZoneHalfSize) / _cellSize).floor().clamp(
+          0,
+          gridH - 1,
+        );
+    final int centerMaxJ =
+        ((worldCenter.y + _centerWaterZoneHalfSize) / _cellSize).ceil() - 1;
+    results.add((
+      minI: centerMinI.clamp(0, gridW - 1),
+      minJ: centerMinJ.clamp(0, gridH - 1),
+      maxI: centerMaxI.clamp(0, gridW - 1),
+      maxJ: centerMaxJ.clamp(0, gridH - 1),
+      isCenterZone: true,
+    ));
+
+    // To avoid placing many overlapping rectangles from nearby seeds, track
+    // which seed cells have already been claimed by a rectangle.
+    final List<List<bool>> claimed = List.generate(
+      gridW,
+      (_) => List.filled(gridH, false),
+    );
+
+    for (int i = 0; i < gridW; i++) {
+      for (int j = 0; j < gridH; j++) {
+        final Vector2 cellCenter = Vector2(
+          i * _cellSize + _cellSize / 2,
+          j * _cellSize + _cellSize / 2,
+        );
+
+        final bool inCenterZone =
+            cellCenter.x >= worldCenter.x - _centerWaterZoneHalfSize &&
+            cellCenter.x <= worldCenter.x + _centerWaterZoneHalfSize &&
+            cellCenter.y >= worldCenter.y - _centerWaterZoneHalfSize &&
+            cellCenter.y <= worldCenter.y + _centerWaterZoneHalfSize;
+
+        if (inCenterZone) continue;
+        if (claimed[i][j]) continue;
+
+        final bool inOuterSquare =
+            cellCenter.x >= worldCenter.x - _ringZoneHalfSize &&
+            cellCenter.x <= worldCenter.x + _ringZoneHalfSize &&
+            cellCenter.y >= worldCenter.y - _ringZoneHalfSize &&
+            cellCenter.y <= worldCenter.y + _ringZoneHalfSize;
+
+        final bool inRingZone = inOuterSquare;
+        final bool isWaterSeed =
+            (inRingZone && ringNoise[i][j] > _ringGroundThreshold) ||
+            (!inRingZone && outerNoise[i][j] > _outerWaterThreshold);
+
+        if (!isWaterSeed) continue;
+
+        // Random width and height: minimum 2 cells, maximum depends on zone.
+        final int maxDim = inRingZone ? _ringMaxRectCells : _outerMaxRectCells;
+        final int w = 2 + random.nextInt(maxDim - 1);
+        final int h = 2 + random.nextInt(maxDim - 1);
+
+        final int minI = i.clamp(0, gridW - 1);
+        final int minJ = j.clamp(0, gridH - 1);
+        final int maxI = (i + w - 1).clamp(0, gridW - 1);
+        final int maxJ = (j + h - 1).clamp(0, gridH - 1);
+
+        // Must be at least 2×2 after clamping.
+        if (maxI - minI < 1 || maxJ - minJ < 1) continue;
+
+        results.add((
+          minI: minI,
+          minJ: minJ,
+          maxI: maxI,
+          maxJ: maxJ,
+          isCenterZone: false,
+        ));
+
+        // Claim all cells in this rect so adjacent seeds don't spawn redundant rects.
+        for (int ci = minI; ci <= maxI; ci++) {
+          for (int cj = minJ; cj <= maxJ; cj++) {
+            claimed[ci][cj] = true;
+          }
+        }
+      }
+    }
+
+    return results;
   }
 
   List<List<double>> _normalizeGrid(List<List<double>> grid, int w, int h) {
