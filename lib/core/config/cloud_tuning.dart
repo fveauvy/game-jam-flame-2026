@@ -13,7 +13,7 @@ abstract final class CloudTuning {
   static const double minHeightRatio = 0.34;
   static const double maxHeightRatio = 0.42;
   static const double collisionRadiusScale = 0.68;
-  static const double blurSigmaScale = 0.05;
+  static const double blurSigmaScale = 0.004;
 
   // Lobe generation.
   static const int lobeTemplateCount = 6;

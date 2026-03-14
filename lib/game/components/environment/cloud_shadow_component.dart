@@ -81,11 +81,13 @@ class CloudShadowComponent extends PositionComponent
     canvas.clipRect(Rect.fromLTWH(0, 0, size.x, size.y));
 
     final Path allCloudsPath = Path();
+
     for (final _CloudShadow cloud in _clouds) {
       final Vector2 center = _bounds.toWorld(
         along: cloud.along,
         across: cloud.across,
       );
+
       allCloudsPath.addPath(
         _buildCloudPath(cloud: cloud, center: center),
         Offset.zero,
@@ -93,8 +95,15 @@ class CloudShadowComponent extends PositionComponent
     }
 
     final Paint paint = Paint()
-      ..color = CloudTuning.overlayColor.withValues(alpha: 0.7)
-      ..blendMode = CloudTuning.baseBlendMode;
+      ..color = CloudTuning.overlayColor.withValues(
+        alpha: CloudTuning.overlayOpacityFactor,
+      )
+      ..blendMode = CloudTuning.baseBlendMode
+      ..maskFilter = MaskFilter.blur(
+        BlurStyle.normal,
+        CloudTuning.blurSigmaScale * size.y,
+      );
+
     canvas.drawPath(allCloudsPath, paint);
 
     canvas.restore();
@@ -111,10 +120,6 @@ class CloudShadowComponent extends PositionComponent
             _shapeRandom.nextDouble() *
                 (CloudTuning.maxHeightRatio - CloudTuning.minHeightRatio));
     final double radius = max(width, height) * CloudTuning.collisionRadiusScale;
-    final double opacity =
-        CloudTuning.minOpacity +
-        _shapeRandom.nextDouble() *
-            (CloudTuning.maxOpacity - CloudTuning.minOpacity);
 
     final double along = randomizeAlong
         ? (_bounds.minAlong - radius) +
@@ -133,8 +138,6 @@ class CloudShadowComponent extends PositionComponent
       along: along,
       across: across,
       radius: radius,
-      opacity: opacity,
-      blurSigma: height * CloudTuning.blurSigmaScale,
       width: width,
       height: height,
       lobes: lobes,
@@ -268,8 +271,6 @@ class _CloudShadow {
     required this.along,
     required this.across,
     required this.radius,
-    required this.opacity,
-    required this.blurSigma,
     required this.width,
     required this.height,
     required this.lobes,
@@ -278,8 +279,6 @@ class _CloudShadow {
   double along;
   final double across;
   final double radius;
-  final double opacity;
-  final double blurSigma;
   final double width;
   final double height;
   final List<_CloudLobe> lobes;
