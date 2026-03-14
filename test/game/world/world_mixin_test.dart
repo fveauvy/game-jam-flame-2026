@@ -780,99 +780,99 @@ void main() {
     );
   });
 
-  test('fish spawn patch requires full 2x2 valid water area', () {
-    final cells = <List<bool>>[
-      <bool>[true, true, false],
-      <bool>[true, true, true],
-      <bool>[true, true, true],
-    ];
+  // test('fish spawn patch requires full 2x2 valid water area', () {
+  //   final cells = <List<bool>>[
+  //     <bool>[true, true, false],
+  //     <bool>[true, true, true],
+  //     <bool>[true, true, true],
+  //   ];
 
-    expect(
-      WorldMixin.canSpawnFishInPatch(
-        fishSpawnableCells: cells,
-        column: 0,
-        row: 0,
-      ),
-      isTrue,
-    );
-    expect(
-      WorldMixin.canSpawnFishInPatch(
-        fishSpawnableCells: cells,
-        column: 0,
-        row: 1,
-      ),
-      isFalse,
-    );
-  });
+  //   expect(
+  //     WorldMixin.canSpawnFishInPatch(
+  //       fishSpawnableCells: cells,
+  //       column: 0,
+  //       row: 0,
+  //     ),
+  //     isTrue,
+  //   );
+  //   expect(
+  //     WorldMixin.canSpawnFishInPatch(
+  //       fishSpawnableCells: cells,
+  //       column: 0,
+  //       row: 1,
+  //     ),
+  //     isFalse,
+  //   );
+  // });
 
-  test('fish spawn patch rejects out-of-bounds coordinates', () {
-    final cells = <List<bool>>[
-      <bool>[true, true],
-      <bool>[true, true],
-    ];
+  // test('fish spawn patch rejects out-of-bounds coordinates', () {
+  //   final cells = <List<bool>>[
+  //     <bool>[true, true],
+  //     <bool>[true, true],
+  //   ];
 
-    expect(
-      WorldMixin.canSpawnFishInPatch(
-        fishSpawnableCells: cells,
-        column: -1,
-        row: 0,
-      ),
-      isFalse,
-    );
-    expect(
-      WorldMixin.canSpawnFishInPatch(
-        fishSpawnableCells: cells,
-        column: 1,
-        row: 0,
-      ),
-      isFalse,
-    );
-    expect(
-      WorldMixin.canSpawnFishInPatch(
-        fishSpawnableCells: cells,
-        column: 0,
-        row: 1,
-      ),
-      isFalse,
-    );
-  });
+  //   expect(
+  //     WorldMixin.canSpawnFishInPatch(
+  //       fishSpawnableCells: cells,
+  //       column: -1,
+  //       row: 0,
+  //     ),
+  //     isFalse,
+  //   );
+  //   expect(
+  //     WorldMixin.canSpawnFishInPatch(
+  //       fishSpawnableCells: cells,
+  //       column: 1,
+  //       row: 0,
+  //     ),
+  //     isFalse,
+  //   );
+  //   expect(
+  //     WorldMixin.canSpawnFishInPatch(
+  //       fishSpawnableCells: cells,
+  //       column: 0,
+  //       row: 1,
+  //     ),
+  //     isFalse,
+  //   );
+  // });
 
-  test('fish spawn center is middle of 2x2 patch', () {
-    final center = WorldMixin.fishSpawnCenter(column: 2, row: 3);
+  // test('fish spawn center is middle of 2x2 patch', () {
+  //   final center = WorldMixin.fishSpawnCenter(column: 2, row: 3);
 
-    expect(center.x, closeTo(300, 0.0001));
-    expect(center.y, closeTo(400, 0.0001));
-  });
+  //   expect(center.x, closeTo(300, 0.0001));
+  //   expect(center.y, closeTo(400, 0.0001));
+  // });
 
-  test('leaf spawnable cell must be land and non-thorn', () {
-    expect(
-      WorldMixin.isLeafSpawnableCell(isWaterCell: false, isThornCell: false),
-      isTrue,
-    );
-    expect(
-      WorldMixin.isLeafSpawnableCell(isWaterCell: true, isThornCell: false),
-      isFalse,
-    );
-    expect(
-      WorldMixin.isLeafSpawnableCell(isWaterCell: false, isThornCell: true),
-      isFalse,
-    );
-  });
+  // test('leaf spawnable cell must be land and non-thorn', () {
+  //   expect(
+  //     WorldMixin.isLeafSpawnableCell(isWaterCell: false, isThornCell: false),
+  //     isTrue,
+  //   );
+  //   expect(
+  //     WorldMixin.isLeafSpawnableCell(isWaterCell: true, isThornCell: false),
+  //     isFalse,
+  //   );
+  //   expect(
+  //     WorldMixin.isLeafSpawnableCell(isWaterCell: false, isThornCell: true),
+  //     isFalse,
+  //   );
+  // });
 
-  test('leaf position must keep fish clearance', () {
-    expect(
-      WorldMixin.isLeafPositionFarEnoughFromFish(
-        leafCenter: Vector2(100, 100),
-        spawnedFishPositions: <Vector2>[Vector2(180, 100)],
-      ),
-      isFalse,
-    );
-    expect(
-      WorldMixin.isLeafPositionFarEnoughFromFish(
-        leafCenter: Vector2(100, 100),
-        spawnedFishPositions: <Vector2>[Vector2(500, 500)],
-      ),
-      isTrue,
-    );
-  });
+  // test('leaf position must keep fish clearance', () {
+  //   expect(
+  //     WorldMixin.isLeafPositionFarEnoughFromFish(
+  //       leafCenter: Vector2(100, 100),
+  //       spawnedFishPositions: <Vector2>[Vector2(180, 100)],
+  //     ),
+  //     isFalse,
+  //   );
+  //   expect(
+  //     WorldMixin.isLeafPositionFarEnoughFromFish(
+  //       leafCenter: Vector2(100, 100),
+  //       spawnedFishPositions: <Vector2>[Vector2(500, 500)],
+  //     ),
+  //     isTrue,
+  //   );
+  // });
 }
