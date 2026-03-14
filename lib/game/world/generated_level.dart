@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:game_jam/core/entities/biome_type.dart';
+import 'package:game_jam/game/components/environment/leaf_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -9,21 +10,25 @@ class GeneratedLevel extends Component
     with HasGameReference<MyGame>, WorldMixin {
   late BiomeType biome;
   List<_AxisAlignedBounds> _waterBounds = <_AxisAlignedBounds>[];
+  List<_AxisAlignedBounds> _leafBounds = <_AxisAlignedBounds>[];
 
   @override
   Future<void> onLoad() async {
     biome = computeBiome();
     await generateLevel(biome);
     _rebuildWaterBounds();
+    _rebuildLeafBounds();
     await super.onLoad();
   }
 
   Future<void> onUpdateSeed() async {
     removeAll(children);
     _waterBounds = <_AxisAlignedBounds>[];
+    _leafBounds = <_AxisAlignedBounds>[];
     biome = computeBiome();
     await generateLevel(biome);
     _rebuildWaterBounds();
+    _rebuildLeafBounds();
   }
 
   void _rebuildWaterBounds() {
@@ -35,6 +40,20 @@ class GeneratedLevel extends Component
             top: water.position.y,
             right: water.position.x + water.size.x,
             bottom: water.position.y + water.size.y,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  void _rebuildLeafBounds() {
+    _leafBounds = children
+        .whereType<LeafComponent>()
+        .map(
+          (LeafComponent leaf) => _AxisAlignedBounds(
+            left: leaf.position.x,
+            top: leaf.position.y,
+            right: leaf.position.x + leaf.size.x,
+            bottom: leaf.position.y + leaf.size.y,
           ),
         )
         .toList(growable: false);
@@ -57,6 +76,15 @@ class GeneratedLevel extends Component
 
   bool isPositionInWater(Vector2 position) {
     for (final _AxisAlignedBounds bounds in _waterBounds) {
+      if (bounds.contains(position)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool isPositionOnLeaf(Vector2 position) {
+    for (final _AxisAlignedBounds bounds in _leafBounds) {
       if (bounds.contains(position)) {
         return true;
       }

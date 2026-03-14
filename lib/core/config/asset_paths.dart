@@ -15,6 +15,7 @@ abstract final class AssetPaths {
   static const String thorns1 = 'assets/images/environment/Ronces1.png';
   static const String thorns2 = 'assets/images/environment/Ronces2.png';
   static const String thorns3 = 'assets/images/environment/Ronces3.png';
+  static const String leaf = 'assets/images/environment/Feuille.png';
 
   // HUD and overlay art.
   static const String uiTooltip = 'assets/images/ui/tooltip.png';
@@ -46,6 +47,7 @@ abstract final class AssetPaths {
   static const String thorns1CacheKey = 'environment/Ronces1.png';
   static const String thorns2CacheKey = 'environment/Ronces2.png';
   static const String thorns3CacheKey = 'environment/Ronces3.png';
+  static const String leafCacheKey = 'environment/Feuille.png';
   static const String tongue1CacheKey = 'gronouy/Langue1.png';
   static const String tongue2CacheKey = 'gronouy/Langue2.png';
   static const String tongue3CacheKey = 'gronouy/Langue3.png';
@@ -128,6 +130,7 @@ abstract final class AssetPaths {
     flyCacheKey,
     eggsCacheKey,
     ...thornsAnimationCacheKeys,
+    leafCacheKey,
     tongue1CacheKey,
     tongue2CacheKey,
     tongue3CacheKey,
