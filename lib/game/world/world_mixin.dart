@@ -119,15 +119,23 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   }
 
   Future<void> generateLevel() async {
-    /// Remove all components at the start of the level
     for (final WaterLilyComponent lily
         in game.world.children.whereType<WaterLilyComponent>().toList()) {
       lily.removeFromParent();
     }
-
     for (final FishEnemyComponent fish
         in game.world.children.whereType<FishEnemyComponent>().toList()) {
       fish.removeFromParent();
+    }
+
+    for (final LeafComponent leaf
+        in game.world.children.whereType<LeafComponent>().toList()) {
+      leaf.removeFromParent();
+    }
+
+    for (final ThornComponent thorn
+        in game.world.children.whereType<ThornComponent>().toList()) {
+      thorn.removeFromParent();
     }
 
     final Vector2 worldSize = GameConfig.worldSize;
@@ -135,9 +143,76 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     final int gridH = (worldSize.y / _cellSize).ceil();
     final Vector2 cellSizeVec = Vector2.all(_cellSize);
     final Vector2 worldCenter = worldSize / 2;
-
     final int seed = random.nextInt(1 << 20);
 
+    final (
+      List<List<bool>> isWaterGrid,
+      List<List<bool>> isFishZoneGrid,
+      List<List<bool>> isZone3GroundGrid,
+      List<List<double>> thornNoiseGrid,
+    ) = _classifyGrid(
+      gridW: gridW,
+      gridH: gridH,
+      cellSizeVec: cellSizeVec,
+      worldCenter: worldCenter,
+      seed: seed,
+    );
+
+    await _placeTiles(
+      gridW: gridW,
+      gridH: gridH,
+      cellSizeVec: cellSizeVec,
+      isWaterGrid: isWaterGrid,
+    );
+
+    final (
+      List<Vector2> fishCandidates,
+      List<Vector2> lilyCandidateOrigins,
+      List<Vector2> eggCandidateOrigins,
+      List<Vector2> leafCandidateOrigins,
+    ) = _collectSpawnCandidates(
+      gridW: gridW,
+      gridH: gridH,
+      cellSizeVec: cellSizeVec,
+      isWaterGrid: isWaterGrid,
+      isFishZoneGrid: isFishZoneGrid,
+      isZone3GroundGrid: isZone3GroundGrid,
+    );
+
+    final List<Vector2> spawnedFishPositions = await _spawnFish(fishCandidates);
+
+    final List<Vector2> lilyPositions = await _spawnLilies(
+      lilyCandidateOrigins,
+      spawnedFishPositions,
+    );
+
+    await _spawnThorns(
+      gridW: gridW,
+      gridH: gridH,
+      cellSizeVec: cellSizeVec,
+      isWaterGrid: isWaterGrid,
+      thornNoiseGrid: thornNoiseGrid,
+      spawnedFishPositions: spawnedFishPositions,
+      lilyPositions: lilyPositions,
+    );
+
+    await _spawnEggs(eggCandidateOrigins);
+
+    await _spawnLeaves(leafCandidateOrigins, spawnedFishPositions);
+
+    await add(
+      CloudShadowComponent(seed: SeedCode.decode(game.characterSeedCode)),
+    );
+  }
+
+  (List<List<bool>>, List<List<bool>>, List<List<bool>>, List<List<double>>)
+  _classifyGrid({
+    required int gridW,
+    required int gridH,
+    required Vector2 cellSizeVec,
+    required Vector2 worldCenter,
+    required int seed,
+  }) {
     final List<List<double>> ringNoise = _normalizeGrid(
       noise2(
         gridW,
@@ -150,7 +225,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       gridW,
       gridH,
     );
-
     final List<List<double>> outerNoise = _normalizeGrid(
       noise2(
         gridW,
@@ -162,7 +236,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       gridW,
       gridH,
     );
-
     final List<List<double>> thornNoise = _normalizeGrid(
       noise2(
         gridW,
@@ -176,31 +249,20 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       gridH,
     );
 
-    // Track which cells are water so we can require a full 3×3 water neighbourhood.
     final List<List<bool>> isWaterGrid = List.generate(
       gridW,
       (_) => List.filled(gridH, false),
     );
-    // Track which cells are eligible fish spawn zones (not zone 1, far from spawn).
     final List<List<bool>> isFishZoneGrid = List.generate(
       gridW,
       (_) => List.filled(gridH, false),
     );
-    // Track zone-3 ground cells for egg spawning.
     final List<List<bool>> isZone3GroundGrid = List.generate(
       gridW,
       (_) => List.filled(gridH, false),
     );
-    // Track thorn noise values for water cells.
-    final List<List<double>> thornCandidateNoise = List.generate(
-      gridW,
-      (_) => List.filled(gridH, 0.0),
-    );
 
-    // Pass 1: classify every cell using rectangular water bodies.
-    // Water is always placed as axis-aligned rectangles of minimum 2×2 cells.
-    final List<({int minI, int minJ, int maxI, int maxJ, bool isCenterZone})>
-    waterRects = _buildWaterRectangles(
+    final waterRects = _buildWaterRectangles(
       gridW: gridW,
       gridH: gridH,
       worldCenter: worldCenter,
@@ -214,8 +276,8 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           if (i < 0 || i >= gridW || j < 0 || j >= gridH) continue;
           isWaterGrid[i][j] = true;
 
-          final Vector2 cellOrigin = Vector2(i * _cellSize, j * _cellSize);
-          final Vector2 cellCenter = cellOrigin + cellSizeVec / 2;
+          final Vector2 cellCenter =
+              Vector2(i * _cellSize, j * _cellSize) + cellSizeVec / 2;
           final bool farFromSpawn =
               cellCenter.distanceTo(GameConfig.playerSpawn) >=
               GameplayTuning.fishMinSpawnDistance;
@@ -228,10 +290,8 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
 
     for (int i = 0; i < gridW; i++) {
       for (int j = 0; j < gridH; j++) {
-        thornCandidateNoise[i][j] = thornNoise[i][j];
-
-        final Vector2 cellOrigin = Vector2(i * _cellSize, j * _cellSize);
-        final Vector2 cellCenter = cellOrigin + cellSizeVec / 2;
+        final Vector2 cellCenter =
+            Vector2(i * _cellSize, j * _cellSize) + cellSizeVec / 2;
         final bool inOuterSquare =
             cellCenter.x >= worldCenter.x - _ringZoneHalfSize &&
             cellCenter.x <= worldCenter.x + _ringZoneHalfSize &&
@@ -243,7 +303,15 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       }
     }
 
-    // Pass 2: add components now that neighbour info is available.
+    return (isWaterGrid, isFishZoneGrid, isZone3GroundGrid, thornNoise);
+  }
+
+  Future<void> _placeTiles({
+    required int gridW,
+    required int gridH,
+    required Vector2 cellSizeVec,
+    required List<List<bool>> isWaterGrid,
+  }) async {
     for (int i = 0; i < gridW; i++) {
       for (int j = 0; j < gridH; j++) {
         final Vector2 cellOrigin = Vector2(i * _cellSize, j * _cellSize);
@@ -252,31 +320,24 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         final bool isWater = isWaterGrid[i][j];
 
         if (isWater) {
-          final bool groundUp = j == 0 || !isWaterGrid[i][j - 1];
-          final bool groundDown = j == gridH - 1 || !isWaterGrid[i][j + 1];
-          final bool groundLeft = i == 0 || !isWaterGrid[i - 1][j];
-          final bool groundRight = i == gridW - 1 || !isWaterGrid[i + 1][j];
-          final bool groundUpLeft =
-              i == 0 || j == 0 || !isWaterGrid[i - 1][j - 1];
-          final bool groundUpRight =
-              i == gridW - 1 || j == 0 || !isWaterGrid[i + 1][j - 1];
-          final bool groundDownLeft =
-              i == 0 || j == gridH - 1 || !isWaterGrid[i - 1][j + 1];
-          final bool groundDownRight =
-              i == gridW - 1 || j == gridH - 1 || !isWaterGrid[i + 1][j + 1];
           await add(
             WaterComponent(
               position: cellOrigin.clone(),
               size: cellSizeVec.clone(),
               assetPosition: waterAssetPositionFromNeighbours(
-                groundUp: groundUp,
-                groundDown: groundDown,
-                groundLeft: groundLeft,
-                groundRight: groundRight,
-                groundUpLeft: groundUpLeft,
-                groundUpRight: groundUpRight,
-                groundDownLeft: groundDownLeft,
-                groundDownRight: groundDownRight,
+                groundUp: j == 0 || !isWaterGrid[i][j - 1],
+                groundDown: j == gridH - 1 || !isWaterGrid[i][j + 1],
+                groundLeft: i == 0 || !isWaterGrid[i - 1][j],
+                groundRight: i == gridW - 1 || !isWaterGrid[i + 1][j],
+                groundUpLeft: i == 0 || j == 0 || !isWaterGrid[i - 1][j - 1],
+                groundUpRight:
+                    i == gridW - 1 || j == 0 || !isWaterGrid[i + 1][j - 1],
+                groundDownLeft:
+                    i == 0 || j == gridH - 1 || !isWaterGrid[i - 1][j + 1],
+                groundDownRight:
+                    i == gridW - 1 ||
+                    j == gridH - 1 ||
+                    !isWaterGrid[i + 1][j + 1],
               ),
             ),
           );
@@ -300,13 +361,22 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         }
       }
     }
+  }
 
-    // Collect candidates where the full 3×3 neighbourhood is water so the
-    // 150×150 fish sprite never overlaps a ground cell.
+  (List<Vector2>, List<Vector2>, List<Vector2>, List<Vector2>)
+  _collectSpawnCandidates({
+    required int gridW,
+    required int gridH,
+    required Vector2 cellSizeVec,
+    required List<List<bool>> isWaterGrid,
+    required List<List<bool>> isFishZoneGrid,
+    required List<List<bool>> isZone3GroundGrid,
+  }) {
     final List<Vector2> fishCandidates = <Vector2>[];
     final List<Vector2> lilyCandidateOrigins = <Vector2>[];
     final List<Vector2> eggCandidateOrigins = <Vector2>[];
     final List<Vector2> leafCandidateOrigins = <Vector2>[];
+
     for (int i = 1; i < gridW - 1; i++) {
       for (int j = 1; j < gridH - 1; j++) {
         if (isWaterGrid[i][j]) {
@@ -327,9 +397,8 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             lilyCandidateOrigins.add(Vector2(i * _cellSize, j * _cellSize));
           }
         }
+
         if (isZone3GroundGrid[i][j]) {
-          // Require all 8 neighbours to also be ground so the egg never
-          // sits on a cell bordering water.
           bool allNeighboursGround = true;
           groundCheck:
           for (int di = -1; di <= 1; di++) {
@@ -361,22 +430,31 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           }
         }
         if (allNeighboursWater) {
-          final Vector2 cellCenter =
-              Vector2(i * _cellSize, j * _cellSize) + cellSizeVec / 2;
-          fishCandidates.add(cellCenter);
+          fishCandidates.add(
+            Vector2(i * _cellSize, j * _cellSize) + cellSizeVec / 2,
+          );
         }
       }
     }
 
-    fishCandidates.shuffle(random);
-    final List<Vector2> spawnedFishPositions = <Vector2>[];
-    for (final Vector2 pos in fishCandidates) {
-      if (spawnedFishPositions.length >= GameplayTuning.fishEnemyCount) break;
-      final bool tooClose = spawnedFishPositions.any(
+    return (
+      fishCandidates,
+      lilyCandidateOrigins,
+      eggCandidateOrigins,
+      leafCandidateOrigins,
+    );
+  }
+
+  Future<List<Vector2>> _spawnFish(List<Vector2> candidates) async {
+    candidates.shuffle(random);
+    final List<Vector2> spawnedPositions = <Vector2>[];
+    for (final Vector2 pos in candidates) {
+      if (spawnedPositions.length >= GameplayTuning.fishEnemyCount) break;
+      final bool tooClose = spawnedPositions.any(
         (Vector2 p) => p.distanceTo(pos) < GameplayTuning.minFishSpacing,
       );
       if (!tooClose) {
-        spawnedFishPositions.add(pos.clone());
+        spawnedPositions.add(pos.clone());
         await game.world.add(
           FishEnemyComponent(
             initialPosition:
@@ -386,11 +464,16 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         );
       }
     }
+    return spawnedPositions;
+  }
 
-    // Place lilies on water cells, avoiding fish positions.
-    lilyCandidateOrigins.shuffle(random);
+  Future<List<Vector2>> _spawnLilies(
+    List<Vector2> candidateOrigins,
+    List<Vector2> spawnedFishPositions,
+  ) async {
+    candidateOrigins.shuffle(random);
     final List<Vector2> lilyPositions = <Vector2>[];
-    for (final Vector2 cellOrigin in lilyCandidateOrigins) {
+    for (final Vector2 cellOrigin in candidateOrigins) {
       final double radius =
           _minLilyRadius +
           random.nextDouble() * (_maxLilyRadius - _minLilyRadius);
@@ -402,10 +485,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         cellOrigin.x + buffer + random.nextDouble() * (maxOffset - buffer),
         cellOrigin.y + buffer + random.nextDouble() * (maxOffset - buffer),
       );
-      final Vector2 lilyCenter = Vector2(
-        lilyPos.x + radius,
-        lilyPos.y + radius,
-      );
+      final Vector2 lilyCenter = lilyPos + Vector2.all(radius);
 
       final bool tooCloseToLily = lilyPositions.any(
         (Vector2 p) => p.distanceTo(lilyCenter) < _minLilySpacing,
@@ -422,14 +502,23 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         );
       }
     }
+    return lilyPositions;
+  }
 
-    // Spawn thorns on water cells that pass noise threshold, avoiding fish and lilies.
-    for (int i = 0; i < gridW; i++) {
-      for (int j = 0; j < gridH; j++) {
-        if (i == 0 || j == 0 || i == gridW - 1 || j == gridH - 1) continue;
+  Future<void> _spawnThorns({
+    required int gridW,
+    required int gridH,
+    required Vector2 cellSizeVec,
+    required List<List<bool>> isWaterGrid,
+    required List<List<double>> thornNoiseGrid,
+    required List<Vector2> spawnedFishPositions,
+    required List<Vector2> lilyPositions,
+  }) async {
+    for (int i = 1; i < gridW - 1; i++) {
+      for (int j = 1; j < gridH - 1; j++) {
         if (!isWaterGrid[i][j]) continue;
 
-        final double t = thornCandidateNoise[i][j];
+        final double t = thornNoiseGrid[i][j];
         if (t < GameplayTuning.thornPatchThresholdMin ||
             t > GameplayTuning.thornPatchThresholdMax) {
           continue;
@@ -466,35 +555,41 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         );
       }
     }
+  }
 
-    // Spawn eggs randomly on zone-3 ground cells, one per candidate cell.
-    eggCandidateOrigins.shuffle(random);
-    int spawnedEggCount = 0;
-    for (final Vector2 cellOrigin in eggCandidateOrigins) {
-      if (spawnedEggCount >= GameplayTuning.initialEggCount) break;
+  Future<void> _spawnEggs(List<Vector2> candidateOrigins) async {
+    candidateOrigins.shuffle(random);
+    int spawnedCount = 0;
+    for (final Vector2 cellOrigin in candidateOrigins) {
+      if (spawnedCount >= GameplayTuning.initialEggCount) break;
       final double halfEgg = GameplayTuning.worldPickupSize / 2;
-      final double eggX =
-          cellOrigin.x +
-          halfEgg +
-          random.nextDouble() * (_cellSize - GameplayTuning.worldPickupSize);
-      final double eggY =
-          cellOrigin.y +
-          halfEgg +
-          random.nextDouble() * (_cellSize - GameplayTuning.worldPickupSize);
       await game.world.add(
         EggComponent(
-          position: Vector2(eggX, eggY),
+          position: Vector2(
+            cellOrigin.x +
+                halfEgg +
+                random.nextDouble() *
+                    (_cellSize - GameplayTuning.worldPickupSize),
+            cellOrigin.y +
+                halfEgg +
+                random.nextDouble() *
+                    (_cellSize - GameplayTuning.worldPickupSize),
+          ),
           size: Vector2.all(GameplayTuning.worldPickupSize),
           isInSafeHouse: false,
         ),
       );
-      spawnedEggCount++;
+      spawnedCount++;
     }
+  }
 
-    // Spawn leaf decorations on ground cells, respecting spacing and fish clearance.
-    leafCandidateOrigins.shuffle(random);
+  Future<void> _spawnLeaves(
+    List<Vector2> candidateOrigins,
+    List<Vector2> spawnedFishPositions,
+  ) async {
+    candidateOrigins.shuffle(random);
     final List<Vector2> spawnedLeafCenters = <Vector2>[];
-    for (final Vector2 cellOrigin in leafCandidateOrigins) {
+    for (final Vector2 cellOrigin in candidateOrigins) {
       if (spawnedLeafCenters.length >= GameplayTuning.leafCount) break;
 
       final double maxOffset = _cellSize - GameplayTuning.leafSize;
@@ -525,10 +620,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         ),
       );
     }
-
-    await add(
-      CloudShadowComponent(seed: SeedCode.decode(game.characterSeedCode)),
-    );
   }
 
   /// Returns whether an interior thorn should spawn on a given water cell.
