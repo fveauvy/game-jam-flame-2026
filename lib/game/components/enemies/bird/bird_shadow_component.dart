@@ -108,23 +108,16 @@ class BirdShadowComponent extends SpriteAnimationGroupComponent
   }
 
   void _updateAlphaByDistance(double distanceToPlayer, double dt) {
-    late final double alpha;
+    final t = (distanceToPlayer / PhysicsTuning.birdShadowMaxDistance).clamp(
+      0.0,
+      1.0,
+    );
+    double alpha =
+        PhysicsTuning.birdShadowMaxAlpha +
+        (PhysicsTuning.birdShadowMinAlpha - PhysicsTuning.birdShadowMaxAlpha) *
+            t;
     if (distanceToPlayer <= PhysicsTuning.birdShadowFadeOutEndDistance) {
       alpha = 0.0;
-    } else if (distanceToPlayer >=
-        PhysicsTuning.birdShadowFadeInStartDistance) {
-      alpha = 0.0;
-    } else if (distanceToPlayer >= PhysicsTuning.birdShadowAlphaPeakDistance) {
-      alpha =
-          1.0 -
-          (distanceToPlayer - PhysicsTuning.birdShadowAlphaPeakDistance) /
-              (PhysicsTuning.birdShadowFadeInStartDistance -
-                  PhysicsTuning.birdShadowAlphaPeakDistance);
-    } else {
-      alpha =
-          (distanceToPlayer - PhysicsTuning.birdShadowFadeOutEndDistance) /
-          (PhysicsTuning.birdShadowAlphaPeakDistance -
-              PhysicsTuning.birdShadowFadeOutEndDistance);
     }
     _animations.paint = Paint()
       ..color = Colors.white.withValues(alpha: alpha)
