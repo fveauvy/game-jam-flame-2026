@@ -9,6 +9,10 @@ enum WaterAssetPosition {
   cornerBottomRight,
   cornerUpLeft,
   cornerUpRight,
+  invertedCornerTopLeft,
+  invertedCornerTopRight,
+  invertedCornerBottomLeft,
+  invertedCornerBottomRight,
   left,
   plain,
   right,
@@ -41,13 +45,21 @@ class WaterComponent extends SpriteComponent with HasGameReference<MyGame> {
 
   String get assetPath => switch (assetPosition) {
     WaterAssetPosition.bottom => AssetPaths.waterBottom,
-    WaterAssetPosition.cornerBottomLeft => AssetPaths.waterCornerBottomLeft,
-    WaterAssetPosition.cornerBottomRight => AssetPaths.waterCornerBottomRight,
-    WaterAssetPosition.cornerUpLeft => AssetPaths.waterCornerUpLeft,
-    WaterAssetPosition.cornerUpRight => AssetPaths.waterCornerUpRight,
+    WaterAssetPosition.invertedCornerBottomRight =>
+      AssetPaths.waterInvertedCornerBottomLeft,
+    WaterAssetPosition.invertedCornerBottomLeft =>
+      AssetPaths.waterInvertedCornerBottomRight,
+    WaterAssetPosition.invertedCornerTopLeft =>
+      AssetPaths.waterInvertedCornerTopLeft,
+    WaterAssetPosition.invertedCornerTopRight =>
+      AssetPaths.waterInvertedCornerTopRight,
     WaterAssetPosition.left => AssetPaths.waterLeft,
     WaterAssetPosition.plain => AssetPaths.waterPlain,
     WaterAssetPosition.right => AssetPaths.waterRight,
     WaterAssetPosition.up => AssetPaths.waterUp,
+    WaterAssetPosition.cornerBottomRight => AssetPaths.waterCornerBottomRight,
+    WaterAssetPosition.cornerUpLeft => AssetPaths.waterCornerUpLeft,
+    WaterAssetPosition.cornerUpRight => AssetPaths.waterCornerUpRight,
+    WaterAssetPosition.cornerBottomLeft => AssetPaths.waterCornerBottomLeft,
   };
 }

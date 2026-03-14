@@ -38,9 +38,9 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   static const double _outerWaterThreshold = 0.65;
 
   /// Maximum rectangle side length (in cells) for zone-2 and zone-3 water bodies.
-  /// Minimum is always 2 (enforced in _buildWaterRectangles).
+  /// Minimum is always 4 (enforced in _buildWaterRectangles).
   static const int _ringMaxRectCells = 6;
-  static const int _outerMaxRectCells = 3;
+  static const int _outerMaxRectCells = 5;
 
   static const double _candidateSafeZoneHalfSize = 260;
   static const double _candidateSafeZoneRingRadius = 210;
@@ -255,6 +255,14 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           final bool groundDown = j == gridH - 1 || !isWaterGrid[i][j + 1];
           final bool groundLeft = i == 0 || !isWaterGrid[i - 1][j];
           final bool groundRight = i == gridW - 1 || !isWaterGrid[i + 1][j];
+          final bool groundUpLeft =
+              i == 0 || j == 0 || !isWaterGrid[i - 1][j - 1];
+          final bool groundUpRight =
+              i == gridW - 1 || j == 0 || !isWaterGrid[i + 1][j - 1];
+          final bool groundDownLeft =
+              i == 0 || j == gridH - 1 || !isWaterGrid[i - 1][j + 1];
+          final bool groundDownRight =
+              i == gridW - 1 || j == gridH - 1 || !isWaterGrid[i + 1][j + 1];
           await add(
             WaterComponent(
               position: cellOrigin.clone(),
@@ -264,6 +272,10 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
                 groundDown: groundDown,
                 groundLeft: groundLeft,
                 groundRight: groundRight,
+                groundUpLeft: groundUpLeft,
+                groundUpRight: groundUpRight,
+                groundDownLeft: groundDownLeft,
+                groundDownRight: groundDownRight,
               ),
             ),
           );
@@ -304,7 +316,12 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
               cellCenter.x <= spawn.x + _lilyFreeZoneHalfSize &&
               cellCenter.y >= spawn.y - _lilyFreeZoneHalfSize &&
               cellCenter.y <= spawn.y + _lilyFreeZoneHalfSize;
-          if (!inLilyFreeZone) {
+          final bool cardinalNeighboursAreWater =
+              isWaterGrid[i][j - 1] &&
+              isWaterGrid[i][j + 1] &&
+              isWaterGrid[i - 1][j] &&
+              isWaterGrid[i + 1][j];
+          if (!inLilyFreeZone && cardinalNeighboursAreWater) {
             lilyCandidateOrigins.add(Vector2(i * _cellSize, j * _cellSize));
           }
         }
@@ -535,14 +552,28 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   }
 
   /// Derives the [WaterAssetPosition] for a water cell from its four cardinal
-  /// neighbours.  [groundUp], [groundDown], [groundLeft], [groundRight] are
-  /// true when the neighbour in that direction is ground (or out-of-bounds).
+  /// neighbours and optional diagonal neighbours.
+  ///
+  /// [groundUp], [groundDown], [groundLeft], [groundRight] are true when the
+  /// neighbour in that direction is ground (or out-of-bounds).
+  ///
+  /// When two adjacent cardinal neighbours are ground (e.g. up + left), the
+  /// tile sits at the outer corner of the water body and uses an
+  /// `invertedCorner*` asset (concave ground edge, ~¾ water).
+  ///
+  /// The diagonal parameters are only consulted when all four cardinal
+  /// neighbours are water. A single diagonal ground neighbour means this is
+  /// an interior tile with a convex corner intrusion, using a `corner*` asset.
   @visibleForTesting
   static WaterAssetPosition waterAssetPositionFromNeighbours({
     required bool groundUp,
     required bool groundDown,
     required bool groundLeft,
     required bool groundRight,
+    bool groundUpLeft = false,
+    bool groundUpRight = false,
+    bool groundDownLeft = false,
+    bool groundDownRight = false,
   }) {
     final int exposedCount =
         (groundUp ? 1 : 0) +
@@ -551,11 +582,18 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         (groundRight ? 1 : 0);
 
     if (exposedCount == 2) {
-      if (groundUp && groundLeft) return WaterAssetPosition.cornerUpLeft;
-      if (groundUp && groundRight) return WaterAssetPosition.cornerUpRight;
-      if (groundDown && groundLeft) return WaterAssetPosition.cornerBottomLeft;
-      if (groundDown && groundRight)
-        return WaterAssetPosition.cornerBottomRight;
+      if (groundUp && groundLeft) {
+        return WaterAssetPosition.invertedCornerTopLeft;
+      }
+      if (groundUp && groundRight) {
+        return WaterAssetPosition.invertedCornerTopRight;
+      }
+      if (groundDown && groundLeft) {
+        return WaterAssetPosition.invertedCornerBottomLeft;
+      }
+      if (groundDown && groundRight) {
+        return WaterAssetPosition.invertedCornerBottomRight;
+      }
     }
     if (exposedCount == 1) {
       if (groundUp) return WaterAssetPosition.up;
@@ -563,6 +601,16 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       if (groundLeft) return WaterAssetPosition.left;
       if (groundRight) return WaterAssetPosition.right;
     }
+
+    // All four cardinal neighbours are water: check diagonals for convex corners.
+    // Only one diagonal is applied per tile; priority matches the enum order.
+    if (exposedCount == 0) {
+      if (groundUpLeft) return WaterAssetPosition.cornerUpLeft;
+      if (groundUpRight) return WaterAssetPosition.cornerUpRight;
+      if (groundDownLeft) return WaterAssetPosition.cornerBottomLeft;
+      if (groundDownRight) return WaterAssetPosition.cornerBottomRight;
+    }
+
     return WaterAssetPosition.plain;
   }
 
@@ -579,6 +627,10 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     required bool groundDown,
     required bool groundLeft,
     required bool groundRight,
+    bool groundUpLeft = false,
+    bool groundUpRight = false,
+    bool groundDownLeft = false,
+    bool groundDownRight = false,
   }) async {
     final (:bool isWater, :bool isFishZone, :bool isZone3Ground) = classifyCell(
       cellCenter: cellCenter,
@@ -593,6 +645,10 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         groundDown: groundDown,
         groundLeft: groundLeft,
         groundRight: groundRight,
+        groundUpLeft: groundUpLeft,
+        groundUpRight: groundUpRight,
+        groundDownLeft: groundDownLeft,
+        groundDownRight: groundDownRight,
       );
       await add(
         WaterComponent(
@@ -615,11 +671,14 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
 
   /// Builds a list of axis-aligned water rectangles (in grid-cell coordinates).
   ///
-  /// Every water body is always a rectangle of at least 2×2 cells.
+  /// Every water body is always a rectangle of at least 4×4 cells.
   /// Zone 1 (center) produces a single large rectangle.
   /// Zone 2 (ring) and Zone 3 (outer) sample noise to seed rectangles of
   /// random sizes, snapping each candidate cell to the top-left of its
   /// rectangle so that overlapping seeds don't create duplicate rects.
+  /// Each placed rect's 1-cell perimeter is also claimed so that no two rects
+  /// can be diagonal-only adjacent (they either share a cardinal edge or are
+  /// separated by at least 2 ground cells).
   List<({int minI, int minJ, int maxI, int maxJ, bool isCenterZone})>
   _buildWaterRectangles({
     required int gridW,
@@ -646,20 +705,51 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         );
     final int centerMaxJ =
         ((worldCenter.y + _centerWaterZoneHalfSize) / _cellSize).ceil() - 1;
+    final int clampedCenterMinI = centerMinI.clamp(0, gridW - 1);
+    final int clampedCenterMinJ = centerMinJ.clamp(0, gridH - 1);
+    final int clampedCenterMaxI = centerMaxI.clamp(0, gridW - 1);
+    final int clampedCenterMaxJ = centerMaxJ.clamp(0, gridH - 1);
     results.add((
-      minI: centerMinI.clamp(0, gridW - 1),
-      minJ: centerMinJ.clamp(0, gridH - 1),
-      maxI: centerMaxI.clamp(0, gridW - 1),
-      maxJ: centerMaxJ.clamp(0, gridH - 1),
+      minI: clampedCenterMinI,
+      minJ: clampedCenterMinJ,
+      maxI: clampedCenterMaxI,
+      maxJ: clampedCenterMaxJ,
       isCenterZone: true,
     ));
 
     // To avoid placing many overlapping rectangles from nearby seeds, track
-    // which seed cells have already been claimed by a rectangle.
+    // which seed cells have already been claimed by a rectangle's perimeter.
+    // `waterCells` tracks only actual rect interiors — used to reject any new
+    // rect whose own 1-cell perimeter would touch existing water.
     final List<List<bool>> claimed = List.generate(
       gridW,
       (_) => List.filled(gridH, false),
     );
+    final List<List<bool>> waterCells = List.generate(
+      gridW,
+      (_) => List.filled(gridH, false),
+    );
+
+    // Claim the center zone rect and its 1-cell perimeter so that ring rects
+    // cannot be diagonal-only adjacent to the center zone's corners.
+    for (
+      int ci = (clampedCenterMinI - 1).clamp(0, gridW - 1);
+      ci <= (clampedCenterMaxI + 1).clamp(0, gridW - 1);
+      ci++
+    ) {
+      for (
+        int cj = (clampedCenterMinJ - 1).clamp(0, gridH - 1);
+        cj <= (clampedCenterMaxJ + 1).clamp(0, gridH - 1);
+        cj++
+      ) {
+        claimed[ci][cj] = true;
+      }
+    }
+    for (int ci = clampedCenterMinI; ci <= clampedCenterMaxI; ci++) {
+      for (int cj = clampedCenterMinJ; cj <= clampedCenterMaxJ; cj++) {
+        waterCells[ci][cj] = true;
+      }
+    }
 
     for (int i = 0; i < gridW; i++) {
       for (int j = 0; j < gridH; j++) {
@@ -690,18 +780,42 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
 
         if (!isWaterSeed) continue;
 
-        // Random width and height: minimum 2 cells, maximum depends on zone.
+        // Random width and height: minimum 4 cells, maximum depends on zone.
         final int maxDim = inRingZone ? _ringMaxRectCells : _outerMaxRectCells;
-        final int w = 2 + random.nextInt(maxDim - 1);
-        final int h = 2 + random.nextInt(maxDim - 1);
+        final int w = 4 + random.nextInt(maxDim - 3);
+        final int h = 4 + random.nextInt(maxDim - 3);
 
         final int minI = i.clamp(0, gridW - 1);
         final int minJ = j.clamp(0, gridH - 1);
         final int maxI = (i + w - 1).clamp(0, gridW - 1);
         final int maxJ = (j + h - 1).clamp(0, gridH - 1);
 
-        // Must be at least 2×2 after clamping.
-        if (maxI - minI < 1 || maxJ - minJ < 1) continue;
+        // Must be at least 4×4 after clamping.
+        if (maxI - minI < 3 || maxJ - minJ < 3) continue;
+
+        // Reject if any cell in this rect's 1-cell perimeter is already a
+        // water cell. This guarantees every pair of water rects is separated
+        // by at least 2 ground cells in every direction — no diagonal adjacency
+        // is possible regardless of where the seed falls within the rect.
+        bool tooClose = false;
+        perimeterCheck:
+        for (
+          int ci = (minI - 1).clamp(0, gridW - 1);
+          ci <= (maxI + 1).clamp(0, gridW - 1);
+          ci++
+        ) {
+          for (
+            int cj = (minJ - 1).clamp(0, gridH - 1);
+            cj <= (maxJ + 1).clamp(0, gridH - 1);
+            cj++
+          ) {
+            if (waterCells[ci][cj]) {
+              tooClose = true;
+              break perimeterCheck;
+            }
+          }
+        }
+        if (tooClose) continue;
 
         results.add((
           minI: minI,
@@ -711,10 +825,24 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           isCenterZone: false,
         ));
 
-        // Claim all cells in this rect so adjacent seeds don't spawn redundant rects.
+        // Claim the rect interior as water and its 1-cell perimeter so that
+        // future seeds are blocked from starting inside the buffer zone.
+        for (
+          int ci = (minI - 1).clamp(0, gridW - 1);
+          ci <= (maxI + 1).clamp(0, gridW - 1);
+          ci++
+        ) {
+          for (
+            int cj = (minJ - 1).clamp(0, gridH - 1);
+            cj <= (maxJ + 1).clamp(0, gridH - 1);
+            cj++
+          ) {
+            claimed[ci][cj] = true;
+          }
+        }
         for (int ci = minI; ci <= maxI; ci++) {
           for (int cj = minJ; cj <= maxJ; cj++) {
-            claimed[ci][cj] = true;
+            waterCells[ci][cj] = true;
           }
         }
       }

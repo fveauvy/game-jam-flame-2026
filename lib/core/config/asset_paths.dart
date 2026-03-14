@@ -68,6 +68,14 @@ abstract final class AssetPaths {
   static const waterPlain = 'environment/water/water-plain.webp';
   static const waterRight = 'environment/water/water-right.webp';
   static const waterUp = 'environment/water/water-up.webp';
+  static const waterInvertedCornerTopLeft =
+      'environment/water/water-inverted-corner-top-left.png';
+  static const waterInvertedCornerTopRight =
+      'environment/water/water-inverted-corner-top-right.webp';
+  static const waterInvertedCornerBottomLeft =
+      'environment/water/water-inverted-corner-bottom-left.png';
+  static const waterInvertedCornerBottomRight =
+      'environment/water/water-inverted-corner-bottom-right.png';
 
   static List<String> get waterAnimationCacheKeys => <String>[
     waterBottom,
@@ -79,6 +87,10 @@ abstract final class AssetPaths {
     waterPlain,
     waterRight,
     waterUp,
+    waterInvertedCornerTopLeft,
+    waterInvertedCornerTopRight,
+    waterInvertedCornerBottomLeft,
+    waterInvertedCornerBottomRight,
   ];
 
   // ground components.
