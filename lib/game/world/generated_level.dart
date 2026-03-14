@@ -14,8 +14,7 @@ class GeneratedLevel extends Component
 
   @override
   Future<void> onLoad() async {
-    biome = computeBiome();
-    await generateLevel(biome);
+    await generateLevel();
     _rebuildWaterBounds();
     _rebuildLeafBounds();
     await super.onLoad();
@@ -25,8 +24,7 @@ class GeneratedLevel extends Component
     removeAll(children);
     _waterBounds = <_AxisAlignedBounds>[];
     _leafBounds = <_AxisAlignedBounds>[];
-    biome = computeBiome();
-    await generateLevel(biome);
+    await generateLevel();
     _rebuildWaterBounds();
     _rebuildLeafBounds();
   }

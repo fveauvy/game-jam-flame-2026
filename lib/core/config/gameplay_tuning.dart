@@ -32,7 +32,7 @@ abstract final class GameplayTuning {
   static const double tongueCooldownSeconds = 0.45;
   static const double tongueActiveSeconds = 0.22;
   static const double tongueAnimationStepSeconds = 0.07;
-  static const double tongueWidth = 50;
+  static const double tongueWidth = 25;
   static const double tongueHeight = 180;
   static const double tongueHitboxWidthFactor = 0.8;
   static const double tongueHitboxHeightFactor = 1.0;
@@ -66,7 +66,7 @@ abstract final class GameplayTuning {
   static const double fishLeafClearance = 130;
 
   // Fish enemy spawning.
-  static const int fishEnemyCount = 3;
+  static const int fishEnemyCount = 50;
   static const double fishEnemySize = 150;
   static const double fishMinSpawnDistance = 600;
   static const double minFishSpacing = 400;
