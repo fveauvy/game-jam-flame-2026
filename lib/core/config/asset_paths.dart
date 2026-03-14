@@ -54,6 +54,31 @@ abstract final class AssetPaths {
   static const String tongue2CacheKey = 'gronouy/Langue2.png';
   static const String tongue3CacheKey = 'gronouy/Langue3.png';
 
+  // Ground components.
+  static const groundBottom = 'environment/ground/ground-bottom.webp';
+  static const groundCornerBottomLeft =
+      'environment/ground/ground-corner-bottom-left.webp';
+  static const groundCornerBottomRight =
+      'environment/ground/ground-corner-bottom-right.webp';
+  static const groundCornerUpLeft =
+      'environment/ground/ground-corner-up-left.webp';
+  static const groundCornerUpRight =
+      'environment/ground/ground-corner-up-right.webp';
+  static const groundLeft = 'environment/ground/ground-left.webp';
+  static const groundRight = 'environment/ground/ground-right.webp';
+  static const groundUp = 'environment/ground/ground-up.webp';
+
+  static List<String> get groundAnimationCacheKeys => <String>[
+    groundBottom,
+    groundCornerBottomLeft,
+    groundCornerBottomRight,
+    groundCornerUpLeft,
+    groundCornerUpRight,
+    groundLeft,
+    groundRight,
+    groundUp,
+  ];
+
   static const int croqueAnimationFrames = 20;
   static const String croqueAnimationPrefix = "croque/croque_";
 
@@ -138,6 +163,7 @@ abstract final class AssetPaths {
     tongue2CacheKey,
     tongue3CacheKey,
     uiRefreshLogoCacheKey,
+    ...groundAnimationCacheKeys,
     ...animatedFrogSpriteId.expand((id) => frogAnimatedSpriteCacheKey(id)),
     ...List<String>.generate(GameplayTuning.frogSpriteCount, (int index) {
       if (animatedFrogSpriteId.contains(index + 1)) {
