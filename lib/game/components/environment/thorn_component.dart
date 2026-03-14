@@ -18,7 +18,7 @@ class ThornComponent extends RectangleComponent
   }) : super(
          position: position,
          size: size,
-         priority: 1,
+         priority: 10,
          paint: Paint()..color = Colors.transparent,
        );
 

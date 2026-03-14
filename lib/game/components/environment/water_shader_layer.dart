@@ -35,6 +35,7 @@ class WaterShaderLayer extends Component with HasGameReference<MyGame> {
           ));
       _waterProgram = program;
       _waterShader = program.fragmentShader();
+      debugPrint('[shader] water shader loaded successfully');
     } catch (error) {
       _waterShader = null;
       debugPrint('[shader] water shader unavailable: $error');

@@ -1,5 +1,4 @@
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart';
 import 'package:game_jam/game/my_game.dart';
 
 enum WaterAssetPosition {
@@ -18,19 +17,13 @@ enum WaterAssetPosition {
   up,
 }
 
-class WaterComponent extends RectangleComponent with HasGameReference<MyGame> {
+class WaterComponent extends PositionComponent with HasGameReference<MyGame> {
   final WaterAssetPosition assetPosition;
   WaterComponent({
     required Vector2 position,
     required Vector2 size,
     required this.assetPosition,
   }) : super(position: position, size: size, priority: 0);
-
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-    paint = Paint()..color = const Color.fromARGB(255, 151, 200, 186);
-  }
 }
 
 class WaterSpriteComponent extends SpriteComponent
