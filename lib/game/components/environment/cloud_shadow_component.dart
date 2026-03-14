@@ -170,34 +170,29 @@ class CloudShadowComponent extends PositionComponent
     required _CloudShadow cloud,
     required Vector2 center,
   }) {
-    final Paint basePaint = Paint()
-      ..color = CloudTuning.baseColor.withValues(alpha: cloud.opacity)
-      ..blendMode = CloudTuning.baseBlendMode
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, cloud.blurSigma);
-    final Paint overlayPaint = Paint()
-      ..color = CloudTuning.overlayColor.withValues(
-        alpha: cloud.opacity * CloudTuning.overlayOpacityFactor,
-      )
-      ..blendMode = CloudTuning.overlayBlendMode
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, cloud.blurSigma);
-
-    _drawCloudBody(canvas, cloud: cloud, center: center, paint: basePaint);
-    _drawCloudBody(canvas, cloud: cloud, center: center, paint: overlayPaint);
+    _drawCloudBody(canvas, cloud: cloud, center: center);
+    _drawCloudBody(canvas, cloud: cloud, center: center);
   }
 
   void _drawCloudBody(
     Canvas canvas, {
     required _CloudShadow cloud,
     required Vector2 center,
-    required Paint paint,
   }) {
+    final Paint overlayPaint = Paint()
+      ..color = CloudTuning.overlayColor.withValues(
+        alpha: cloud.opacity * CloudTuning.overlayOpacityFactor,
+      )
+      ..blendMode = CloudTuning.baseBlendMode;
+    // ..maskFilter = MaskFilter.blur(BlurStyle.normal, cloud.blurSigma);
+
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(center.x, center.y),
         width: cloud.width,
         height: cloud.height,
       ),
-      paint,
+      overlayPaint,
     );
 
     for (final _CloudLobe lobe in cloud.lobes) {
@@ -207,7 +202,7 @@ class CloudShadowComponent extends PositionComponent
           width: lobe.width,
           height: lobe.height,
         ),
-        paint,
+        overlayPaint,
       );
     }
   }
