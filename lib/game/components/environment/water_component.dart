@@ -25,7 +25,7 @@ class WaterComponent extends PositionComponent with HasGameReference<MyGame> {
     required Vector2 position,
     required Vector2 size,
     required this.assetPosition,
-  }) : super(position: position, size: size, priority: 20);
+  }) : super(position: position, size: size, priority: 1);
 
   @override
   Future<void> onLoad() async {
@@ -50,7 +50,7 @@ class WaterSpriteComponent extends SpriteComponent
     required Vector2 position,
     required Vector2 size,
     required this.assetPosition,
-  }) : super(position: position, size: size, priority: 20);
+  }) : super(position: position, size: size, priority: 1);
 
   @override
   Future<void> onLoad() async {
