@@ -54,16 +54,41 @@ abstract final class AssetPaths {
   static const String tongue2CacheKey = 'gronouy/Langue2.png';
   static const String tongue3CacheKey = 'gronouy/Langue3.png';
 
-  // Ground components.
-  static const waterCorner = 'environment/water/water-corner.png';
-  static const waterInvertedCorner =
-      'environment/water/water-inverted-corner.png';
-  static const waterFlat = 'environment/water/water-flat.png';
+  // Water components.
+  static const waterCornerTopLeft =
+      'environment/water/water-corner-top-left.png';
+  static const waterCornerTopRight =
+      'environment/water/water-corner-top-right.png';
+  static const waterCornerBottomLeft =
+      'environment/water/water-corner-bottom-left.png';
+  static const waterCornerBottomRight =
+      'environment/water/water-corner-bottom-right.png';
+  static const waterInvertedCornerTopLeft =
+      'environment/water/water-inverted-top-left.png';
+  static const waterInvertedCornerTopRight =
+      'environment/water/water-inverted-top-right.png';
+  static const waterInvertedCornerBottomLeft =
+      'environment/water/water-inverted-bottom-left.png';
+  static const waterInvertedCornerBottomRight =
+      'environment/water/water-inverted-bottom-right.png';
+  static const waterLeft = 'environment/water/water-flat-left.png';
+  static const waterRight = 'environment/water/water-flat-right.png';
+  static const waterUp = 'environment/water/water-flat-top.png';
+  static const waterDown = 'environment/water/water-flat-bottom.png';
 
   static List<String> get waterAnimationCacheKeys => <String>[
-    waterCorner,
-    waterInvertedCorner,
-    waterFlat,
+    waterCornerTopLeft,
+    waterCornerTopRight,
+    waterCornerBottomLeft,
+    waterCornerBottomRight,
+    waterInvertedCornerTopLeft,
+    waterInvertedCornerTopRight,
+    waterInvertedCornerBottomLeft,
+    waterInvertedCornerBottomRight,
+    waterLeft,
+    waterRight,
+    waterUp,
+    waterDown,
   ];
 
   // ground components.

@@ -1,4 +1,6 @@
+import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/game/my_game.dart';
 
 enum WaterAssetPosition {
@@ -12,9 +14,9 @@ enum WaterAssetPosition {
   invertedCornerBottomLeft,
   invertedCornerBottomRight,
   left,
-  plain,
   right,
   up,
+  plain,
 }
 
 class WaterComponent extends PositionComponent with HasGameReference<MyGame> {
@@ -23,7 +25,22 @@ class WaterComponent extends PositionComponent with HasGameReference<MyGame> {
     required Vector2 position,
     required Vector2 size,
     required this.assetPosition,
-  }) : super(position: position, size: size, priority: 0);
+  }) : super(position: position, size: size, priority: 20);
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    if (assetPosition != WaterAssetPosition.plain) {
+      add(
+        WaterSpriteComponent(
+          position: Vector2.zero(),
+          size: size,
+          assetPosition: assetPosition,
+        ),
+      );
+    }
+    add(RectangleHitbox(size: size));
+  }
 }
 
 class WaterSpriteComponent extends SpriteComponent
@@ -33,37 +50,50 @@ class WaterSpriteComponent extends SpriteComponent
     required Vector2 position,
     required Vector2 size,
     required this.assetPosition,
-  }) : super(position: position, size: size, priority: 0);
+  }) : super(position: position, size: size, priority: 20);
 
   @override
   Future<void> onLoad() async {
-    // sprite = Sprite(
-    // game.images.fromCache(assetPath),
-    // srcSize: Vector2(100, 100),
-    // );
+    sprite = switch (assetPosition) {
+      WaterAssetPosition.bottom => Sprite(
+        game.images.fromCache(AssetPaths.waterDown),
+      ),
+      WaterAssetPosition.cornerBottomLeft => Sprite(
+        game.images.fromCache(AssetPaths.waterCornerBottomLeft),
+      ),
+      WaterAssetPosition.cornerBottomRight => Sprite(
+        game.images.fromCache(AssetPaths.waterCornerBottomRight),
+      ),
+      WaterAssetPosition.cornerUpLeft => Sprite(
+        game.images.fromCache(AssetPaths.waterCornerTopLeft),
+      ),
+      WaterAssetPosition.cornerUpRight => Sprite(
+        game.images.fromCache(AssetPaths.waterCornerTopRight),
+      ),
+      WaterAssetPosition.invertedCornerTopLeft => Sprite(
+        game.images.fromCache(AssetPaths.waterInvertedCornerTopLeft),
+      ),
+      WaterAssetPosition.invertedCornerTopRight => Sprite(
+        game.images.fromCache(AssetPaths.waterInvertedCornerTopRight),
+      ),
+      WaterAssetPosition.invertedCornerBottomLeft => Sprite(
+        game.images.fromCache(AssetPaths.waterInvertedCornerBottomLeft),
+      ),
+      WaterAssetPosition.invertedCornerBottomRight => Sprite(
+        game.images.fromCache(AssetPaths.waterInvertedCornerBottomRight),
+      ),
+      WaterAssetPosition.left => Sprite(
+        game.images.fromCache(AssetPaths.waterLeft),
+      ),
+      WaterAssetPosition.right => Sprite(
+        game.images.fromCache(AssetPaths.waterRight),
+      ),
+      WaterAssetPosition.up => Sprite(
+        game.images.fromCache(AssetPaths.waterUp),
+      ),
+      WaterAssetPosition.plain => throw UnimplementedError(),
+    };
+
     return super.onLoad();
   }
-
-  // String get assetPath => switch (assetPosition) {
-  //   WaterAssetPosition.bottom => AssetPaths.waterBottom,
-  //   WaterAssetPosition.invertedCornerBottomRight =>
-  //     AssetPaths.waterInvertedCornerBottomLeft,
-  //   WaterAssetPosition.invertedCornerBottomLeft =>
-  //     AssetPaths.waterInvertedCornerBottomRight,
-  //   WaterAssetPosition.invertedCornerTopLeft =>
-  //     AssetPaths.waterInvertedCornerTopLeft,
-  //   WaterAssetPosition.invertedCornerTopRight =>
-  //     AssetPaths.waterInvertedCornerTopRight,
-  //   WaterAssetPosition.left => AssetPaths.waterLeft,
-  //   WaterAssetPosition.plain =>
-  //     AssetPaths.waterPlainAnimationCacheKeys[Random().nextInt(
-  //       AssetPaths.waterPlainAnimationCacheKeys.length,
-  //     )],
-  //   WaterAssetPosition.right => AssetPaths.waterRight,
-  //   WaterAssetPosition.up => AssetPaths.waterUp,
-  //   WaterAssetPosition.cornerBottomRight => AssetPaths.waterCornerBottomRight,
-  //   WaterAssetPosition.cornerUpLeft => AssetPaths.waterCornerUpLeft,
-  //   WaterAssetPosition.cornerUpRight => AssetPaths.waterCornerUpRight,
-  //   WaterAssetPosition.cornerBottomLeft => AssetPaths.waterCornerBottomLeft,
-  // };
 }
