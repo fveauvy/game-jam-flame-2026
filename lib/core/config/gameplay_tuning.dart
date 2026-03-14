@@ -59,6 +59,12 @@ abstract final class GameplayTuning {
   // Thorn animation.
   static const double thornAnimationFrameSeconds = 0.2;
 
+  // Leaf decoration spawning.
+  static const int leafCount = 14;
+  static const double leafSize = 64;
+  static const double minLeafSpacing = 140;
+  static const double fishLeafClearance = 130;
+
   // Fish enemy spawning.
   static const int fishEnemyCount = 3;
   static const double fishEnemySize = 150;

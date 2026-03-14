@@ -645,6 +645,13 @@ class MyGame extends FlameGame<WorldRoot>
     );
   }
 
+  static bool isValidEggSpawnPosition({
+    required bool isOnThorn,
+    required bool isOnLeaf,
+  }) {
+    return !isOnThorn && !isOnLeaf;
+  }
+
   Vector2 _randomEggPosition() {
     for (int i = 0; i < GameplayTuning.eggSpawnMaxRetries; i++) {
       final Vector2 candidate = Vector2(
@@ -657,7 +664,10 @@ class MyGame extends FlameGame<WorldRoot>
           GameConfig.worldSize.y - PhysicsTuning.playerBaseSize,
         ),
       );
-      if (!_level.isPositionOnThorn(candidate)) {
+      if (isValidEggSpawnPosition(
+        isOnThorn: _level.isPositionOnThorn(candidate),
+        isOnLeaf: _level.isPositionOnLeaf(candidate),
+      )) {
         return candidate;
       }
     }

@@ -63,4 +63,21 @@ void main() {
     );
     expect(game.characterGenerationState.value!.profile, profile);
   });
+
+  test('setMenuSeedCode updates seed while in menu phase', () async {
+    final CharacterProfile profile = const CharacterProfile(
+      name: CharacterName(adjective: 'Swift', noun: 'Frog', title: ''),
+      spriteId: 'frog-3',
+      spriteAssetPath: 'assets/images/gronouy/frog-3.png',
+    );
+    final _FakeCharacterGenerator generator = _FakeCharacterGenerator(profile);
+    final MyGame game = MyGame(characterGenerator: generator);
+    game.phase.value = GamePhase.menu;
+
+    await game.setMenuSeedCode('9ABCD');
+
+    expect(game.characterSeedCode, '9ABCD');
+    expect(game.characterGenerationState.value, isNotNull);
+    expect(game.characterGenerationState.value!.seedCode, '9ABCD');
+  });
 }

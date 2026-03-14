@@ -15,6 +15,7 @@ class SeedPanelComponent extends SpriteButtonComponent
   }) : super(size: size, position: position, anchor: Anchor.center);
 
   late final TextComponent _seedText;
+  String _displayedSeedCode = '-';
   final Future<void> Function() onReroll;
 
   @override
@@ -23,15 +24,15 @@ class SeedPanelComponent extends SpriteButtonComponent
 
     button = Sprite(game.images.fromCache(AssetPaths.plankCacheKey));
 
+    _displayedSeedCode = game.characterSeedCode;
+
     _seedText = TextComponent(
-      text: game.characterGenerationState.value?.seedCode ?? "-",
+      text: _displayedSeedCode,
       textRenderer: TextPaint(
         style: const TextStyle(color: Colors.white, letterSpacing: 2.0),
       ),
       position: size / 2 - Vector2(5, 2),
     );
-
-    game.characterGenerationState.addListener(_updateSeedText);
 
     add(
       RowComponent(
@@ -80,13 +81,14 @@ class SeedPanelComponent extends SpriteButtonComponent
     button = Sprite(game.images.fromCache('plank.png'));
   }
 
-  void _updateSeedText() {
-    _seedText.text = game.characterGenerationState.value?.seedCode ?? "-";
-  }
-
   @override
-  void onRemove() {
-    game.characterGenerationState.removeListener(_updateSeedText);
-    super.onRemove();
+  void update(double dt) {
+    super.update(dt);
+    final String nextSeedCode = game.characterSeedCode;
+    if (_displayedSeedCode == nextSeedCode) {
+      return;
+    }
+    _displayedSeedCode = nextSeedCode;
+    _seedText.text = nextSeedCode;
   }
 }
