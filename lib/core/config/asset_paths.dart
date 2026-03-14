@@ -24,6 +24,7 @@ abstract final class AssetPaths {
   static const String uiIntelligenceLogo =
       'assets/images/ui/intelligence_logo.png';
   static const String uiSpeedLogo = 'assets/images/ui/speed_logo.png';
+  static const String uiTitle = 'assets/images/ui/title.png';
 
   // Data and audio assets.
   static const String characterPools = 'assets/data/character_pools.json';
@@ -35,6 +36,7 @@ abstract final class AssetPaths {
   static const String tongueLickSfx = 'sound_effects/coup-de-langue.mp3';
 
   // Flame image cache keys.
+  static const String titleCacheKey = 'ui/title.png';
   static const String uiRefreshLogoCacheKey = 'ui/refresh_logo.png';
   static const String splashScreenCacheKey = 'splash_screen.png';
   static const String plankCacheKey = 'plank.png';
@@ -129,6 +131,7 @@ abstract final class AssetPaths {
     waterLilyAltCacheKey,
     flyCacheKey,
     eggsCacheKey,
+    titleCacheKey,
     ...thornsAnimationCacheKeys,
     leafCacheKey,
     tongue1CacheKey,
