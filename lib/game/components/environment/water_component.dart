@@ -1,8 +1,5 @@
-import 'dart:math';
-
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/game/my_game.dart';
 
 enum WaterAssetPosition {
@@ -47,33 +44,33 @@ class WaterSpriteComponent extends SpriteComponent
 
   @override
   Future<void> onLoad() async {
-    sprite = Sprite(
-      game.images.fromCache(assetPath),
-      srcSize: Vector2(100, 100),
-    );
+    // sprite = Sprite(
+    // game.images.fromCache(assetPath),
+    // srcSize: Vector2(100, 100),
+    // );
     return super.onLoad();
   }
 
-  String get assetPath => switch (assetPosition) {
-    WaterAssetPosition.bottom => AssetPaths.waterBottom,
-    WaterAssetPosition.invertedCornerBottomRight =>
-      AssetPaths.waterInvertedCornerBottomLeft,
-    WaterAssetPosition.invertedCornerBottomLeft =>
-      AssetPaths.waterInvertedCornerBottomRight,
-    WaterAssetPosition.invertedCornerTopLeft =>
-      AssetPaths.waterInvertedCornerTopLeft,
-    WaterAssetPosition.invertedCornerTopRight =>
-      AssetPaths.waterInvertedCornerTopRight,
-    WaterAssetPosition.left => AssetPaths.waterLeft,
-    WaterAssetPosition.plain =>
-      AssetPaths.waterPlainAnimationCacheKeys[Random().nextInt(
-        AssetPaths.waterPlainAnimationCacheKeys.length,
-      )],
-    WaterAssetPosition.right => AssetPaths.waterRight,
-    WaterAssetPosition.up => AssetPaths.waterUp,
-    WaterAssetPosition.cornerBottomRight => AssetPaths.waterCornerBottomRight,
-    WaterAssetPosition.cornerUpLeft => AssetPaths.waterCornerUpLeft,
-    WaterAssetPosition.cornerUpRight => AssetPaths.waterCornerUpRight,
-    WaterAssetPosition.cornerBottomLeft => AssetPaths.waterCornerBottomLeft,
-  };
+  // String get assetPath => switch (assetPosition) {
+  //   WaterAssetPosition.bottom => AssetPaths.waterBottom,
+  //   WaterAssetPosition.invertedCornerBottomRight =>
+  //     AssetPaths.waterInvertedCornerBottomLeft,
+  //   WaterAssetPosition.invertedCornerBottomLeft =>
+  //     AssetPaths.waterInvertedCornerBottomRight,
+  //   WaterAssetPosition.invertedCornerTopLeft =>
+  //     AssetPaths.waterInvertedCornerTopLeft,
+  //   WaterAssetPosition.invertedCornerTopRight =>
+  //     AssetPaths.waterInvertedCornerTopRight,
+  //   WaterAssetPosition.left => AssetPaths.waterLeft,
+  //   WaterAssetPosition.plain =>
+  //     AssetPaths.waterPlainAnimationCacheKeys[Random().nextInt(
+  //       AssetPaths.waterPlainAnimationCacheKeys.length,
+  //     )],
+  //   WaterAssetPosition.right => AssetPaths.waterRight,
+  //   WaterAssetPosition.up => AssetPaths.waterUp,
+  //   WaterAssetPosition.cornerBottomRight => AssetPaths.waterCornerBottomRight,
+  //   WaterAssetPosition.cornerUpLeft => AssetPaths.waterCornerUpLeft,
+  //   WaterAssetPosition.cornerUpRight => AssetPaths.waterCornerUpRight,
+  //   WaterAssetPosition.cornerBottomLeft => AssetPaths.waterCornerBottomLeft,
+  // };
 }

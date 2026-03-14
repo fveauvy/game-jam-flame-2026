@@ -55,54 +55,15 @@ abstract final class AssetPaths {
   static const String tongue3CacheKey = 'gronouy/Langue3.png';
 
   // Ground components.
-  static const waterBottom = 'environment/water/water-bottom.webp';
-  static const waterCornerBottomLeft =
-      'environment/water/water-corner-bottom-left.webp';
-  static const waterCornerBottomRight =
-      'environment/water/water-corner-bottom-right.webp';
-  static const waterCornerUpLeft =
-      'environment/water/water-corner-up-left.webp';
-  static const waterCornerUpRight =
-      'environment/water/water-corner-up-right.webp';
-  static const waterLeft = 'environment/water/water-left.webp';
-  static const waterPlain = 'environment/water/water-plain.webp';
-  static const waterPlain1 = 'environment/water/water-plain1.webp';
-  static const waterPlain2 = 'environment/water/water-plain2.webp';
-  static const waterPlain3 = 'environment/water/water-plain3.webp';
-  static const waterRight = 'environment/water/water-right.webp';
-  static const waterUp = 'environment/water/water-up.webp';
-  static const waterInvertedCornerTopLeft =
-      'environment/water/water-inverted-corner-top-left.png';
-  static const waterInvertedCornerTopRight =
-      'environment/water/water-inverted-corner-top-right.webp';
-  static const waterInvertedCornerBottomLeft =
-      'environment/water/water-inverted-corner-bottom-left.png';
-  static const waterInvertedCornerBottomRight =
-      'environment/water/water-inverted-corner-bottom-right.png';
-
-  static List<String> get waterPlainAnimationCacheKeys => <String>[
-    waterPlain1,
-    waterPlain2,
-    waterPlain3,
-  ];
+  static const waterCorner = 'environment/water/water-corner.png';
+  static const waterInvertedCorner =
+      'environment/water/water-inverted-corner.png';
+  static const waterFlat = 'environment/water/water-flat.png';
 
   static List<String> get waterAnimationCacheKeys => <String>[
-    waterBottom,
-    waterCornerBottomLeft,
-    waterCornerBottomRight,
-    waterCornerUpLeft,
-    waterCornerUpRight,
-    waterLeft,
-    waterPlain,
-    waterPlain1,
-    waterPlain2,
-    waterPlain3,
-    waterRight,
-    waterUp,
-    waterInvertedCornerTopLeft,
-    waterInvertedCornerTopRight,
-    waterInvertedCornerBottomLeft,
-    waterInvertedCornerBottomRight,
+    waterCorner,
+    waterInvertedCorner,
+    waterFlat,
   ];
 
   // ground components.
