@@ -48,6 +48,7 @@ void main() {
   vec3 darkerTint = base_color * vec3(1., .98, 1.02);
   vec4 texture_color = vec4(mix(base_color, darkerTint, contrastField), 1.0);
 
+  // Fine tune effect movement here
   vec4 k = vec4(uTime)*0.8;
 
   k.xy = world * .005;
