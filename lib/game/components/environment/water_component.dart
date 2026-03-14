@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
@@ -54,7 +56,10 @@ class WaterComponent extends SpriteComponent with HasGameReference<MyGame> {
     WaterAssetPosition.invertedCornerTopRight =>
       AssetPaths.waterInvertedCornerTopRight,
     WaterAssetPosition.left => AssetPaths.waterLeft,
-    WaterAssetPosition.plain => AssetPaths.waterPlain,
+    WaterAssetPosition.plain =>
+      AssetPaths.waterPlainAnimationCacheKeys[Random().nextInt(
+        AssetPaths.waterPlainAnimationCacheKeys.length,
+      )],
     WaterAssetPosition.right => AssetPaths.waterRight,
     WaterAssetPosition.up => AssetPaths.waterUp,
     WaterAssetPosition.cornerBottomRight => AssetPaths.waterCornerBottomRight,
