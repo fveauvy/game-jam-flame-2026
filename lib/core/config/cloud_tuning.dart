@@ -5,7 +5,7 @@ abstract final class CloudTuning {
   static const int minCloudCount = 2;
   static const int maxCloudCount = 4;
   static const double minSpeed = 34;
-  static const double maxSpeed = 78;
+  static const double maxSpeed = 50;
 
   // Overall cloud silhouette.
   static const double minWidth = 980;
@@ -13,7 +13,7 @@ abstract final class CloudTuning {
   static const double minHeightRatio = 0.34;
   static const double maxHeightRatio = 0.42;
   static const double collisionRadiusScale = 0.68;
-  static const double blurSigmaScale = 0.004;
+  static const double blurSigmaScale = 0.0075;
 
   // Lobe generation.
   static const int lobeTemplateCount = 6;
