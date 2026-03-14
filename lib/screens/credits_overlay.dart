@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:game_jam/core/config/credits_config.dart';
+import 'package:game_jam/screens/credits/credit_entry.dart';
 
 class CreditsOverlay extends StatelessWidget {
   const CreditsOverlay({super.key, required this.onClose});
 
   final VoidCallback onClose;
-
-  static const List<_CreditEntry> _credits = <_CreditEntry>[
-    _CreditEntry('Alice Abadia', <String>['Art']),
-    _CreditEntry('Bastien Génin', <String>['Dev', 'Art', 'Music']),
-    _CreditEntry('Thomas Deléron', <String>['Art', 'Music']),
-    _CreditEntry('Jason Fachan', <String>['Dev']),
-    _CreditEntry('Elliot Cunningham', <String>['Dev']),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +29,41 @@ class CreditsOverlay extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  for (final _CreditEntry entry in _credits) ...[
+                  for (final CreditEntry entry
+                      in CreditsConfig.mainCredits) ...[
+                    Text(
+                      entry.name,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      entry.roles.join(' · '),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFFB7D9D2),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Special Thanks to',
+                    style: TextStyle(
+                      color: Color(0xFFF8E5B9),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  for (final CreditEntry entry
+                      in CreditsConfig.specialThanks) ...[
                     Text(
                       entry.name,
                       textAlign: TextAlign.center,
@@ -70,11 +98,4 @@ class CreditsOverlay extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CreditEntry {
-  const _CreditEntry(this.name, this.roles);
-
-  final String name;
-  final List<String> roles;
 }
