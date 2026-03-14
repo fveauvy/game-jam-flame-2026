@@ -79,13 +79,33 @@ class CloudShadowComponent extends PositionComponent
   void render(Canvas canvas) {
     canvas.save();
     canvas.clipRect(Rect.fromLTWH(0, 0, size.x, size.y));
+
+    final Path allCloudsPath = Path();
+
     for (final _CloudShadow cloud in _clouds) {
       final Vector2 center = _bounds.toWorld(
         along: cloud.along,
         across: cloud.across,
       );
-      _drawCloud(canvas, cloud: cloud, center: center);
+
+      allCloudsPath.addPath(
+        _buildCloudPath(cloud: cloud, center: center),
+        Offset.zero,
+      );
     }
+
+    final Paint paint = Paint()
+      ..color = CloudTuning.overlayColor.withValues(
+        alpha: CloudTuning.overlayOpacityFactor,
+      )
+      ..blendMode = CloudTuning.baseBlendMode
+      ..maskFilter = MaskFilter.blur(
+        BlurStyle.normal,
+        CloudTuning.blurSigmaScale * size.y,
+      );
+
+    canvas.drawPath(allCloudsPath, paint);
+
     canvas.restore();
   }
 
@@ -100,10 +120,6 @@ class CloudShadowComponent extends PositionComponent
             _shapeRandom.nextDouble() *
                 (CloudTuning.maxHeightRatio - CloudTuning.minHeightRatio));
     final double radius = max(width, height) * CloudTuning.collisionRadiusScale;
-    final double opacity =
-        CloudTuning.minOpacity +
-        _shapeRandom.nextDouble() *
-            (CloudTuning.maxOpacity - CloudTuning.minOpacity);
 
     final double along = randomizeAlong
         ? (_bounds.minAlong - radius) +
@@ -122,8 +138,6 @@ class CloudShadowComponent extends PositionComponent
       along: along,
       across: across,
       radius: radius,
-      opacity: opacity,
-      blurSigma: height * CloudTuning.blurSigmaScale,
       width: width,
       height: height,
       lobes: lobes,
@@ -165,51 +179,27 @@ class CloudShadowComponent extends PositionComponent
     return lobes;
   }
 
-  void _drawCloud(
-    Canvas canvas, {
-    required _CloudShadow cloud,
-    required Vector2 center,
-  }) {
-    final Paint basePaint = Paint()
-      ..color = CloudTuning.baseColor.withValues(alpha: cloud.opacity)
-      ..blendMode = CloudTuning.baseBlendMode
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, cloud.blurSigma);
-    final Paint overlayPaint = Paint()
-      ..color = CloudTuning.overlayColor.withValues(
-        alpha: cloud.opacity * CloudTuning.overlayOpacityFactor,
-      )
-      ..blendMode = CloudTuning.overlayBlendMode
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, cloud.blurSigma);
-
-    _drawCloudBody(canvas, cloud: cloud, center: center, paint: basePaint);
-    _drawCloudBody(canvas, cloud: cloud, center: center, paint: overlayPaint);
-  }
-
-  void _drawCloudBody(
-    Canvas canvas, {
-    required _CloudShadow cloud,
-    required Vector2 center,
-    required Paint paint,
-  }) {
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(center.x, center.y),
-        width: cloud.width,
-        height: cloud.height,
-      ),
-      paint,
-    );
+  Path _buildCloudPath({required _CloudShadow cloud, required Vector2 center}) {
+    final Path path = Path()
+      ..addOval(
+        Rect.fromCenter(
+          center: Offset(center.x, center.y),
+          width: cloud.width,
+          height: cloud.height,
+        ),
+      );
 
     for (final _CloudLobe lobe in cloud.lobes) {
-      canvas.drawOval(
+      path.addOval(
         Rect.fromCenter(
           center: Offset(center.x + lobe.offset.x, center.y + lobe.offset.y),
           width: lobe.width,
           height: lobe.height,
         ),
-        paint,
       );
     }
+
+    return path;
   }
 
   static _ProjectedBounds _computeBounds({
@@ -281,8 +271,6 @@ class _CloudShadow {
     required this.along,
     required this.across,
     required this.radius,
-    required this.opacity,
-    required this.blurSigma,
     required this.width,
     required this.height,
     required this.lobes,
@@ -291,8 +279,6 @@ class _CloudShadow {
   double along;
   final double across;
   final double radius;
-  final double opacity;
-  final double blurSigma;
   final double width;
   final double height;
   final List<_CloudLobe> lobes;
