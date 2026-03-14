@@ -91,9 +91,4 @@ class SeedPanelComponent extends SpriteButtonComponent
     _displayedSeedCode = nextSeedCode;
     _seedText.text = nextSeedCode;
   }
-
-  @override
-  void onRemove() {
-    super.onRemove();
-  }
 }
