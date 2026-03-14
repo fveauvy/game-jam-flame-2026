@@ -10,6 +10,7 @@ import 'package:game_jam/game/components/allies/egg_component.dart';
 import 'package:game_jam/game/components/enemies/fish_enemy_component.dart';
 import 'package:game_jam/game/components/environment/cloud_shadow_component.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
+import 'package:game_jam/game/components/environment/leaf_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
@@ -305,6 +306,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     final List<Vector2> fishCandidates = <Vector2>[];
     final List<Vector2> lilyCandidateOrigins = <Vector2>[];
     final List<Vector2> eggCandidateOrigins = <Vector2>[];
+    final List<Vector2> leafCandidateOrigins = <Vector2>[];
     for (int i = 1; i < gridW - 1; i++) {
       for (int j = 1; j < gridH - 1; j++) {
         if (isWaterGrid[i][j]) {
@@ -341,6 +343,10 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           if (allNeighboursGround) {
             eggCandidateOrigins.add(Vector2(i * _cellSize, j * _cellSize));
           }
+        }
+
+        if (!isWaterGrid[i][j]) {
+          leafCandidateOrigins.add(Vector2(i * _cellSize, j * _cellSize));
         }
 
         if (!isFishZoneGrid[i][j]) continue;
@@ -483,6 +489,41 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         ),
       );
       spawnedEggCount++;
+    }
+
+    // Spawn leaf decorations on ground cells, respecting spacing and fish clearance.
+    leafCandidateOrigins.shuffle(random);
+    final List<Vector2> spawnedLeafCenters = <Vector2>[];
+    for (final Vector2 cellOrigin in leafCandidateOrigins) {
+      if (spawnedLeafCenters.length >= GameplayTuning.leafCount) break;
+
+      final double maxOffset = _cellSize - GameplayTuning.leafSize;
+      if (maxOffset < 0) continue;
+      final Vector2 leafPos = Vector2(
+        cellOrigin.x + random.nextDouble() * maxOffset,
+        cellOrigin.y + random.nextDouble() * maxOffset,
+      );
+      final Vector2 leafCenter =
+          leafPos + Vector2.all(GameplayTuning.leafSize / 2);
+
+      final bool tooCloseToLeaf = spawnedLeafCenters.any(
+        (Vector2 p) => p.distanceTo(leafCenter) < GameplayTuning.minLeafSpacing,
+      );
+      if (tooCloseToLeaf) continue;
+
+      final bool tooCloseToFish = spawnedFishPositions.any(
+        (Vector2 p) =>
+            p.distanceTo(leafCenter) < GameplayTuning.fishLeafClearance,
+      );
+      if (tooCloseToFish) continue;
+
+      spawnedLeafCenters.add(leafCenter);
+      await add(
+        LeafComponent(
+          position: leafPos,
+          size: Vector2.all(GameplayTuning.leafSize),
+        ),
+      );
     }
 
     await add(
