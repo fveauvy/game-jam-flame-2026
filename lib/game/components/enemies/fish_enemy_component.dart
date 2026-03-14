@@ -21,7 +21,7 @@ class FishEnemyComponent extends SpriteAnimationComponent
 
   FishEnemyComponent({required this.initialPosition, required this.initialSize})
     : super(
-        priority: 0,
+        priority: 2,
         size: initialSize,
         position: initialPosition,
         autoResize: false,
