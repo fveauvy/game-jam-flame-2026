@@ -132,90 +132,133 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
       color: Colors.black.withValues(
         alpha: WinOverlayUi.overlayBackgroundAlpha,
       ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: WinOverlayUi.maxWidth),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(WinOverlayUi.cardRadius),
-            child: AspectRatio(
-              aspectRatio: WinOverlayUi.cardAspectRatio,
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage(AssetPaths.uiTooltip),
-                    fit: BoxFit.cover,
+      child: SafeArea(
+        child: Center(
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final bool compact = constraints.maxHeight < 600;
+              final double spacing = compact ? 10 : WinOverlayUi.contentSpacing;
+              final double titleSize = compact
+                  ? 24
+                  : WinOverlayUi.titleFontSize + 6;
+              final double subtitleSize = compact
+                  ? 20
+                  : WinOverlayUi.titleFontSize;
+              final double summarySize = compact
+                  ? 14
+                  : WinOverlayUi.summaryFontSize;
+              final double timeSize = compact
+                  ? 16
+                  : WinOverlayUi.rescueTimeFontSize;
+              final double hPad = compact
+                  ? 20
+                  : WinOverlayUi.summaryHorizontalPadding;
+
+              final Widget content = Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: spacing,
+                children: [
+                  Text(
+                    WinOverlayUi.victoryExclamation,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w800,
+                      color: WinOverlayUi.titleColor,
+                    ),
                   ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: WinOverlayUi.contentSpacing,
-                  children: [
-                    const Text(
-                      WinOverlayUi.victoryTitle,
+                  Text(
+                    WinOverlayUi.victoryTitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: subtitleSize,
+                      fontWeight: FontWeight.w700,
+                      color: WinOverlayUi.titleColor,
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: hPad),
+                    child: Text(
+                      WinOverlayUi.victorySummary,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: WinOverlayUi.titleFontSize,
-                        fontWeight: FontWeight.w700,
-                        color: WinOverlayUi.titleColor,
+                        fontSize: summarySize,
+                        fontWeight: FontWeight.w500,
+                        color: WinOverlayUi.summaryColor,
+                        height: WinOverlayUi.summaryLineHeight,
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: WinOverlayUi.summaryHorizontalPadding,
-                      ),
-                      child: Text(
-                        WinOverlayUi.victorySummary,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: WinOverlayUi.summaryFontSize,
-                          fontWeight: FontWeight.w500,
-                          color: WinOverlayUi.summaryColor,
-                          height: WinOverlayUi.summaryLineHeight,
-                        ),
-                      ),
+                  ),
+                  Text(
+                    '${WinOverlayUi.rescueTimePrefix} ${widget.winningTime}',
+                    style: TextStyle(
+                      fontSize: timeSize,
+                      fontWeight: FontWeight.w700,
+                      color: WinOverlayUi.rescueTimeColor,
                     ),
-                    Text(
-                      '${WinOverlayUi.rescueTimePrefix} ${widget.winningTime}',
-                      style: const TextStyle(
-                        fontSize: WinOverlayUi.rescueTimeFontSize,
-                        fontWeight: FontWeight.w700,
-                        color: WinOverlayUi.rescueTimeColor,
-                      ),
+                  ),
+                  FilledButton(
+                    onPressed: (_isPublishing || _hasPublishedScore)
+                        ? null
+                        : _publishScore,
+                    child: Text(
+                      _isPublishing
+                          ? WinOverlayUi.publishingLabel
+                          : (_hasPublishedScore
+                                ? WinOverlayUi.publishedLabel
+                                : WinOverlayUi.publishAction),
                     ),
-                    FilledButton(
-                      onPressed: (_isPublishing || _hasPublishedScore)
-                          ? null
-                          : _publishScore,
-                      child: Text(
-                        _isPublishing
-                            ? WinOverlayUi.publishingLabel
-                            : (_hasPublishedScore
-                                  ? WinOverlayUi.publishedLabel
-                                  : WinOverlayUi.publishAction),
-                      ),
+                  ),
+                  FilledButton(
+                    onPressed: _isRestarting
+                        ? null
+                        : () => _runRestart(widget.onRetrySeed),
+                    child: Text(
+                      _isRestarting
+                          ? WinOverlayUi.restartingLabel
+                          : WinOverlayUi.retrySeedAction,
                     ),
-                    FilledButton(
-                      onPressed: _isRestarting
-                          ? null
-                          : () => _runRestart(widget.onRetrySeed),
-                      child: Text(
-                        _isRestarting
-                            ? WinOverlayUi.restartingLabel
-                            : WinOverlayUi.retrySeedAction,
-                      ),
-                    ),
-                    FilledButton(
-                      onPressed: _isRestarting
-                          ? null
-                          : () => _runRestart(widget.onRestartWithNewSeed),
-                      child: const Text(WinOverlayUi.restartNewSeedAction),
-                    ),
-                  ],
+                  ),
+                  FilledButton(
+                    onPressed: _isRestarting
+                        ? null
+                        : () => _runRestart(widget.onRestartWithNewSeed),
+                    child: const Text(WinOverlayUi.restartNewSeedAction),
+                  ),
+                ],
+              );
+
+              return ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: WinOverlayUi.maxWidth,
                 ),
-              ),
-            ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(WinOverlayUi.cardRadius),
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage(AssetPaths.uiTooltip),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    child: compact
+                        ? SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 20,
+                            ),
+                            child: content,
+                          )
+                        : AspectRatio(
+                            aspectRatio: WinOverlayUi.cardAspectRatio,
+                            child: content,
+                          ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
