@@ -30,13 +30,16 @@ abstract final class PhysicsTuning {
   static const double birdEnemyFadeOutSpeed = 1.5;
   static const double birdEnemyMegaSizeWidth = 1000;
   static const double birdEnemyMegaSizeHeight = 1100;
-  static const int birdEnemyDamageAmount = 10;
+  static const int birdEnemyDamageAmount = 5;
   static const double birdEnemyDamageInvincibilitySeconds = 5;
   // Shadow distances and alpha curve.
   static const double birdShadowAttackTriggerDistance = 150;
   static const double birdShadowFadeInStartDistance = 600;
   static const double birdShadowAlphaPeakDistance = 300;
   static const double birdShadowFadeOutEndDistance = 100;
+  static const double birdShadowMaxDistance = 2500 / 2;
+  static const double birdShadowMinAlpha = 0.4;
+  static const double birdShadowMaxAlpha = 1.0;
   static const double birdShadowMaxTypeDistance = 600;
   static const double birdShadowNormalTypeDistance = 450;
   // Shadow scale and position animation.

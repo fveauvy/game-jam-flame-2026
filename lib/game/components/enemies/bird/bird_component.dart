@@ -36,7 +36,7 @@ class BirdComponent extends PositionComponent
     _bird = BirdAnimationComponent(position: size / 2);
     add(_shadow);
     add(_bird);
-    add(CircleHitbox(radius: size.x / 2));
+    add(CircleHitbox(radius: size.x / 4));
 
     await super.onLoad();
   }
@@ -78,7 +78,7 @@ class BirdComponent extends PositionComponent
   ) async {
     if (other is PlayerComponent &&
         intersectionPoints.length >= 2 &&
-        !_bird.isRetreating) {
+        _bird.canApplyDamage) {
       unawaited(
         other.applyDamageWithInvincibilityDelay(
           PhysicsTuning.birdEnemyDamageAmount,

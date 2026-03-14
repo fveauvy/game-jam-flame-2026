@@ -24,6 +24,11 @@ class BirdAnimationComponent extends SpriteAnimationComponent
   bool isRetreating = false;
   bool _updateSizeForAttack = false;
 
+  bool get canApplyDamage =>
+      !isRetreating &&
+      size.x < (_originalSize.x + 5) &&
+      size.y < (_originalSize.y + 5);
+
   @override
   Future<void> onLoad() async {
     animation = SpriteAnimation.variableSpriteList(
