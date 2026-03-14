@@ -88,4 +88,23 @@ void main() {
     expect(leaderboardClient.elapsedTimeInMs, 54321);
     expect(leaderboardClient.seedCode, '4SFE6');
   });
+
+  test('egg spawn position is invalid on leaf or thorn', () {
+    expect(
+      MyGame.isValidEggSpawnPosition(isOnThorn: false, isOnLeaf: false),
+      isTrue,
+    );
+    expect(
+      MyGame.isValidEggSpawnPosition(isOnThorn: true, isOnLeaf: false),
+      isFalse,
+    );
+    expect(
+      MyGame.isValidEggSpawnPosition(isOnThorn: false, isOnLeaf: true),
+      isFalse,
+    );
+    expect(
+      MyGame.isValidEggSpawnPosition(isOnThorn: true, isOnLeaf: true),
+      isFalse,
+    );
+  });
 }
