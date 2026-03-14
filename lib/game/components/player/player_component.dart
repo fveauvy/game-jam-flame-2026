@@ -57,6 +57,7 @@ class PlayerComponent extends SpriteAnimationComponent
   static const Duration _damageTextDuration = Duration(seconds: 1);
   static const Duration _dryingDelay = Duration(milliseconds: 500);
   static const int _defaultHealth = 100;
+  static const double _hitboxRadiusFactor = 1 / 3;
   static ui.FragmentProgram? _frogOutlineProgram;
   static Future<ui.FragmentProgram>? _frogOutlineProgramLoader;
 
@@ -171,8 +172,8 @@ class PlayerComponent extends SpriteAnimationComponent
     paint = Paint()
       ..color = Colors.white.withAlpha((_spriteOpacity * 255).toInt());
     _hitbox = CircleHitbox(
-      radius: (size.x / 3),
-      position: Vector2(size.x / 2, size.y / 2),
+      radius: resolveHitboxRadius(size.x),
+      position: resolveHitboxPosition(size.x),
       anchor: Anchor.center,
     );
     // Players always spawn on land; initialise the shared input state so that
@@ -241,7 +242,17 @@ class PlayerComponent extends SpriteAnimationComponent
     if (hitbox == null) {
       return;
     }
-    hitbox.radius = size.x / 2;
+    hitbox.radius = resolveHitboxRadius(size.x);
+    hitbox.position = resolveHitboxPosition(size.x);
+  }
+
+  static double resolveHitboxRadius(double spriteSize) {
+    return spriteSize * _hitboxRadiusFactor;
+  }
+
+  static Vector2 resolveHitboxPosition(double spriteSize) {
+    final double center = spriteSize / 2;
+    return Vector2(center, center);
   }
 
   static int resolveMaxHealth(CharacterProfile profile) {

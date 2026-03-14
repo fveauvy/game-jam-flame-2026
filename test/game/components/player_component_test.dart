@@ -214,4 +214,17 @@ void main() {
     expect(direction.x, closeTo(0, 0.000001));
     expect(direction.y, closeTo(-1, 0.000001));
   });
+
+  test('hitbox radius keeps consistent factor with sprite size', () {
+    final double radius = PlayerComponent.resolveHitboxRadius(99);
+
+    expect(radius, closeTo(33, 0.000001));
+  });
+
+  test('hitbox position stays centered after size changes', () {
+    final Vector2 center = PlayerComponent.resolveHitboxPosition(110);
+
+    expect(center.x, closeTo(55, 0.000001));
+    expect(center.y, closeTo(55, 0.000001));
+  });
 }
