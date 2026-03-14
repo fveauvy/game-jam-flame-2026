@@ -71,7 +71,7 @@ class MyGame extends FlameGame<WorldRoot>
        );
 
   @override
-  bool get debugMode => true;
+  bool get debugMode => false;
 
   final InputState inputState = InputState();
   late final KeyboardInput keyboardInput;
