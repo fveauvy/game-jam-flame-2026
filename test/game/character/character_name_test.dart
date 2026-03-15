@@ -2,6 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:game_jam/game/character/model/character_name.dart';
 
 void main() {
+  test('display returns noun when adjective and title are absent', () {
+    const CharacterName name = CharacterName(noun: 'Frog');
+
+    expect(name.display, 'Frog');
+  });
+
   test('display returns adjective and noun when title is null', () {
     const CharacterName name = CharacterName(adjective: 'Brave', noun: 'Frog');
 
@@ -56,5 +62,11 @@ void main() {
     );
 
     expect(name.display, 'Brave Frog, Legion');
+  });
+
+  test('display returns noun and title when adjective is absent', () {
+    const CharacterName name = CharacterName(noun: 'Frog', title: 'Legion');
+
+    expect(name.display, 'Frog, Legion');
   });
 }

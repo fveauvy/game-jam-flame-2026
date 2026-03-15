@@ -87,4 +87,21 @@ void main() {
     expect(profile.traits.intelligence, inInclusiveRange(0.5, 2.0));
     expect(profile.traits.health, inInclusiveRange(60, 150));
   });
+
+  test('generated name uses either adjective or title', () async {
+    final ProceduralCharacterGenerator generator = ProceduralCharacterGenerator(
+      pools: pools,
+    );
+
+    for (int seed = 0; seed < 50; seed++) {
+      final CharacterProfile profile = await generator.generate(seed: seed);
+      final bool hasAdjective = (profile.name.adjective ?? '')
+          .trim()
+          .isNotEmpty;
+      final bool hasTitle = (profile.name.title ?? '').trim().isNotEmpty;
+
+      expect(hasAdjective || hasTitle, isTrue);
+      expect(hasAdjective && hasTitle, isFalse);
+    }
+  });
 }
