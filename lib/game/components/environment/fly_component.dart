@@ -8,7 +8,7 @@ import 'package:game_jam/game/my_game.dart';
 
 class FlyComponent extends SpriteAnimationComponent
     with HasGameReference<MyGame>, FlyAnimationDefinition, CollisionCallbacks {
-  FlyComponent({super.position, super.size}) : super(priority: 100);
+  FlyComponent({super.position, super.size}) : super(priority: 51);
 
   static const double _minRadius = 20;
   static const double _maxRadius = 60;

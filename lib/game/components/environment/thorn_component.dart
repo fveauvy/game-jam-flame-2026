@@ -7,7 +7,7 @@ import 'package:game_jam/game/my_game.dart';
 class ThornComponent extends SpriteAnimationComponent
     with HasGameReference<MyGame>, CollisionCallbacks {
   ThornComponent({required Vector2 position, required Vector2 size})
-    : super(position: position, size: size, priority: 10);
+    : super(position: position, size: size, priority: 2);
 
   static const List<int> _animationSequence = <int>[0, 1, 2, 1];
 
