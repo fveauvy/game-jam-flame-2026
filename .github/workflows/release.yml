@@ -141,6 +141,41 @@ jobs:
           name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
+  build_web:
+    runs-on: ubuntu-latest
+    needs: prepare
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Build web for itch.io
+        run: >-
+          flutter build web --release --pwa-strategy=none --base-href /
+          --dart-define=LEADERBOARD_SUBMIT_URL=${{ secrets.LEADERBOARD_SUBMIT_URL }}
+          --dart-define=LEADERBOARD_KEY_PART_A=${{ secrets.LEADERBOARD_KEY_PART_A }}
+          --dart-define=LEADERBOARD_KEY_PART_B=${{ secrets.LEADERBOARD_KEY_PART_B }}
+
+      - name: Package web artifact for itch.io
+        run: |
+          set -euo pipefail
+          pushd build/web >/dev/null
+          zip -r ../../game-jam-web-itch.zip .
+          popd >/dev/null
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-itch-zip
+          path: game-jam-web-itch.zip
+
   build_ios:
     runs-on: macos-26
     needs: prepare
@@ -331,6 +366,7 @@ jobs:
     needs:
       - prepare
       - build_android
+      - build_web
       - build_ios
       - build_windows
       - build_macos
