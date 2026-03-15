@@ -263,19 +263,19 @@ a {
   padding: 0.7rem;
 }
 
-.screenshot-placeholder {
+.screenshot-img {
+  width: 100%;
+  height: auto;
   aspect-ratio: 16 / 10;
+  object-fit: cover;
   border-radius: 0.85rem;
-  border: 2px dashed rgba(17, 104, 116, 0.4);
-  background:
-    radial-gradient(circle at 75% 20%, rgba(255, 213, 106, 0.35), transparent 35%),
-    linear-gradient(155deg, rgba(119, 200, 213, 0.35), rgba(90, 154, 68, 0.32));
-  color: #0f4752;
-  display: grid;
-  place-items: center;
-  font-family: "Changa", sans-serif;
-  letter-spacing: 0.04em;
-  font-size: 1.05rem;
+  display: block;
+}
+
+.hero-title-art {
+  width: min(100%, 520px);
+  height: auto;
+  display: block;
 }
 
 figcaption {
