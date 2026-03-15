@@ -71,4 +71,11 @@ abstract final class GameplayTuning {
   static const double fishEnemySize = 150;
   static const double fishMinSpawnDistance = 600;
   static const double minFishSpacing = 400;
+
+  // Mud zone world generation (zone 3 / outer ground only).
+  static const double mudPatchNoiseFrequency = 0.4;
+  static const double mudPatchThresholdMin = 0.35;
+  static const double mudPatchThresholdMax = 0.75;
+  static const double mudPatchSpawnChance = 0.65;
+  static const int mudPatchMaxCells = 5;
 }
