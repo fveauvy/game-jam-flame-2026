@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/entities/biome_type.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
+import 'package:game_jam/game/components/environment/water_lily_component.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/game/world/world_mixin.dart';
 
@@ -13,6 +14,7 @@ class GeneratedLevel extends Component
   late BiomeType biome;
   final List<Rect> _waterBounds = <Rect>[];
   final List<Rect> _leafBounds = <Rect>[];
+  final List<WaterLilyComponent> _waterLilies = <WaterLilyComponent>[];
   late final UnmodifiableListView<Rect> _waterBoundsView =
       UnmodifiableListView<Rect>(_waterBounds);
   int _waterRevision = 0;
@@ -30,14 +32,17 @@ class GeneratedLevel extends Component
     final (List<Rect> waterBounds, List<Rect> leafBounds) =
         await generateLevel();
     _setGeneratedBounds(waterBounds: waterBounds, leafBounds: leafBounds);
+    _waterLilies.addAll(children.whereType<WaterLilyComponent>());
     await super.onLoad();
   }
 
   Future<void> onUpdateSeed() async {
+    _waterLilies.clear();
     removeAll(children);
     final (List<Rect> waterBounds, List<Rect> leafBounds) =
         await generateLevel();
     _setGeneratedBounds(waterBounds: waterBounds, leafBounds: leafBounds);
+    _waterLilies.addAll(children.whereType<WaterLilyComponent>());
   }
 
   void _setGeneratedBounds({
@@ -119,6 +124,15 @@ class GeneratedLevel extends Component
           position.y >= thorn.position.y &&
           position.y <= thorn.position.y + thorn.size.y;
       if (insideX && insideY) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool isPositionInWaterLily(Vector2 position) {
+    for (final WaterLilyComponent lily in _waterLilies) {
+      if (lily.absoluteCenter.distanceTo(position) <= lily.radius) {
         return true;
       }
     }
