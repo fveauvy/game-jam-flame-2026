@@ -328,6 +328,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     required List<List<bool>> isWaterGrid,
   }) async {
     final List<Rect> waterBounds = <Rect>[];
+    final List<Component> batch = <Component>[];
     for (int i = 0; i < gridW; i++) {
       for (int j = 0; j < gridH; j++) {
         final Vector2 cellOrigin = Vector2(i * _cellSize, j * _cellSize);
@@ -345,10 +346,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           final bool onRight = i == gridW - 1;
           final WaterAssetPosition assetPos;
           if (isBorderCell) {
-            // Each border side's interior neighbour: if it's water the border
-            // tile is surrounded by water on both sides → plain.
-            // Inverted so the ground edge sprite faces inward, making the
-            // exterior look like open water beyond the map boundary.
             final bool interiorWaterTop = onTop && isWaterGrid[i][j + 1];
             final bool interiorWaterBottom = onBottom && isWaterGrid[i][j - 1];
             final bool interiorWaterLeft = onLeft && isWaterGrid[i + 1][j];
@@ -367,10 +364,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
                 groundLeft: onRight,
                 groundRight: onLeft,
               );
-              // Corner border cells produce an invertedCorner* from the
-              // neighbour logic, but visually they need a plain corner* asset
-              // so the exterior looks like open water with the ground intrusion
-              // coming from the interior side.
               assetPos = switch (raw) {
                 WaterAssetPosition.invertedCornerTopLeft =>
                   WaterAssetPosition.cornerUpLeft,
@@ -395,7 +388,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
               groundDownRight: !isWaterGrid[i + 1][j + 1],
             );
           }
-          await add(
+          batch.add(
             WaterComponent(
               position: cellOrigin.clone(),
               size: cellSizeVec.clone(),
@@ -411,7 +404,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             ),
           );
         } else {
-          await add(
+          batch.add(
             GroundComponent(
               position: cellOrigin.clone(),
               size: cellSizeVec.clone(),
@@ -420,7 +413,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         }
 
         if (isBorderCell) {
-          await add(
+          batch.add(
             ThornComponent(
               position: cellOrigin.clone(),
               size: cellSizeVec.clone(),
@@ -430,6 +423,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         }
       }
     }
+    await addAll(batch);
     return waterBounds;
   }
 
@@ -518,6 +512,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   Future<List<Vector2>> _spawnFish(List<Vector2> candidates) async {
     candidates.shuffle(random);
     final List<Vector2> spawnedPositions = <Vector2>[];
+    final List<Component> batch = <Component>[];
     for (final Vector2 pos in candidates) {
       if (spawnedPositions.length >= GameplayTuning.fishEnemyCount) break;
       final bool tooClose = spawnedPositions.any(
@@ -525,7 +520,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       );
       if (!tooClose) {
         spawnedPositions.add(pos.clone());
-        await add(
+        batch.add(
           FishEnemyComponent(
             initialPosition:
                 pos - Vector2.all(GameplayTuning.fishEnemySize / 2),
@@ -534,6 +529,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         );
       }
     }
+    await addAll(batch);
     return spawnedPositions;
   }
 
@@ -543,6 +539,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   ) async {
     candidateOrigins.shuffle(random);
     final List<Vector2> lilyPositions = <Vector2>[];
+    final List<Component> batch = <Component>[];
     for (final Vector2 cellOrigin in candidateOrigins) {
       final double radius =
           _minLilyRadius +
@@ -567,9 +564,10 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       );
       if (!tooCloseToLily && !tooCloseToFish) {
         lilyPositions.add(lilyCenter);
-        await add(WaterLilyComponent(position: lilyPos, radius: radius));
+        batch.add(WaterLilyComponent(position: lilyPos, radius: radius));
       }
     }
+    await addAll(batch);
     return lilyPositions;
   }
 
@@ -582,6 +580,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     required List<Vector2> spawnedFishPositions,
     required List<Vector2> lilyPositions,
   }) async {
+    final List<Component> batch = <Component>[];
     for (int i = 1; i < gridW - 1; i++) {
       for (int j = 1; j < gridH - 1; j++) {
         if (!isWaterGrid[i][j]) continue;
@@ -614,7 +613,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         );
         if (overlapsLily) continue;
 
-        await add(
+        batch.add(
           ThornComponent(
             position: cellOrigin.clone(),
             size: cellSizeVec.clone(),
@@ -623,15 +622,16 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         );
       }
     }
+    await addAll(batch);
   }
 
   Future<void> _spawnEggs(List<Vector2> candidateOrigins) async {
     candidateOrigins.shuffle(random);
-    int spawnedCount = 0;
+    final List<Component> batch = <Component>[];
     for (final Vector2 cellOrigin in candidateOrigins) {
-      if (spawnedCount >= GameplayTuning.initialEggCount) break;
+      if (batch.length >= GameplayTuning.initialEggCount) break;
       final double halfEgg = GameplayTuning.worldPickupSize / 2;
-      await add(
+      batch.add(
         EggComponent(
           position: Vector2(
             cellOrigin.x +
@@ -647,8 +647,8 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           isInSafeHouse: false,
         ),
       );
-      spawnedCount++;
     }
+    await addAll(batch);
   }
 
   Future<List<Rect>> _spawnLeaves(
@@ -658,6 +658,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     candidateOrigins.shuffle(random);
     final List<Vector2> spawnedLeafCenters = <Vector2>[];
     final List<Rect> leafBounds = <Rect>[];
+    final List<Component> batch = <Component>[];
     for (final Vector2 cellOrigin in candidateOrigins) {
       if (spawnedLeafCenters.length >= GameplayTuning.leafCount) break;
 
@@ -682,7 +683,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       if (tooCloseToFish) continue;
 
       spawnedLeafCenters.add(leafCenter);
-      await add(
+      batch.add(
         LeafComponent(
           position: leafPos,
           size: Vector2.all(GameplayTuning.leafSize),
@@ -697,6 +698,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         ),
       );
     }
+    await addAll(batch);
     return leafBounds;
   }
 

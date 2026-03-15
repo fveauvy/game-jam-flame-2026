@@ -51,7 +51,8 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
   }
 
   int _resolveSpriteNumber(int seed) {
-    return (seed % GameplayTuning.frogSpriteCount) + 1;
+    final List<int> ids = GameplayTuning.playerFrogSpriteIds;
+    return ids[seed % ids.length];
   }
 
   double _rollTrait({

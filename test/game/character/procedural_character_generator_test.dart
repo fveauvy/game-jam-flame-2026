@@ -63,16 +63,18 @@ void main() {
       pools: pools,
     );
 
+    // Player sprites restricted to [10, 11, 12, 13, 14].
     final CharacterProfile s0 = await generator.generate(seed: 0);
-    final CharacterProfile s29 = await generator.generate(seed: 29);
-    final CharacterProfile s30 = await generator.generate(seed: 30);
+    final CharacterProfile s4 = await generator.generate(seed: 4);
+    final CharacterProfile s5 = await generator.generate(seed: 5);
 
-    expect(s0.spriteId, 'frog-1');
-    expect(s0.spriteAssetPath, 'assets/images/gronouy/frog-1.png');
-    expect(s29.spriteId, 'frog-30');
-    expect(s29.spriteAssetPath, 'assets/images/gronouy/frog-30.png');
-    expect(s30.spriteId, 'frog-1');
-    expect(s30.spriteAssetPath, 'assets/images/gronouy/frog-1.png');
+    expect(s0.spriteId, 'frog-10');
+    expect(s0.spriteAssetPath, 'assets/images/gronouy/frog-10.png');
+    expect(s4.spriteId, 'frog-14');
+    expect(s4.spriteAssetPath, 'assets/images/gronouy/frog-14.png');
+    // Wraps around.
+    expect(s5.spriteId, 'frog-10');
+    expect(s5.spriteAssetPath, 'assets/images/gronouy/frog-10.png');
   });
 
   test('traits stay within configured ranges', () async {

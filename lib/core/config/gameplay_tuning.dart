@@ -1,6 +1,7 @@
 abstract final class GameplayTuning {
   // Character and sprite generation.
   static const int frogSpriteCount = 30;
+  static const List<int> playerFrogSpriteIds = [10, 11, 12, 13, 14];
   static const int characterRerollAttempts = 8;
 
   ///minus 1 every 0,5 seconds
