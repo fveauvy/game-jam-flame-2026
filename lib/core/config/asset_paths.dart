@@ -62,6 +62,37 @@ abstract final class AssetPaths {
   static const String tongue2CacheKey = 'gronouy/Langue2.png';
   static const String tongue3CacheKey = 'gronouy/Langue3.png';
 
+  // Mud components (tiles).
+  static const mudInvertedCornerTopLeft =
+      'environment/mud/mud-inverted-corner-top-left.png';
+  static const mudInvertedCornerTopRight =
+      'environment/mud/mud-inverted-corner-top-right.png';
+  static const mudInvertedCornerBottomLeft =
+      'environment/mud/mud-inverted-corner-bottom-left.png';
+  static const mudInvertedCornerBottomRight =
+      'environment/mud/mud-inverted-corner-bottom-right.png';
+  static const mudLeft = 'environment/mud/mud-flat-left.png';
+  static const mudRight = 'environment/mud/mud-flat-right.png';
+  static const mudUp = 'environment/mud/mud-flat-top.png';
+  static const mudDown = 'environment/mud/mud-flat-bottom.png';
+  static const mudPlain1 = 'environment/mud/mud-plain-1.png';
+  static const mudPlain2 = 'environment/mud/mud-plain-2.png';
+  static const mudPlain3 = 'environment/mud/mud-plain-3.png';
+
+  static List<String> get mudTilesCacheKeys => <String>[
+    mudInvertedCornerTopLeft,
+    mudInvertedCornerTopRight,
+    mudInvertedCornerBottomLeft,
+    mudInvertedCornerBottomRight,
+    mudLeft,
+    mudRight,
+    mudUp,
+    mudDown,
+    mudPlain1,
+    mudPlain2,
+    mudPlain3,
+  ];
+
   // Water components.
   static const waterCornerTopLeft =
       'environment/water/water-corner-top-left.png';
@@ -192,6 +223,7 @@ abstract final class AssetPaths {
     tongue3CacheKey,
     uiRefreshLogoCacheKey,
     ...waterAnimationCacheKeys,
+    ...mudTilesCacheKeys,
     ...groundAnimationCacheKeys,
     ...animatedFrogSpriteId.expand((id) => frogAnimatedSpriteCacheKey(id)),
     ...List<String>.generate(GameplayTuning.frogSpriteCount, (int index) {
