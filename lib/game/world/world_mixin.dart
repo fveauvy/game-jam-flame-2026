@@ -293,6 +293,16 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       }
     }
 
+    // Force all map border cells to water so the outer edge is always water.
+    for (int i = 0; i < gridW; i++) {
+      isWaterGrid[i][0] = true;
+      isWaterGrid[i][gridH - 1] = true;
+    }
+    for (int j = 0; j < gridH; j++) {
+      isWaterGrid[0][j] = true;
+      isWaterGrid[gridW - 1][j] = true;
+    }
+
     for (int i = 0; i < gridW; i++) {
       for (int j = 0; j < gridH; j++) {
         final Vector2 cellCenter =
@@ -326,25 +336,70 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         final bool isWater = isWaterGrid[i][j];
 
         if (isWater) {
+          // For border cells the only meaningful ground edge is the exterior
+          // side of the map. Interior neighbours are always treated as water so
+          // the asset shows ground facing outward regardless of what is inside.
+          final bool onTop = j == 0;
+          final bool onBottom = j == gridH - 1;
+          final bool onLeft = i == 0;
+          final bool onRight = i == gridW - 1;
+          final WaterAssetPosition assetPos;
+          if (isBorderCell) {
+            // Each border side's interior neighbour: if it's water the border
+            // tile is surrounded by water on both sides → plain.
+            // Inverted so the ground edge sprite faces inward, making the
+            // exterior look like open water beyond the map boundary.
+            final bool interiorWaterTop = onTop && isWaterGrid[i][j + 1];
+            final bool interiorWaterBottom = onBottom && isWaterGrid[i][j - 1];
+            final bool interiorWaterLeft = onLeft && isWaterGrid[i + 1][j];
+            final bool interiorWaterRight = onRight && isWaterGrid[i - 1][j];
+            final bool hasInteriorWater =
+                interiorWaterTop ||
+                interiorWaterBottom ||
+                interiorWaterLeft ||
+                interiorWaterRight;
+            if (hasInteriorWater) {
+              assetPos = WaterAssetPosition.plain;
+            } else {
+              final WaterAssetPosition raw = waterAssetPositionFromNeighbours(
+                groundUp: onBottom,
+                groundDown: onTop,
+                groundLeft: onRight,
+                groundRight: onLeft,
+              );
+              // Corner border cells produce an invertedCorner* from the
+              // neighbour logic, but visually they need a plain corner* asset
+              // so the exterior looks like open water with the ground intrusion
+              // coming from the interior side.
+              assetPos = switch (raw) {
+                WaterAssetPosition.invertedCornerTopLeft =>
+                  WaterAssetPosition.cornerUpLeft,
+                WaterAssetPosition.invertedCornerTopRight =>
+                  WaterAssetPosition.cornerUpRight,
+                WaterAssetPosition.invertedCornerBottomLeft =>
+                  WaterAssetPosition.cornerBottomLeft,
+                WaterAssetPosition.invertedCornerBottomRight =>
+                  WaterAssetPosition.cornerBottomRight,
+                _ => raw,
+              };
+            }
+          } else {
+            assetPos = waterAssetPositionFromNeighbours(
+              groundUp: !isWaterGrid[i][j - 1],
+              groundDown: !isWaterGrid[i][j + 1],
+              groundLeft: !isWaterGrid[i - 1][j],
+              groundRight: !isWaterGrid[i + 1][j],
+              groundUpLeft: !isWaterGrid[i - 1][j - 1],
+              groundUpRight: !isWaterGrid[i + 1][j - 1],
+              groundDownLeft: !isWaterGrid[i - 1][j + 1],
+              groundDownRight: !isWaterGrid[i + 1][j + 1],
+            );
+          }
           await add(
             WaterComponent(
               position: cellOrigin.clone(),
               size: cellSizeVec.clone(),
-              assetPosition: waterAssetPositionFromNeighbours(
-                groundUp: j == 0 || !isWaterGrid[i][j - 1],
-                groundDown: j == gridH - 1 || !isWaterGrid[i][j + 1],
-                groundLeft: i == 0 || !isWaterGrid[i - 1][j],
-                groundRight: i == gridW - 1 || !isWaterGrid[i + 1][j],
-                groundUpLeft: i == 0 || j == 0 || !isWaterGrid[i - 1][j - 1],
-                groundUpRight:
-                    i == gridW - 1 || j == 0 || !isWaterGrid[i + 1][j - 1],
-                groundDownLeft:
-                    i == 0 || j == gridH - 1 || !isWaterGrid[i - 1][j + 1],
-                groundDownRight:
-                    i == gridW - 1 ||
-                    j == gridH - 1 ||
-                    !isWaterGrid[i + 1][j + 1],
-              ),
+              assetPosition: assetPos,
             ),
           );
           waterBounds.add(
@@ -369,7 +424,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             ThornComponent(
               position: cellOrigin.clone(),
               size: cellSizeVec.clone(),
-              drawLandBackground: !isWater,
+              drawLandBackground: false,
             ),
           );
         }
