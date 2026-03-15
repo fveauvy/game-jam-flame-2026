@@ -25,6 +25,7 @@ abstract final class GameplayTuning {
 
   // Shared input thresholds.
   static const double gamepadButtonPressedValue = 1;
+  static const double gamepadButtonReleasedValue = 0;
   static const bool gamepadDebugLogs = false;
 
   // Frog tongue and fly healing.

@@ -13,6 +13,10 @@ class KeyboardInput extends Controller {
       _queueActions(event.logicalKey);
     } else if (event is KeyUpEvent) {
       _held.remove(event.logicalKey);
+      if (event.logicalKey == LogicalKeyboardKey.shiftLeft ||
+          event.logicalKey == LogicalKeyboardKey.shiftRight) {
+        moveUpLayer();
+      }
     }
 
     setMoveAxis(_horizontalAxis(), _verticalAxis());
