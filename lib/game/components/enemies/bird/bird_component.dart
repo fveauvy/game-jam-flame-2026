@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
@@ -150,6 +151,7 @@ class BirdComponent extends PositionComponent
       return;
     }
     _isAttacking = true;
+    unawaited(game.playSfx(AssetPaths.birdDiveSfx, volume: 0.8));
     _bird.startAttack();
   }
 

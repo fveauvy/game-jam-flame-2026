@@ -39,9 +39,6 @@ class MenuComponent extends PositionComponent
     final titleImage = await Flame.images.load(AssetPaths.titleCacheKey);
     final titleRatio = titleImage.width / titleImage.height;
 
-    debugPrint('${titleImage.height} ${titleImage.width}');
-    debugPrint('$titleRatio');
-
     final titleHeight = menuSize.y * 0.25;
     final titleWidth = titleHeight * titleRatio;
 
@@ -105,10 +102,13 @@ class MenuComponent extends PositionComponent
 class _SelectedFrogStatsPopover extends PositionComponent
     with HasGameReference<MyGame> {
   _SelectedFrogStatsPopover()
-    : super(size: Vector2(210, 92), anchor: Anchor.center, priority: 220);
+    : super(size: Vector2(194, 88), anchor: Anchor.center, priority: 220);
 
   late final TextComponent _nameText;
-  late final TextComponent _statsText;
+  late final TextComponent _intText;
+  late final TextComponent _hpText;
+  late final TextComponent _sizeText;
+  late final TextComponent _speedText;
   bool _showPopover = false;
 
   @override
@@ -118,83 +118,149 @@ class _SelectedFrogStatsPopover extends PositionComponent
     _nameText = TextComponent(
       text: '-',
       anchor: Anchor.topCenter,
-      position: Vector2(size.x / 2, 8),
+      position: Vector2(size.x / 2, 6),
       textRenderer: TextPaint(
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 12,
+          fontSize: 19,
           fontWeight: FontWeight.bold,
         ),
       ),
     );
 
-    _statsText = TextComponent(
+    final intIconImage = await Flame.images.load(
+      AssetPaths.imageCacheKeyFromAssetPath(AssetPaths.uiIntelligenceLogo),
+    );
+    final hpIconImage = await Flame.images.load(
+      AssetPaths.imageCacheKeyFromAssetPath(AssetPaths.uiHeartLogo),
+    );
+    final speedIconImage = await Flame.images.load(
+      AssetPaths.imageCacheKeyFromAssetPath(AssetPaths.uiSpeedLogo),
+    );
+
+    _intText = TextComponent(
       text: '-',
-      anchor: Anchor.topCenter,
-      position: Vector2(size.x / 2, 28),
+      anchor: Anchor.centerLeft,
+      position: Vector2(34, 45),
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 11,
-          height: 1.25,
+          color: Colors.white,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
+    _hpText = TextComponent(
+      text: '-',
+      anchor: Anchor.centerLeft,
+      position: Vector2(34, 67),
+      textRenderer: _intText.textRenderer,
+    );
+    _sizeText = TextComponent(
+      text: '-',
+      anchor: Anchor.centerLeft,
+      position: Vector2(130, 67),
+      textRenderer: _intText.textRenderer,
+    );
+    _speedText = TextComponent(
+      text: '-',
+      anchor: Anchor.centerLeft,
+      position: Vector2(130, 45),
+      textRenderer: _intText.textRenderer,
+    );
 
-    await addAll([_nameText, _statsText]);
+    await addAll([
+      _nameText,
+      SpriteComponent(
+        sprite: Sprite(intIconImage),
+        anchor: Anchor.center,
+        position: Vector2(19, 45),
+        size: Vector2.all(15),
+      ),
+      SpriteComponent(
+        sprite: Sprite(hpIconImage),
+        anchor: Anchor.center,
+        position: Vector2(19, 67),
+        size: Vector2.all(15),
+      ),
+      SpriteComponent(
+        sprite: Sprite(speedIconImage),
+        anchor: Anchor.center,
+        position: Vector2(115, 45),
+        size: Vector2.all(15),
+      ),
+      TextComponent(
+        text: '?',
+        anchor: Anchor.center,
+        position: Vector2(115, 67),
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+      _intText,
+      _hpText,
+      _sizeText,
+      _speedText,
+    ]);
   }
 
   @override
   void onMount() {
     super.onMount();
     game.characterGenerationState.addListener(_syncFromState);
+    game.characterState.addListener(_syncFromState);
     _syncFromState();
   }
 
   @override
   void onRemove() {
     game.characterGenerationState.removeListener(_syncFromState);
+    game.characterState.removeListener(_syncFromState);
     super.onRemove();
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    final CharacterGenerationState? state = game.characterGenerationState.value;
-    if (game.phase.value != GamePhase.menu || state == null) {
+    if (game.phase.value != GamePhase.menu &&
+        game.phase.value != GamePhase.playing) {
       _showPopover = false;
       return;
     }
 
-    final int index = state.selectedIndex;
-    final List<PlayerComponent> candidates = game.playerCandidates;
-    if (index < 0 || index >= candidates.length) {
+    final PlayerComponent? selected = _resolveTargetFrog();
+    if (selected == null) {
       _showPopover = false;
       return;
     }
-
-    final PlayerComponent selected = candidates[index];
     _showPopover = true;
 
-    final double verticalOffset = (selected.size.y * 0.95) + 52;
-    final double halfPanelHeight = game.camera.viewport.size.y * 0.5;
-    final double aboveY = selected.position.y - verticalOffset;
-    final double belowY = selected.position.y + verticalOffset;
-    bool placeBelow = aboveY - halfPanelHeight < 8;
+    final Vector2 viewport = game.camera.viewport.size;
+    final Vector2 viewOrigin = game.camera.viewfinder.position;
+    const double margin = 8;
+    final double halfWidth = size.x * 0.5;
+    final double halfHeight = size.y * 0.5;
+    final double minX = viewOrigin.x + margin + halfWidth;
+    final double maxX = viewOrigin.x + viewport.x - margin - halfWidth;
+    final double minY = viewOrigin.y + margin + halfHeight;
+    final double maxY = viewOrigin.y + viewport.y - margin - halfHeight;
+    final double desiredDistance =
+        (selected.size.y * 0.5) + (size.y * 0.5) + 10;
 
-    // If below would go off-screen, force it back above.
-    if (belowY + halfPanelHeight > GameConfig.worldSize.y - 8) {
-      placeBelow = false;
-    }
+    final bool canPlaceAbove = selected.position.y - desiredDistance >= minY;
+    final bool canPlaceBelow = selected.position.y + desiredDistance <= maxY;
+    final bool placeBelow = !canPlaceAbove && canPlaceBelow;
+    final double desiredY =
+        selected.position.y + (placeBelow ? desiredDistance : -desiredDistance);
 
-    position =
-        selected.position +
-        Vector2(
-          0,
-          placeBelow
-              ? ((selected.size.y * 0.95) + 52)
-              : (-(selected.size.y * 0.95) - 52),
-        );
+    position = Vector2(
+      selected.position.x.clamp(minX, maxX),
+      desiredY.clamp(minY, maxY),
+    );
   }
 
   @override
@@ -205,36 +271,77 @@ class _SelectedFrogStatsPopover extends PositionComponent
 
     final RRect panel = RRect.fromRectAndRadius(
       Rect.fromLTWH(0, 0, size.x, size.y),
-      const Radius.circular(10),
+      const Radius.circular(9),
     );
-    canvas.drawRRect(
-      panel,
-      Paint()..color = Colors.black.withValues(alpha: 0.72),
-    );
+    canvas.drawRRect(panel, Paint()..color = const Color(0xE0221712));
     canvas.drawRRect(
       panel,
       Paint()
         ..color = Colors.white30
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2,
+        ..strokeWidth = 1.1,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 32, size.x, 1),
+        const Radius.circular(1),
+      ),
+      Paint()..color = Colors.white24,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(108, 37, 16, 16),
+        const Radius.circular(4),
+      ),
+      Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..strokeCap = StrokeCap.round,
     );
 
     super.render(canvas);
   }
 
   void _syncFromState() {
-    final CharacterGenerationState? state = game.characterGenerationState.value;
-    if (state == null) {
+    final CharacterProfile? profile = game.phase.value == GamePhase.menu
+        ? game.characterGenerationState.value?.profile
+        : game.characterState.value;
+    if (profile == null) {
       _nameText.text = '-';
-      _statsText.text = '-';
+      _intText.text = '-';
+      _hpText.text = '-';
+      _sizeText.text = '-';
+      _speedText.text = '-';
       return;
     }
 
-    final CharacterProfile profile = state.profile;
     _nameText.text = profile.name.display;
-    _statsText.text =
-        'SPD ${_fmt(profile.traits.speed)}   SIZE ${_fmt(profile.traits.size)}\n'
-        'INT ${_fmt(profile.traits.intelligence)}   HP ${profile.traits.health ?? '-'}';
+    _intText.text = _fmt(profile.traits.intelligence);
+    _hpText.text = profile.traits.health?.toString() ?? '-';
+    _sizeText.text = _fmt(profile.traits.size);
+    _speedText.text = _fmt(profile.traits.speed);
+  }
+
+  PlayerComponent? _resolveTargetFrog() {
+    final List<PlayerComponent> candidates = game.playerCandidates;
+    if (candidates.isEmpty) {
+      return null;
+    }
+
+    if (game.phase.value == GamePhase.playing) {
+      return candidates.first;
+    }
+
+    final CharacterGenerationState? state = game.characterGenerationState.value;
+    if (state == null) {
+      return null;
+    }
+    final int index = state.selectedIndex;
+    if (index < 0 || index >= candidates.length) {
+      return null;
+    }
+    return candidates[index];
   }
 
   String _fmt(double? value) {

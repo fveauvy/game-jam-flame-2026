@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/post_process.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
+import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/game/components/allies/egg_post_process.dart';
 import 'package:game_jam/game/my_game.dart';
 
@@ -60,7 +61,10 @@ class EggComponent extends PositionComponent with HasGameReference<MyGame> {
   Future<void> collect() async {
     if (isOnBack) return;
     if (isInSafeHouse) return;
-    game.gameState.savedEggs += 1;
+    game.gameState.savedEggs = (game.gameState.savedEggs + 1).clamp(
+      0,
+      GameplayTuning.initialEggCount,
+    );
     removeFromParent();
     await game.playSfx(AssetPaths.splashAudioEffect);
   }

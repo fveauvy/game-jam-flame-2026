@@ -29,7 +29,7 @@ class FrogHouseComponent extends SpriteComponent
         .whereType<EggComponent>()
         .where((egg) => egg.isInSafeHouse)
         .length;
-    if (savedEggs == GameplayTuning.initialEggCount) {
+    if (savedEggs >= GameplayTuning.initialEggCount) {
       game.winGame();
     }
     super.update(dt);
@@ -49,7 +49,11 @@ class FrogHouseComponent extends SpriteComponent
           .whereType<EggComponent>()
           .where((egg) => egg.isInSafeHouse)
           .length;
-      final eggsToAdd = game.gameState.savedEggs - existingCount;
+      final targetSavedEggs = game.gameState.savedEggs.clamp(
+        0,
+        GameplayTuning.initialEggCount,
+      );
+      final eggsToAdd = targetSavedEggs - existingCount;
       other.eggsCollected = 0;
       other.removeWhere((child) => child is EggComponent);
 

@@ -1,11 +1,7 @@
 class CharacterName {
-  const CharacterName({
-    required this.adjective,
-    required this.noun,
-    this.title,
-  });
+  const CharacterName({this.adjective, required this.noun, this.title});
 
-  final String adjective;
+  final String? adjective;
   final String noun;
   final String? title;
 
@@ -15,15 +11,19 @@ class CharacterName {
   );
 
   String get display {
+    final String trimmedAdjective = (adjective ?? '').trim();
     final String trimmedTitle = (title ?? '').trim();
+    final String baseName = trimmedAdjective.isEmpty
+        ? noun
+        : '$trimmedAdjective $noun';
     if (trimmedTitle.isEmpty) {
-      return '$adjective $noun';
+      return baseName;
     }
 
     final String separator = _noCommaTitleStart.hasMatch(trimmedTitle)
         ? ' '
         : ', ';
-    return '$adjective $noun$separator$trimmedTitle';
+    return '$baseName$separator$trimmedTitle';
   }
 
   @override

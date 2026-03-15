@@ -117,6 +117,8 @@ class MyGame extends FlameGame<WorldRoot>
   static const String _menuBgmAsset = 'mud-ambient.mp3';
   static const String _gameplayBgmAsset = 'music.mp3';
   static const String _victoryBgmAsset = AssetPaths.victoryMusic;
+  static const double _menuHoverSfxVolume = 0.45;
+  static const double _menuSelectSfxVolume = 0.7;
 
   late GeneratedLevel _level;
 
@@ -181,7 +183,6 @@ class MyGame extends FlameGame<WorldRoot>
       ..._waterRipples,
       ..._playerList,
       ..._buildInitialFlies(),
-      ..._buildInitialEggs(),
       _buildInitialWoodBoards(),
       _birdEnemy,
     ]);
@@ -247,6 +248,9 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   Future<void> playSfx(String asset, {double volume = 1.0}) async {
+    if (asset == AssetPaths.frogCroakSfx && phase.value != GamePhase.playing) {
+      return;
+    }
     final double effectiveVolume =
         (audioSettings.value.effectiveSfxVolume * volume).clamp(0.0, 1.0);
     if (effectiveVolume <= 0) {
@@ -542,6 +546,9 @@ class MyGame extends FlameGame<WorldRoot>
     final List<String> candidateSeedCodes = <String>[];
     final List<CharacterProfile> candidateProfiles = <CharacterProfile>[];
     final Set<String> usedSpriteIds = <String>{};
+    final Set<String> usedAdjectives = <String>{};
+    final Set<String> usedTitles = <String>{};
+    final Set<String> usedDisplayNames = <String>{};
 
     int index = 0;
     while (index < GameplayTuning.menuCharacterCandidateUniqueAttempts &&
@@ -550,7 +557,20 @@ class MyGame extends FlameGame<WorldRoot>
       final CharacterProfile profile = await generateCharacterProfile(
         seedCode: code,
       );
-      if (usedSpriteIds.add(profile.spriteId)) {
+      if (_canAcceptPreferredCandidate(
+        profile: profile,
+        usedSpriteIds: usedSpriteIds,
+        usedAdjectives: usedAdjectives,
+        usedTitles: usedTitles,
+        usedDisplayNames: usedDisplayNames,
+      )) {
+        _rememberPreferredCandidate(
+          profile: profile,
+          usedSpriteIds: usedSpriteIds,
+          usedAdjectives: usedAdjectives,
+          usedTitles: usedTitles,
+          usedDisplayNames: usedDisplayNames,
+        );
         candidateSeedCodes.add(code);
         candidateProfiles.add(profile);
       }
@@ -582,6 +602,64 @@ class MyGame extends FlameGame<WorldRoot>
         (seedInt + (index * GameplayTuning.menuCharacterCandidateSeedStep)) %
         SeedCode.maxValueExclusive;
     return SeedCode.encode(candidateSeed);
+  }
+
+  bool _canAcceptPreferredCandidate({
+    required CharacterProfile profile,
+    required Set<String> usedSpriteIds,
+    required Set<String> usedAdjectives,
+    required Set<String> usedTitles,
+    required Set<String> usedDisplayNames,
+  }) {
+    if (usedSpriteIds.contains(profile.spriteId)) {
+      return false;
+    }
+
+    final String adjective = _normalizeNameKey(profile.name.adjective);
+    if (adjective.isNotEmpty && usedAdjectives.contains(adjective)) {
+      return false;
+    }
+
+    final String title = _normalizeNameKey(profile.name.title);
+    if (title.isNotEmpty && usedTitles.contains(title)) {
+      return false;
+    }
+
+    final String displayName = _normalizeNameKey(profile.name.display);
+    if (displayName.isNotEmpty && usedDisplayNames.contains(displayName)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  void _rememberPreferredCandidate({
+    required CharacterProfile profile,
+    required Set<String> usedSpriteIds,
+    required Set<String> usedAdjectives,
+    required Set<String> usedTitles,
+    required Set<String> usedDisplayNames,
+  }) {
+    usedSpriteIds.add(profile.spriteId);
+
+    final String adjective = _normalizeNameKey(profile.name.adjective);
+    if (adjective.isNotEmpty) {
+      usedAdjectives.add(adjective);
+    }
+
+    final String title = _normalizeNameKey(profile.name.title);
+    if (title.isNotEmpty) {
+      usedTitles.add(title);
+    }
+
+    final String displayName = _normalizeNameKey(profile.name.display);
+    if (displayName.isNotEmpty) {
+      usedDisplayNames.add(displayName);
+    }
+  }
+
+  String _normalizeNameKey(String? value) {
+    return (value ?? '').trim().toLowerCase();
   }
 
   List<PlayerComponent> _buildInitialFrogs(
@@ -632,44 +710,11 @@ class MyGame extends FlameGame<WorldRoot>
     );
   }
 
-  List<EggComponent> _buildInitialEggs() {
-    return List<EggComponent>.generate(
-      GameplayTuning.initialEggCount,
-      (int index) => EggComponent(
-        isInSafeHouse: false,
-        position: _randomEggPosition(),
-        size: Vector2.all(GameplayTuning.worldPickupSize),
-      ),
-    );
-  }
-
   static bool isValidEggSpawnPosition({
     required bool isOnThorn,
     required bool isOnLeaf,
   }) {
     return !isOnThorn && !isOnLeaf;
-  }
-
-  Vector2 _randomEggPosition() {
-    for (int i = 0; i < GameplayTuning.eggSpawnMaxRetries; i++) {
-      final Vector2 candidate = Vector2(
-        (random.nextDouble() * GameConfig.worldSize.x).clamp(
-          PhysicsTuning.playerBaseSize,
-          GameConfig.worldSize.x - PhysicsTuning.playerBaseSize,
-        ),
-        (random.nextDouble() * GameConfig.worldSize.y).clamp(
-          PhysicsTuning.playerBaseSize,
-          GameConfig.worldSize.y - PhysicsTuning.playerBaseSize,
-        ),
-      );
-      if (isValidEggSpawnPosition(
-        isOnThorn: _level.isPositionOnThorn(candidate),
-        isOnLeaf: _level.isPositionOnLeaf(candidate),
-      )) {
-        return candidate;
-      }
-    }
-    return GameConfig.playerSpawn.clone();
   }
 
   Future<void> _resetWorldPopulation() async {
@@ -694,7 +739,8 @@ class MyGame extends FlameGame<WorldRoot>
       egg.removeFromParent();
     }
 
-    await world.addAll([..._buildInitialFlies(), ..._buildInitialEggs()]);
+    await _level.onUpdateSeed();
+    await world.addAll([..._buildInitialFlies()]);
   }
 
   void _resetRunState() {
@@ -708,7 +754,7 @@ class MyGame extends FlameGame<WorldRoot>
     }
   }
 
-  void pointCharacterCandidate(int index) {
+  void pointCharacterCandidate(int index, {bool withSfx = true}) {
     final CharacterGenerationState? state = characterGenerationState.value;
     if (state == null || index < 0 || index >= state.candidateProfiles.length) {
       return;
@@ -721,6 +767,20 @@ class MyGame extends FlameGame<WorldRoot>
     );
     characterGenerationState.value = nextState;
     characterState.value = nextState.profile;
+    if (withSfx) {
+      unawaited(_playRandomMenuFrogVoice(volume: _menuHoverSfxVolume));
+    }
+  }
+
+  Future<void> _playRandomMenuFrogVoice({required double volume}) async {
+    if (phase.value != GamePhase.menu) {
+      return;
+    }
+    final List<String> sfx = AssetPaths.frogMenuVoiceSfx;
+    if (sfx.isEmpty) {
+      return;
+    }
+    await playSfx(sfx[_random.nextInt(sfx.length)], volume: volume);
   }
 
   void _stepMenuCandidate(int delta) {
@@ -819,7 +879,8 @@ class MyGame extends FlameGame<WorldRoot>
     }
 
     // Update the selected candidate in the generation state.
-    pointCharacterCandidate(index);
+    pointCharacterCandidate(index, withSfx: false);
+    unawaited(_playRandomMenuFrogVoice(volume: _menuSelectSfxVolume));
 
     // Switch the active player reference and make the camera follow it.
     _player = tapped;
