@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:game_jam/core/config/ui_config.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/touch_controller.dart';
 import 'package:game_jam/game/input/visual_joystick.dart';
@@ -8,10 +11,12 @@ class TouchInputOverlay extends StatelessWidget {
     super.key,
     required this.input,
     required this.touchController,
+    required this.aspectRatio,
   });
 
   final InputState input;
   final TouchController touchController;
+  final double aspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -19,40 +24,110 @@ class TouchInputOverlay extends StatelessWidget {
       ignoring: false,
       child: SafeArea(
         minimum: const EdgeInsets.all(16),
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: VisualJoystick(
-                  onVectorChanged: (vector) {
-                    touchController.updateJoystick(vector.x, vector.y);
-                  },
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _TapButton(
-                    icon: Icons.pause,
-                    onTap: () => touchController.onPause(),
-                  ),
-                  const Expanded(child: SizedBox.shrink()),
-                  _TapButton(
-                    icon: Icons.arrow_upward,
-                    onTap: () => touchController.onUpLayerPressed(),
-                  ),
-                  _TapButton(
-                    icon: Icons.arrow_downward,
-                    onTap: () => touchController.onDownLayerPressed(),
-                  ),
-                ],
-              ),
-            ],
+        child: Center(
+          child: AspectRatio(
+            aspectRatio: aspectRatio,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+
+                  children: [
+                    Align(
+                      alignment: Alignment.topCenter,
+
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: constraints.maxHeight * 0.25,
+                        ),
+                        child: _TapButton(
+                          icon: Icons.pause,
+                          onTap: () => touchController.onPause(),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: VisualJoystick(
+                        onVectorChanged: (vector) {
+                          touchController.updateJoystick(vector.x, vector.y);
+                        },
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Expanded(child: SizedBox.shrink()),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: CardinalButtons(
+                            north: const SizedBox(
+                              width: 72,
+                              height: 72,
+                            ), // Placeholder for spacing
+                            west: _TapButton(
+                              icon: Icons.flash_on,
+                              onTap: touchController.attack,
+                            ),
+                            east: _TapButton(
+                              icon: Icons.arrow_upward,
+                              onTap: touchController.moveUpLayer,
+                            ),
+                            south: _HoldButton(
+                              icon: Icons.arrow_downward,
+                              onPressStart: touchController.moveDownLayer,
+                              onPressEnd: touchController.moveUpLayer,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class CardinalButtons extends StatelessWidget {
+  const CardinalButtons({
+    super.key,
+    required this.north,
+    required this.south,
+    required this.east,
+    required this.west,
+  });
+
+  final Widget north;
+  final Widget south;
+  final Widget east;
+  final Widget west;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: math.pi / 4,
+      child: Row(
+        spacing: 12,
+        children: [
+          Column(
+            spacing: 12,
+            children: [
+              const SizedBox(width: 72, height: 72),
+              Transform.rotate(angle: -math.pi / 4, child: west),
+            ],
+          ),
+          Column(
+            spacing: 12,
+            children: [
+              Transform.rotate(angle: -math.pi / 4, child: east),
+              Transform.rotate(angle: -math.pi / 4, child: south),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -66,16 +141,24 @@ class _TapButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black.withValues(alpha: 0.35),
-      shape: const CircleBorder(),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: HotkeyOverlayUi.panelBackground,
+        shape: BoxShape.circle,
+        border: Border.fromBorderSide(
+          BorderSide(
+            color: HotkeyOverlayUi.keyBorder,
+            width: HotkeyOverlayUi.panelBorderWidth,
+          ),
+        ),
+      ),
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onTap,
         child: SizedBox(
           width: 72,
           height: 72,
-          child: Icon(icon, color: Colors.white),
+          child: Icon(icon, color: HotkeyOverlayUi.keyTextColor),
         ),
       ),
     );
@@ -118,12 +201,18 @@ class _HoldButtonState extends State<_HoldButton> {
         height: 72,
         decoration: BoxDecoration(
           color: _active
-              ? Colors.black.withValues(alpha: 0.55)
-              : Colors.black.withValues(alpha: 0.35),
+              ? HotkeyOverlayUi.panelBackground.withValues(alpha: 0.55)
+              : HotkeyOverlayUi.panelBackground,
           shape: BoxShape.circle,
+          border: const Border.fromBorderSide(
+            BorderSide(
+              color: HotkeyOverlayUi.keyBorder,
+              width: HotkeyOverlayUi.panelBorderWidth,
+            ),
+          ),
         ),
         alignment: Alignment.center,
-        child: Icon(widget.icon, color: Colors.white),
+        child: Icon(widget.icon, color: HotkeyOverlayUi.keyTextColor),
       ),
     );
   }

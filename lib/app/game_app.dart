@@ -150,9 +150,12 @@ class _GameJamAppState extends State<GameJamApp> {
                   return GameOverOverlay(onRestart: game.startGame);
                 },
                 AppOverlays.touchControls: (_, MyGame game) {
+                  final double gameAspect =
+                      GameConfig.baseWidth / GameConfig.baseHeight;
                   return TouchInputOverlay(
                     input: game.inputState,
                     touchController: game.touchController,
+                    aspectRatio: gameAspect,
                   );
                 },
                 AppOverlays.winOverlay: (_, MyGame game) {
