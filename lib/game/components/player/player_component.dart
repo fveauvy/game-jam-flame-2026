@@ -960,7 +960,9 @@ class PlayerComponent extends SpriteAnimationComponent
       );
     }
     if (other is FrogHouseComponent) {
-      if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
+      if (levelPosition != PlayerVerticalPosition.land &&
+          !_jumpActive &&
+          levelPosition != PlayerVerticalPosition.underwater) {
         _separateFromCollision(
           intersectionPoints: intersectionPoints,
           onlyWhenMovingInto: true,
