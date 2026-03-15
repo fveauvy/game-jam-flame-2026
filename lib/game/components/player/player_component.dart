@@ -612,6 +612,8 @@ class PlayerComponent extends SpriteAnimationComponent
     isInWater =
         game.level.isPositionInWater(absoluteCenter) &&
         (!game.level.isPositionInWaterLily(absoluteCenter) ||
+            levelPosition == PlayerVerticalPosition.underwater) &&
+        (!game.level.isPositionOnFrogHouse(absoluteCenter) ||
             levelPosition == PlayerVerticalPosition.underwater);
     if (isInWater && !wasInWater) {
       removeAll(children.whereType<SimpleTextComponent>());
