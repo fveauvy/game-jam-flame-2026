@@ -26,18 +26,17 @@ class EggComponent extends PositionComponent with HasGameReference<MyGame> {
 
   @override
   Future<void> onLoad() async {
-    anchor = isInSafeHouse ? Anchor.topLeft : Anchor.center;
+    anchor = isOnBack ? Anchor.center : Anchor.topLeft;
     final spriteChild = SpriteComponent(
       sprite: Sprite(Flame.images.fromCache(AssetPaths.bigEggCacheKey)),
       size: size,
+      anchor: Anchor.topLeft,
     );
 
     if (isOnBack) {
-      // No glow for the egg riding on the frog's back.
       add(spriteChild);
     } else {
-      // Wrap the sprite in a PostProcessComponent so the glow shader has
-      // extra pixels around the sprite to paint the halo into.
+      // Wrap the sprite in a PostProcessComponent so the animation shader has
       add(
         PostProcessComponent<EggAnimationProcess>(
           postProcess: EggAnimationProcess(),
@@ -47,8 +46,8 @@ class EggComponent extends PositionComponent with HasGameReference<MyGame> {
             // Offset the sprite so it is centred inside the larger canvas.
             SpriteComponent(
               sprite: Sprite(Flame.images.fromCache(AssetPaths.bigEggCacheKey)),
-              position: Vector2.all(padding),
-              size: size,
+              position: size + Vector2.all(padding / 2),
+              size: size * 1.25,
               anchor: Anchor.topLeft,
             ),
           ],
