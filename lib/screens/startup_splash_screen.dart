@@ -31,19 +31,10 @@ class StartupSplashScreen extends StatelessWidget {
         isLoading && totalAssets > 0 && loadedAssets >= totalAssets;
 
     return ColoredBox(
-      color: const Color(0xFF3F7D73),
+      color: Colors.black,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            AssetPaths.startupSplashBackground,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-            errorBuilder: (context, error, stackTrace) {
-              return const SizedBox.shrink();
-            },
-          ),
           SizedBox.expand(
             child: _OneShotGif(
               assetPath: AssetPaths.startupSplashAnimation,
