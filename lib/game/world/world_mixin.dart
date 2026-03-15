@@ -120,30 +120,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
   }
 
   Future<(List<Rect>, List<Rect>)> generateLevel() async {
-    for (final WaterLilyComponent lily
-        in game.world.children.whereType<WaterLilyComponent>().toList()) {
-      lily.removeFromParent();
-    }
-    for (final FishEnemyComponent fish
-        in game.world.children.whereType<FishEnemyComponent>().toList()) {
-      fish.removeFromParent();
-    }
-
-    for (final LeafComponent leaf
-        in game.world.children.whereType<LeafComponent>().toList()) {
-      leaf.removeFromParent();
-    }
-
-    for (final ThornComponent thorn
-        in game.world.children.whereType<ThornComponent>().toList()) {
-      thorn.removeFromParent();
-    }
-
-    for (final MudComponent mud
-        in game.world.children.whereType<MudComponent>().toList()) {
-      mud.removeFromParent();
-    }
-
     final Vector2 worldSize = GameConfig.worldSize;
     final int gridW = (worldSize.x / _cellSize).ceil();
     final int gridH = (worldSize.y / _cellSize).ceil();
