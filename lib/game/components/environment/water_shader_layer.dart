@@ -18,6 +18,9 @@ class WaterShaderLayer extends Component with HasGameReference<MyGame> {
     ..color = const ui.Color.fromARGB(180, 35, 112, 191);
   final ui.Paint _shaderPaint = ui.Paint();
   final List<ui.Rect> _renderBounds = <ui.Rect>[];
+  final List<double> _shaderRectsUniforms = <double>[];
+  final List<_PuddleData> _puddles = <_PuddleData>[];
+  final List<double> _shaderPuddlesUniforms = <double>[];
 
   ui.FragmentShader? _waterShader;
   double _time = 0;
@@ -25,6 +28,11 @@ class WaterShaderLayer extends Component with HasGameReference<MyGame> {
   int _cachedWaterRevision = -1;
 
   static const double _rectTolerance = 0.001;
+  static const int _maxShaderRects = 32;
+  static const int _maxShaderPuddles = 32;
+
+  ui.Rect _coverageRect = ui.Rect.zero;
+  int _packedPuddleCount = 0;
 
   @override
   Future<void> onLoad() async {
@@ -68,15 +76,20 @@ class WaterShaderLayer extends Component with HasGameReference<MyGame> {
     _renderBounds
       ..clear()
       ..addAll(sourceBounds);
+    _puddles.clear();
 
     if (sourceBounds.isEmpty) {
       _tileSize = 1;
+      _coverageRect = ui.Rect.zero;
       return;
     }
 
     final double candidateTileSize = sourceBounds.first.width;
-    if (!_canMergeBounds(sourceBounds, candidateTileSize)) {
+    final bool canMerge = _canMergeBounds(sourceBounds, candidateTileSize);
+    if (!canMerge) {
       _tileSize = candidateTileSize <= 0 ? 1 : candidateTileSize;
+      _coverageRect = _computeCoverageRect(_renderBounds);
+      _rebuildPuddlesFromBounds(_renderBounds);
       return;
     }
 
@@ -84,6 +97,140 @@ class WaterShaderLayer extends Component with HasGameReference<MyGame> {
     _renderBounds
       ..clear()
       ..addAll(_mergeBounds(sourceBounds, candidateTileSize));
+    _coverageRect = _computeCoverageRect(_renderBounds);
+    _rebuildPuddlesFromTiles(sourceBounds, candidateTileSize);
+  }
+
+  ui.Rect _computeCoverageRect(List<ui.Rect> bounds) {
+    if (bounds.isEmpty) {
+      return ui.Rect.zero;
+    }
+
+    double minLeft = bounds.first.left;
+    double minTop = bounds.first.top;
+    double maxRight = bounds.first.right;
+    double maxBottom = bounds.first.bottom;
+
+    for (int i = 1; i < bounds.length; i++) {
+      final ui.Rect rect = bounds[i];
+      if (rect.left < minLeft) {
+        minLeft = rect.left;
+      }
+      if (rect.top < minTop) {
+        minTop = rect.top;
+      }
+      if (rect.right > maxRight) {
+        maxRight = rect.right;
+      }
+      if (rect.bottom > maxBottom) {
+        maxBottom = rect.bottom;
+      }
+    }
+
+    return ui.Rect.fromLTRB(minLeft, minTop, maxRight, maxBottom);
+  }
+
+  void _packShaderRects(List<ui.Rect> bounds) {
+    _shaderRectsUniforms.clear();
+    for (final ui.Rect rect in bounds) {
+      _shaderRectsUniforms
+        ..add(rect.left)
+        ..add(rect.top)
+        ..add(rect.right)
+        ..add(rect.bottom);
+    }
+  }
+
+  void _packShaderPuddles() {
+    _shaderPuddlesUniforms.clear();
+    final int count = _puddles.length > _maxShaderPuddles
+        ? _maxShaderPuddles
+        : _puddles.length;
+    _packedPuddleCount = count;
+
+    for (int i = 0; i < count; i++) {
+      final _PuddleData puddle = _puddles[i];
+      _shaderPuddlesUniforms
+        ..add(puddle.left)
+        ..add(puddle.top)
+        ..add(puddle.right)
+        ..add(puddle.bottom);
+    }
+  }
+
+  void _rebuildPuddlesFromBounds(List<ui.Rect> bounds) {
+    _puddles.clear();
+    for (final ui.Rect rect in bounds) {
+      _puddles.add(
+        _PuddleData(
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+        ),
+      );
+    }
+  }
+
+  void _rebuildPuddlesFromTiles(List<ui.Rect> tiles, double tileSize) {
+    _puddles.clear();
+
+    final Set<_GridCoord> tileCoords = <_GridCoord>{};
+    for (final ui.Rect tile in tiles) {
+      final int row = (tile.top / tileSize).round();
+      final int col = (tile.left / tileSize).round();
+      tileCoords.add(_GridCoord(row: row, col: col));
+    }
+
+    final Set<_GridCoord> visited = <_GridCoord>{};
+    for (final _GridCoord start in tileCoords) {
+      if (visited.contains(start)) {
+        continue;
+      }
+
+      final List<_GridCoord> stack = <_GridCoord>[start];
+      int minRow = start.row;
+      int maxRow = start.row;
+      int minCol = start.col;
+      int maxCol = start.col;
+
+      while (stack.isNotEmpty) {
+        final _GridCoord current = stack.removeLast();
+        if (!tileCoords.contains(current) || visited.contains(current)) {
+          continue;
+        }
+
+        visited.add(current);
+
+        if (current.row < minRow) {
+          minRow = current.row;
+        }
+        if (current.row > maxRow) {
+          maxRow = current.row;
+        }
+        if (current.col < minCol) {
+          minCol = current.col;
+        }
+        if (current.col > maxCol) {
+          maxCol = current.col;
+        }
+
+        stack
+          ..add(_GridCoord(row: current.row - 1, col: current.col))
+          ..add(_GridCoord(row: current.row + 1, col: current.col))
+          ..add(_GridCoord(row: current.row, col: current.col - 1))
+          ..add(_GridCoord(row: current.row, col: current.col + 1));
+      }
+
+      final double left = minCol * tileSize;
+      final double top = minRow * tileSize;
+      final double right = (maxCol + 1) * tileSize;
+      final double bottom = (maxRow + 1) * tileSize;
+
+      _puddles.add(
+        _PuddleData(left: left, top: top, right: right, bottom: bottom),
+      );
+    }
   }
 
   bool _canMergeBounds(List<ui.Rect> bounds, double tileSize) {
@@ -209,22 +356,56 @@ class WaterShaderLayer extends Component with HasGameReference<MyGame> {
       return;
     }
 
-    _shaderPaint.shader = shader;
-    for (final ui.Rect rect in bounds) {
-      canvas.save();
-      canvas.translate(rect.left, rect.top);
-      shader
-        ..setFloat(0, _tileSize)
-        ..setFloat(1, _tileSize)
-        ..setFloat(2, _time)
-        ..setFloat(3, rect.left)
-        ..setFloat(4, rect.top);
-      canvas.drawRect(
-        ui.Rect.fromLTWH(0, 0, rect.width, rect.height),
-        _shaderPaint,
-      );
-      canvas.restore();
+    if (bounds.length > _maxShaderRects) {
+      // Fallback for very fragmented water regions that exceed uniform budget.
+      for (final ui.Rect rect in bounds) {
+        canvas.drawRect(rect, _fallbackPaint);
+      }
+      return;
     }
+
+    final ui.Rect coverageRect = _coverageRect;
+    if (coverageRect.isEmpty) {
+      return;
+    }
+
+    _packShaderRects(bounds);
+    _packShaderPuddles();
+
+    shader
+      ..setFloat(0, _tileSize)
+      ..setFloat(1, _tileSize)
+      ..setFloat(2, _time)
+      ..setFloat(3, coverageRect.left)
+      ..setFloat(4, coverageRect.top)
+      ..setFloat(5, bounds.length.toDouble());
+
+    int uniformIndex = 6;
+    for (final double value in _shaderRectsUniforms) {
+      shader.setFloat(uniformIndex, value);
+      uniformIndex++;
+    }
+
+    // uRects[32] always occupies exactly 32 * 4 = 128 float slots (indices
+    // 6..133). Jump to the fixed position of uPuddleCount regardless of how
+    // many rects were actually written.
+    uniformIndex = 6 + 32 * 4;
+
+    shader.setFloat(uniformIndex, _packedPuddleCount.toDouble());
+    uniformIndex++;
+    for (final double value in _shaderPuddlesUniforms) {
+      shader.setFloat(uniformIndex, value);
+      uniformIndex++;
+    }
+
+    _shaderPaint.shader = shader;
+    canvas.save();
+    canvas.translate(coverageRect.left, coverageRect.top);
+    canvas.drawRect(
+      ui.Rect.fromLTWH(0, 0, coverageRect.width, coverageRect.height),
+      _shaderPaint,
+    );
+    canvas.restore();
   }
 }
 
@@ -255,4 +436,33 @@ class _SpanKey {
 
   @override
   int get hashCode => Object.hash(leftCol, rightCol);
+}
+
+class _GridCoord {
+  const _GridCoord({required this.row, required this.col});
+
+  final int row;
+  final int col;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _GridCoord && other.row == row && other.col == col;
+  }
+
+  @override
+  int get hashCode => Object.hash(row, col);
+}
+
+class _PuddleData {
+  const _PuddleData({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  });
+
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
 }
