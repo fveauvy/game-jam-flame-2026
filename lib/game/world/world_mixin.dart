@@ -11,6 +11,7 @@ import 'package:game_jam/game/components/enemies/fish_enemy_component.dart';
 import 'package:game_jam/game/components/environment/cloud_shadow_component.dart';
 import 'package:game_jam/game/components/environment/ground_component.dart';
 import 'package:game_jam/game/components/environment/leaf_component.dart';
+import 'package:game_jam/game/components/environment/mud_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
@@ -138,6 +139,11 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       thorn.removeFromParent();
     }
 
+    for (final MudComponent mud
+        in game.world.children.whereType<MudComponent>().toList()) {
+      mud.removeFromParent();
+    }
+
     final Vector2 worldSize = GameConfig.worldSize;
     final int gridW = (worldSize.x / _cellSize).ceil();
     final int gridH = (worldSize.y / _cellSize).ceil();
@@ -150,6 +156,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       List<List<bool>> isFishZoneGrid,
       List<List<bool>> isZone3GroundGrid,
       List<List<double>> thornNoiseGrid,
+      List<List<double>> mudNoiseGrid,
     ) = _classifyGrid(
       gridW: gridW,
       gridH: gridH,
@@ -158,11 +165,21 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       seed: seed,
     );
 
+    final List<List<bool>> mudGrid = WorldMixin.computeMudGrid(
+      gridW: gridW,
+      gridH: gridH,
+      isWaterGrid: isWaterGrid,
+      isZone3GroundGrid: isZone3GroundGrid,
+      mudNoise: mudNoiseGrid,
+      random: random,
+    );
+
     final List<Rect> waterBounds = await _placeTiles(
       gridW: gridW,
       gridH: gridH,
       cellSizeVec: cellSizeVec,
       isWaterGrid: isWaterGrid,
+      mudGrid: mudGrid,
     );
 
     final (
@@ -210,7 +227,13 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     return (waterBounds, leafBounds);
   }
 
-  (List<List<bool>>, List<List<bool>>, List<List<bool>>, List<List<double>>)
+  (
+    List<List<bool>>,
+    List<List<bool>>,
+    List<List<bool>>,
+    List<List<double>>,
+    List<List<double>>,
+  )
   _classifyGrid({
     required int gridW,
     required int gridH,
@@ -248,6 +271,18 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         seed: seed + 2,
         noiseType: NoiseType.cellular,
         frequency: GameplayTuning.thornPatchNoiseFrequency,
+        cellularReturnType: CellularReturnType.distance,
+      ),
+      gridW,
+      gridH,
+    );
+    final List<List<double>> mudNoise = _normalizeGrid(
+      noise2(
+        gridW,
+        gridH,
+        seed: seed + 3,
+        noiseType: NoiseType.cellular,
+        frequency: GameplayTuning.mudPatchNoiseFrequency,
         cellularReturnType: CellularReturnType.distance,
       ),
       gridW,
@@ -318,7 +353,13 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       }
     }
 
-    return (isWaterGrid, isFishZoneGrid, isZone3GroundGrid, thornNoise);
+    return (
+      isWaterGrid,
+      isFishZoneGrid,
+      isZone3GroundGrid,
+      thornNoise,
+      mudNoise,
+    );
   }
 
   Future<List<Rect>> _placeTiles({
@@ -326,6 +367,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     required int gridH,
     required Vector2 cellSizeVec,
     required List<List<bool>> isWaterGrid,
+    required List<List<bool>> mudGrid,
   }) async {
     final List<Rect> waterBounds = <Rect>[];
     for (int i = 0; i < gridW; i++) {
@@ -334,6 +376,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         final bool isBorderCell =
             i == 0 || j == 0 || i == gridW - 1 || j == gridH - 1;
         final bool isWater = isWaterGrid[i][j];
+        final bool isMud = !isWater && mudGrid[i][j];
 
         if (isWater) {
           // For border cells the only meaningful ground edge is the exterior
@@ -408,6 +451,20 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
               cellOrigin.y,
               cellSizeVec.x,
               cellSizeVec.y,
+            ),
+          );
+        } else if (isMud) {
+          await add(
+            MudComponent(
+              position: cellOrigin.clone(),
+              size: cellSizeVec.clone(),
+              assetPosition: WorldMixin.mudAssetPositionFor(
+                i: i,
+                j: j,
+                gridW: gridW,
+                gridH: gridH,
+                mudGrid: mudGrid,
+              ),
             ),
           );
         } else {
@@ -1059,6 +1116,152 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     }
 
     return results;
+  }
+
+  /// Returns a grid marking which zone-3 ground cells should become mud.
+  ///
+  /// Rules enforced:
+  ///   1. Only zone-3 ground cells are eligible (outer zone, not water).
+  ///   2. Every mud zone is a rectangle of at least 2×2 cells (≥ 4 tiles).
+  ///   3. No cell in a rectangle may be orthogonally adjacent to a water cell.
+  ///   4. Two distinct mud rectangles are always separated by at least one
+  ///      ground tile (the 1-cell perimeter of each rect is kept clear).
+  static List<List<bool>> computeMudGrid({
+    required int gridW,
+    required int gridH,
+    required List<List<bool>> isWaterGrid,
+    required List<List<bool>> isZone3GroundGrid,
+    required List<List<double>> mudNoise,
+    required Random random,
+  }) {
+    final List<List<bool>> mudCells = List.generate(
+      gridW,
+      (_) => List<bool>.filled(gridH, false),
+    );
+    // Tracks the 1-cell buffer around placed rects so new seeds skip it.
+    final List<List<bool>> claimed = List.generate(
+      gridW,
+      (_) => List<bool>.filled(gridH, false),
+    );
+
+    for (int i = 1; i < gridW - 1; i++) {
+      for (int j = 1; j < gridH - 1; j++) {
+        if (!isZone3GroundGrid[i][j]) continue;
+        if (claimed[i][j]) continue;
+        final double m = mudNoise[i][j];
+        if (m < GameplayTuning.mudPatchThresholdMin ||
+            m > GameplayTuning.mudPatchThresholdMax) {
+          continue;
+        }
+        if (random.nextDouble() > GameplayTuning.mudPatchSpawnChance) continue;
+
+        // Random rectangle size, minimum 2×2 (= 4 tiles).
+        final int maxDim = GameplayTuning.mudPatchMaxCells;
+        final int w = 2 + random.nextInt(maxDim - 1);
+        final int h = 2 + random.nextInt(maxDim - 1);
+        final int minI = i;
+        final int minJ = j;
+        final int maxI = (i + w - 1).clamp(0, gridW - 1);
+        final int maxJ = (j + h - 1).clamp(0, gridH - 1);
+
+        // Reject if clamping shrank the rect below 2×2.
+        if (maxI - minI < 1 || maxJ - minJ < 1) continue;
+
+        // Every cell inside the rect must be zone-3 ground.
+        bool hasNonZone3 = false;
+        zone3Check:
+        for (int ci = minI; ci <= maxI; ci++) {
+          for (int cj = minJ; cj <= maxJ; cj++) {
+            if (!isZone3GroundGrid[ci][cj]) {
+              hasNonZone3 = true;
+              break zone3Check;
+            }
+          }
+        }
+        if (hasNonZone3) continue;
+
+        // The 1-cell expanded perimeter must contain no water (mud can't be
+        // adjacent to water) and no existing mud (zones must be separated).
+        bool tooClose = false;
+        perimeterCheck:
+        for (
+          int ci = (minI - 1).clamp(0, gridW - 1);
+          ci <= (maxI + 1).clamp(0, gridW - 1);
+          ci++
+        ) {
+          for (
+            int cj = (minJ - 1).clamp(0, gridH - 1);
+            cj <= (maxJ + 1).clamp(0, gridH - 1);
+            cj++
+          ) {
+            if (isWaterGrid[ci][cj] || mudCells[ci][cj]) {
+              tooClose = true;
+              break perimeterCheck;
+            }
+          }
+        }
+        if (tooClose) continue;
+
+        // Mark the rectangle as mud.
+        for (int ci = minI; ci <= maxI; ci++) {
+          for (int cj = minJ; cj <= maxJ; cj++) {
+            mudCells[ci][cj] = true;
+          }
+        }
+        // Claim the 1-cell perimeter so future seeds respect the gap rule.
+        for (
+          int ci = (minI - 1).clamp(0, gridW - 1);
+          ci <= (maxI + 1).clamp(0, gridW - 1);
+          ci++
+        ) {
+          for (
+            int cj = (minJ - 1).clamp(0, gridH - 1);
+            cj <= (maxJ + 1).clamp(0, gridH - 1);
+            cj++
+          ) {
+            claimed[ci][cj] = true;
+          }
+        }
+      }
+    }
+
+    return mudCells;
+  }
+
+  /// Picks the [MudAssetPosition] for a mud cell based on which orthogonal
+  /// neighbours are also mud tiles.
+  @visibleForTesting
+  static MudAssetPosition mudAssetPositionFor({
+    required int i,
+    required int j,
+    required int gridW,
+    required int gridH,
+    required List<List<bool>> mudGrid,
+  }) {
+    bool hasMud(int ci, int cj) {
+      if (ci < 0 || cj < 0 || ci >= gridW || cj >= gridH) return false;
+      return mudGrid[ci][cj];
+    }
+
+    // Ground on a side = that neighbour is NOT mud.
+    final bool groundUp = !hasMud(i, j - 1);
+    final bool groundDown = !hasMud(i, j + 1);
+    final bool groundLeft = !hasMud(i - 1, j);
+    final bool groundRight = !hasMud(i + 1, j);
+
+    // Two adjacent ground neighbours → concave corner asset.
+    if (groundUp && groundLeft) return MudAssetPosition.cornerTopLeft;
+    if (groundUp && groundRight) return MudAssetPosition.cornerTopRight;
+    if (groundDown && groundLeft) return MudAssetPosition.cornerBottomLeft;
+    if (groundDown && groundRight) return MudAssetPosition.cornerBottomRight;
+
+    // One exposed side (including cases where the opposite side is also ground).
+    if (groundUp) return MudAssetPosition.up;
+    if (groundDown) return MudAssetPosition.down;
+    if (groundLeft) return MudAssetPosition.left;
+    if (groundRight) return MudAssetPosition.right;
+
+    return MudAssetPosition.plain;
   }
 
   List<List<double>> _normalizeGrid(List<List<double>> grid, int w, int h) {
