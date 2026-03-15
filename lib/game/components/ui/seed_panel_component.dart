@@ -56,14 +56,14 @@ class SeedPanelComponent extends SpriteButtonComponent
   void onTapDown(TapDownEvent event) async {
     super.onTapDown(event);
     scale = Vector2.all(.90);
-    button = Sprite(game.images.fromCache('plank_dark.png'));
+    button = Sprite(game.images.fromCache(AssetPaths.plankDarkCacheKey));
     await onReroll();
   }
 
   @override
   void onTapUp(TapUpEvent event) {
     super.onTapUp(event);
-    button = Sprite(game.images.fromCache('plank_light.png'));
+    button = Sprite(game.images.fromCache(AssetPaths.plankLightCacheKey));
     scale = Vector2.all(1.05);
   }
 
@@ -71,14 +71,14 @@ class SeedPanelComponent extends SpriteButtonComponent
   void onHoverEnter() {
     super.onHoverEnter();
     scale = Vector2.all(1.05);
-    button = Sprite(game.images.fromCache('plank_light.png'));
+    button = Sprite(game.images.fromCache(AssetPaths.plankLightCacheKey));
   }
 
   @override
   void onHoverExit() {
     super.onHoverExit();
     scale = Vector2.all(1.0);
-    button = Sprite(game.images.fromCache('plank.png'));
+    button = Sprite(game.images.fromCache(AssetPaths.plankCacheKey));
   }
 
   @override

@@ -5,7 +5,7 @@ import 'package:game_jam/game/my_game.dart';
 
 class WaterLilyComponent extends SpriteComponent with HasGameReference<MyGame> {
   WaterLilyComponent({required Vector2 position, required this.radius})
-    : super(position: position, priority: 100, size: Vector2.all(radius * 2));
+    : super(position: position, priority: 2, size: Vector2.all(radius * 2));
 
   final double radius;
 

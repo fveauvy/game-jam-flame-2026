@@ -14,5 +14,4 @@ abstract final class GameConfig {
   static const double worldCellSize = 100;
   static final Vector2 worldSize = Vector2(3200, 3200);
   static final Vector2 playerSpawn = worldSize / 2;
-  static const double groundY = 980;
 }

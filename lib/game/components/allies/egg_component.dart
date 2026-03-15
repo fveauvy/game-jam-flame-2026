@@ -28,9 +28,8 @@ class EggComponent extends PositionComponent with HasGameReference<MyGame> {
   Future<void> onLoad() async {
     anchor = isInSafeHouse ? Anchor.topLeft : Anchor.center;
     final spriteChild = SpriteComponent(
-      sprite: Sprite(Flame.images.fromCache('big_egg.png')),
+      sprite: Sprite(Flame.images.fromCache(AssetPaths.bigEggCacheKey)),
       size: size,
-      // anchor: Anchor.topLeft,
     );
 
     if (isOnBack) {
@@ -47,7 +46,7 @@ class EggComponent extends PositionComponent with HasGameReference<MyGame> {
           children: [
             // Offset the sprite so it is centred inside the larger canvas.
             SpriteComponent(
-              sprite: Sprite(Flame.images.fromCache('big_egg.png')),
+              sprite: Sprite(Flame.images.fromCache(AssetPaths.bigEggCacheKey)),
               position: Vector2.all(padding),
               size: size,
               anchor: Anchor.topLeft,

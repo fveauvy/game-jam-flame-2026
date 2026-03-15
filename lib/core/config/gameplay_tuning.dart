@@ -56,7 +56,7 @@ abstract final class GameplayTuning {
   static const double thornPatchNoiseFrequency = 0.12;
   static const double thornPatchThresholdMin = 0.56;
   static const double thornPatchThresholdMax = 0.69;
-  static const double thornPatchSpawnChance = 0.35;
+  static const double thornPatchSpawnChance = 0.5;
 
   // Thorn animation.
   static const double thornAnimationFrameSeconds = 0.2;
@@ -72,4 +72,11 @@ abstract final class GameplayTuning {
   static const double fishEnemySize = 150;
   static const double fishMinSpawnDistance = 600;
   static const double minFishSpacing = 400;
+
+  // Mud zone world generation (zone 3 / outer ground only).
+  static const double mudPatchNoiseFrequency = 0.4;
+  static const double mudPatchThresholdMin = 0.35;
+  static const double mudPatchThresholdMax = 0.75;
+  static const double mudPatchSpawnChance = 0.65;
+  static const int mudPatchMaxCells = 5;
 }
