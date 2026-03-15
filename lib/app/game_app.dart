@@ -160,8 +160,7 @@ class _GameJamAppState extends State<GameJamApp> {
                 },
                 AppOverlays.winOverlay: (_, MyGame game) {
                   return YouWinOverlay(
-                    onRetrySeed: game.retrySeedFromWin,
-                    onRestartWithNewSeed: game.restartWithNewSeedFromWin,
+                    onReplay: game.restartToMenu,
                     winningTime: game.winningRunFormattedTime,
                     onPublishScore: game.publishWinningScore,
                   );

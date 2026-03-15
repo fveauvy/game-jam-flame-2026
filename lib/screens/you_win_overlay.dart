@@ -3,15 +3,13 @@ import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/ui_config.dart';
 
 class YouWinOverlay extends StatefulWidget {
-  final Future<void> Function() onRetrySeed;
-  final Future<void> Function() onRestartWithNewSeed;
+  final Future<void> Function() onReplay;
   final String winningTime;
   final Future<bool> Function(String playerName) onPublishScore;
 
   const YouWinOverlay({
     super.key,
-    required this.onRetrySeed,
-    required this.onRestartWithNewSeed,
+    required this.onReplay,
     required this.winningTime,
     required this.onPublishScore,
   });
@@ -214,18 +212,12 @@ class _YouWinOverlayState extends State<YouWinOverlay> {
                   FilledButton(
                     onPressed: _isRestarting
                         ? null
-                        : () => _runRestart(widget.onRetrySeed),
+                        : () => _runRestart(widget.onReplay),
                     child: Text(
                       _isRestarting
                           ? WinOverlayUi.restartingLabel
-                          : WinOverlayUi.retrySeedAction,
+                          : WinOverlayUi.replayAction,
                     ),
-                  ),
-                  FilledButton(
-                    onPressed: _isRestarting
-                        ? null
-                        : () => _runRestart(widget.onRestartWithNewSeed),
-                    child: const Text(WinOverlayUi.restartNewSeedAction),
                   ),
                 ],
               );
