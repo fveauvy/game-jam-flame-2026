@@ -298,7 +298,6 @@ mixin WorldMixinOld on HasGameReference<MyGame>, Component {
             ThornComponent(
               position: cellOrigin.clone(),
               size: cellSizeVec.clone(),
-              drawLandBackground: !isWaterCell,
             ),
           );
         }
