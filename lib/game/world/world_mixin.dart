@@ -19,7 +19,7 @@ import 'package:game_jam/game/my_game.dart';
 mixin WorldMixin on HasGameReference<MyGame>, Component {
   Random get random => game.random;
 
-  static const double _cellSize = 100;
+  static const double _cellSize = GameConfig.worldCellSize;
 
   /// Zone 1: 700×700 pure-water square at the world centre.
   static const double _centerWaterZoneHalfSize = 350;
