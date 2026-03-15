@@ -39,8 +39,6 @@ import 'package:game_jam/game/input/gamepad_input.dart';
 import 'package:game_jam/game/input/input_state.dart';
 import 'package:game_jam/game/input/keyboard_input.dart';
 import 'package:game_jam/game/input/touch_controller.dart';
-import 'package:game_jam/game/systems/collision_system.dart';
-import 'package:game_jam/game/systems/spawn_system.dart';
 import 'package:game_jam/game/world/generated_level.dart';
 import 'package:game_jam/game/world/world_mixin.dart';
 import 'package:game_jam/game/world/world_root.dart';
@@ -182,8 +180,6 @@ class MyGame extends FlameGame<WorldRoot>
       WaterShaderLayer(level: _level),
       ..._waterRipples,
       ..._playerList,
-      SpawnSystem(),
-      CollisionSystem(),
       ..._buildInitialFlies(),
       ..._buildInitialEggs(),
       _buildInitialWoodBoards(),
