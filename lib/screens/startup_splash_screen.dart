@@ -159,16 +159,12 @@ class _OneShotGif extends StatefulWidget {
     required this.fallback,
     this.frameDurationMultiplier = 1,
     this.fit,
-    this.width,
-    this.height,
   }) : assert(frameDurationMultiplier > 0);
 
   final String assetPath;
   final Widget fallback;
   final double frameDurationMultiplier;
   final BoxFit? fit;
-  final double? width;
-  final double? height;
 
   @override
   State<_OneShotGif> createState() => _OneShotGifState();
@@ -184,14 +180,14 @@ class _OneShotGifState extends State<_OneShotGif> {
   @override
   void initState() {
     super.initState();
-    _loadFrames();
+    unawaited(_loadFrames());
   }
 
   @override
   void didUpdateWidget(covariant _OneShotGif oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.assetPath != widget.assetPath) {
-      _loadFrames();
+      unawaited(_loadFrames());
     }
   }
 
@@ -297,8 +293,6 @@ class _OneShotGifState extends State<_OneShotGif> {
     return RawImage(
       image: _frames[_currentFrameIndex].image,
       fit: widget.fit,
-      width: widget.width,
-      height: widget.height,
       filterQuality: FilterQuality.high,
     );
   }
