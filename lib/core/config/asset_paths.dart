@@ -10,6 +10,7 @@ abstract final class AssetPaths {
   static const String plankPanel2CacheKey = 'planks_panel_2.png';
   static const String fly = 'assets/images/fly.png';
   static const String eggs = 'assets/images/eggs.png';
+  static const String bigEgg = 'assets/images/big_egg.png';
   static const String thorns1 = 'assets/images/environment/Ronces1.png';
   static const String thorns2 = 'assets/images/environment/Ronces2.png';
   static const String thorns3 = 'assets/images/environment/Ronces3.png';
@@ -43,6 +44,7 @@ abstract final class AssetPaths {
   static const String waterLilyCacheKey = 'environment/water-lily.webp';
   static const String flyCacheKey = 'fly.png';
   static const String eggsCacheKey = 'eggs.png';
+  static const String bigEggCacheKey = 'big_egg.png';
   static const String thorns1CacheKey = 'environment/Ronces1.png';
   static const String thorns2CacheKey = 'environment/Ronces2.png';
   static const String thorns3CacheKey = 'environment/Ronces3.png';
@@ -172,6 +174,7 @@ abstract final class AssetPaths {
     waterLilyCacheKey,
     flyCacheKey,
     eggsCacheKey,
+    bigEggCacheKey,
     titleCacheKey,
     ...thornsAnimationCacheKeys,
     leafCacheKey,
