@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:game_jam/core/config/game_config.dart';
 import 'package:game_jam/core/entities/biome_type.dart';
+import 'package:game_jam/game/components/environment/frog_house_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
 import 'package:game_jam/game/components/environment/water_lily_component.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -14,7 +15,8 @@ class GeneratedLevel extends Component
   late BiomeType biome;
   final List<Rect> _waterBounds = <Rect>[];
   final List<Rect> _leafBounds = <Rect>[];
-  final List<WaterLilyComponent> _waterLilies = <WaterLilyComponent>[];
+  final List<Rect> _waterLilies = <Rect>[];
+  final List<Rect> _frogHouses = <Rect>[];
   late final UnmodifiableListView<Rect> _waterBoundsView =
       UnmodifiableListView<Rect>(_waterBounds);
   int _waterRevision = 0;
@@ -32,17 +34,28 @@ class GeneratedLevel extends Component
     final (List<Rect> waterBounds, List<Rect> leafBounds) =
         await generateLevel();
     _setGeneratedBounds(waterBounds: waterBounds, leafBounds: leafBounds);
-    _waterLilies.addAll(children.whereType<WaterLilyComponent>());
+    _waterLilies.addAll(
+      children.whereType<WaterLilyComponent>().map((lily) => lily.toRect()),
+    );
+    _frogHouses.addAll(
+      children.whereType<FrogHouseComponent>().map((house) => house.toRect()),
+    );
     await super.onLoad();
   }
 
   Future<void> onUpdateSeed() async {
     _waterLilies.clear();
+    _frogHouses.clear();
     removeAll(children);
     final (List<Rect> waterBounds, List<Rect> leafBounds) =
         await generateLevel();
     _setGeneratedBounds(waterBounds: waterBounds, leafBounds: leafBounds);
-    _waterLilies.addAll(children.whereType<WaterLilyComponent>());
+    _waterLilies.addAll(
+      children.whereType<WaterLilyComponent>().map((lily) => lily.toRect()),
+    );
+    _frogHouses.addAll(
+      children.whereType<FrogHouseComponent>().map((house) => house.toRect()),
+    );
   }
 
   void _setGeneratedBounds({
@@ -131,8 +144,8 @@ class GeneratedLevel extends Component
   }
 
   bool isPositionInWaterLily(Vector2 position) {
-    for (final WaterLilyComponent lily in _waterLilies) {
-      if (lily.absoluteCenter.distanceTo(position) <= lily.radius) {
+    for (final Rect lily in _waterLilies) {
+      if (lily.contains(Offset(position.x, position.y))) {
         return true;
       }
     }
@@ -164,6 +177,15 @@ class GeneratedLevel extends Component
 
     for (final Rect bounds in _leafBounds) {
       if (bounds.contains(point)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool isPositionOnFrogHouse(Vector2 position) {
+    for (final Rect house in _frogHouses) {
+      if (house.contains(Offset(position.x, position.y))) {
         return true;
       }
     }
