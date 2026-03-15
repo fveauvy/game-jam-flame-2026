@@ -33,6 +33,7 @@ abstract final class AssetPaths {
   static const String jumpSfx2 = 'sound_effects/jump2.wav';
   static const String waterSplashMidSfx = 'sound_effects/water-splash-mid.wav';
   static const String tongueLickSfx = 'sound_effects/coup-de-langue.mp3';
+  static const String birdDiveSfx = 'sound_effects/bird-dive.mp3';
   static const String frogCroakSfx = 'sound_effects/frog-croaks.mp3';
   static const String frogMenuSfx1 = 'sound_effects/gronouy1.mp3';
   static const String frogMenuSfx2 = 'sound_effects/gronouy2.mp3';
@@ -218,6 +219,7 @@ abstract final class AssetPaths {
     jumpSfx2,
     waterSplashMidSfx,
     tongueLickSfx,
+    birdDiveSfx,
     frogCroakSfx,
     frogMenuSfx1,
     frogMenuSfx2,
