@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
 import 'package:game_jam/game/components/environment/fly_animation_definition.dart';
 import 'package:game_jam/game/my_game.dart';
@@ -36,7 +37,7 @@ class FlyComponent extends SpriteAnimationComponent
     }
 
     animation = SpriteAnimation.fromFrameData(
-      game.images.fromCache('fly.png'),
+      game.images.fromCache(AssetPaths.flyCacheKey),
       animationData,
     );
     await add(

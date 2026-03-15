@@ -1022,7 +1022,6 @@ class PlayerComponent extends SpriteAnimationComponent
           ),
         );
 
-        debugPrint('Collected an egg!');
         await other.collect();
       }
     }
