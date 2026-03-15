@@ -1,5 +1,6 @@
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class WaterLilyComponent extends SpriteComponent with HasGameReference<MyGame> {
@@ -10,11 +11,8 @@ class WaterLilyComponent extends SpriteComponent with HasGameReference<MyGame> {
 
   @override
   Future<void> onLoad() async {
-    final lilyAssetName = game.random.nextBool()
-        ? 'water_lily.png'
-        : 'water_lily_1.png';
     await super.onLoad();
-    sprite = Sprite(game.images.fromCache(lilyAssetName));
+    sprite = Sprite(game.images.fromCache(AssetPaths.waterLilyCacheKey));
     add(CircleHitbox(radius: radius));
   }
 }
