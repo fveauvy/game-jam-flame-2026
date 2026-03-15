@@ -49,6 +49,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
 
   static const double _minLilyRadius = 25;
   static const double _maxLilyRadius = 45;
+  static const double _candidateSafeZoneLilyRadius = 56;
   static const double _playerBaseDiameter = 96;
   static const double _lilyGapBuffer = 20;
   static const double _minLilySpacing =
@@ -196,6 +197,18 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       leafCandidateOrigins,
       spawnedFishPositions,
     );
+
+    for (final Vector2 center in candidateSafeZoneCenters) {
+      await add(
+        WaterLilyComponent(
+          position: Vector2(
+            center.x - _candidateSafeZoneLilyRadius,
+            center.y - _candidateSafeZoneLilyRadius,
+          ),
+          radius: _candidateSafeZoneLilyRadius,
+        ),
+      );
+    }
 
     await add(
       CloudShadowComponent(seed: SeedCode.decode(game.characterSeedCode)),
@@ -492,12 +505,20 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
               cellCenter.x <= spawn.x + _lilyFreeZoneHalfSize &&
               cellCenter.y >= spawn.y - _lilyFreeZoneHalfSize &&
               cellCenter.y <= spawn.y + _lilyFreeZoneHalfSize;
+          final Vector2 worldCenter = GameConfig.worldSize / 2;
+          final bool inCenterWaterZone =
+              cellCenter.x >= worldCenter.x - _centerWaterZoneHalfSize &&
+              cellCenter.x <= worldCenter.x + _centerWaterZoneHalfSize &&
+              cellCenter.y >= worldCenter.y - _centerWaterZoneHalfSize &&
+              cellCenter.y <= worldCenter.y + _centerWaterZoneHalfSize;
           final bool cardinalNeighboursAreWater =
               isWaterGrid[i][j - 1] &&
               isWaterGrid[i][j + 1] &&
               isWaterGrid[i - 1][j] &&
               isWaterGrid[i + 1][j];
-          if (!inLilyFreeZone && cardinalNeighboursAreWater) {
+          if (!inLilyFreeZone &&
+              !inCenterWaterZone &&
+              cardinalNeighboursAreWater) {
             lilyCandidateOrigins.add(Vector2(i * _cellSize, j * _cellSize));
           }
         }
