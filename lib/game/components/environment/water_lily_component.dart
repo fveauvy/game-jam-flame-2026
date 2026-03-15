@@ -13,6 +13,6 @@ class WaterLilyComponent extends SpriteComponent with HasGameReference<MyGame> {
   Future<void> onLoad() async {
     await super.onLoad();
     sprite = Sprite(game.images.fromCache(AssetPaths.waterLilyCacheKey));
-    add(CircleHitbox(radius: radius));
+    add(CircleHitbox(radius: radius, collisionType: CollisionType.passive));
   }
 }

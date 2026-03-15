@@ -75,7 +75,7 @@ class BirdShadowComponent extends SpriteAnimationGroupComponent
 
   @override
   void update(double dt) {
-    final player = game.world.children.whereType<PlayerComponent>().firstOrNull;
+    final PlayerComponent? player = game.world.player;
     if (player == null || game.paused) {
       super.update(dt);
       return;

@@ -18,6 +18,7 @@ class FrogHouseComponent extends SpriteComponent
       size: size,
       position: Vector2.zero(),
       priority: 0,
+      collisionType: CollisionType.passive,
     );
     add(hitbox);
     sprite = Sprite(game.images.fromCache(AssetPaths.plankPanel1CacheKey));

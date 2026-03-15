@@ -39,7 +39,7 @@ class WaterComponent extends PositionComponent with HasGameReference<MyGame> {
         ),
       );
     }
-    add(RectangleHitbox(size: size));
+    add(RectangleHitbox(size: size, collisionType: CollisionType.passive));
   }
 }
 
