@@ -14,7 +14,7 @@ class EggComponent extends PositionComponent with HasGameReference<MyGame> {
 
   /// Extra padding (in game units) around the sprite given to the
   /// [PostProcessComponent] so the glow halo has room to render.
-  static const double _glowPadding = 12.0;
+  static const double padding = 12.0;
 
   EggComponent({
     required super.position,
@@ -40,13 +40,13 @@ class EggComponent extends PositionComponent with HasGameReference<MyGame> {
       add(
         PostProcessComponent<EggAnimationProcess>(
           postProcess: EggAnimationProcess(),
-          position: Vector2.all(-_glowPadding),
-          size: size + Vector2.all(_glowPadding * 2),
+          position: Vector2.all(-padding),
+          size: size + Vector2.all(padding * 2),
           children: [
             // Offset the sprite so it is centred inside the larger canvas.
             SpriteComponent(
               sprite: Sprite(Flame.images.fromCache('big_egg.png')),
-              position: Vector2.all(_glowPadding),
+              position: Vector2.all(padding),
               size: size,
               anchor: Anchor.topLeft,
             ),
