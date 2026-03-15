@@ -706,7 +706,7 @@ class MyGame extends FlameGame<WorldRoot>
           random.nextDouble() * GameConfig.worldSize.x,
           random.nextDouble() * GameConfig.worldSize.y,
         ),
-        size: Vector2.all(GameplayTuning.worldPickupSize),
+        size: Vector2.all(GameplayTuning.flySize),
       ),
     );
   }
