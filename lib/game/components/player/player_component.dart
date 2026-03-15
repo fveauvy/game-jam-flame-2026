@@ -103,6 +103,7 @@ class PlayerComponent extends SpriteAnimationComponent
   SpriteAnimation? _boundAnimationForMoveSfx;
   int _lastMoveFrameIndex = -1;
   bool _seenLastMoveFrameInCurrentRun = false;
+  double _movingCroakCooldownRemaining = 0;
   FrogTongueComponent? _tongue;
 
   int eggsCollected = 0;
@@ -399,6 +400,38 @@ class PlayerComponent extends SpriteAnimationComponent
     unawaited(game.playSfx(AssetPaths.waterSplashMidSfx, volume: 0.8));
   }
 
+  void _maybePlayMovingCroak(double dt, {required bool isMoving}) {
+    _movingCroakCooldownRemaining = (_movingCroakCooldownRemaining - dt).clamp(
+      0.0,
+      PhysicsTuning.movingCroakCooldownMaxSeconds,
+    );
+    if (!isMoving ||
+        levelPosition == PlayerVerticalPosition.underwater ||
+        _movingCroakCooldownRemaining > 0) {
+      return;
+    }
+
+    final bool shouldCroak =
+        game.random.nextDouble() <
+        (PhysicsTuning.movingCroakChancePerSecond * dt);
+    if (!shouldCroak) {
+      return;
+    }
+
+    final double nextCooldown =
+        PhysicsTuning.movingCroakCooldownMinSeconds +
+        game.random.nextDouble() *
+            (PhysicsTuning.movingCroakCooldownMaxSeconds -
+                PhysicsTuning.movingCroakCooldownMinSeconds);
+    _movingCroakCooldownRemaining = nextCooldown;
+    unawaited(
+      game.playSfx(
+        AssetPaths.frogCroakSfx,
+        volume: PhysicsTuning.movingCroakVolume,
+      ),
+    );
+  }
+
   bool _shouldPlayWaterSplash({
     required PlayerVerticalPosition from,
     required PlayerVerticalPosition to,
@@ -643,13 +676,13 @@ class PlayerComponent extends SpriteAnimationComponent
     }
 
     if (inputState.jumpPressed &&
-        levelPosition == PlayerVerticalPosition.waterLevel &&
-        isInWater) {
+        levelPosition != PlayerVerticalPosition.underwater) {
       _startJump();
     }
     if (inputState.attackPressed) {
       _tryUseTongue();
     }
+    _maybePlayMovingCroak(dt, isMoving: isMoving);
     _resolveJump(dt);
 
     final double maxX = GameConfig.worldSize.x - size.x;
@@ -741,6 +774,7 @@ class PlayerComponent extends SpriteAnimationComponent
     _boundAnimationForMoveSfx = null;
     _lastMoveFrameIndex = -1;
     _seenLastMoveFrameInCurrentRun = false;
+    _movingCroakCooldownRemaining = 0;
     final ticker = animationTicker;
     if (ticker != null) {
       ticker.onFrame = null;

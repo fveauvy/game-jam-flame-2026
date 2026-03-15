@@ -22,11 +22,10 @@ class ProceduralCharacterGenerator implements CharacterGenerator {
     final SeededRng rng = SeededRng(seed);
     final CharacterNamePool namePool = _pools.namePool;
 
-    final String adjective = rng.pick(namePool.adjectives);
     final String noun = rng.pick(namePool.nouns);
-    final String? title = namePool.titles.isEmpty
-        ? null
-        : rng.pick(namePool.titles);
+    final bool withTitle = namePool.titles.isNotEmpty && rng.nextInt(2) == 0;
+    final String? adjective = withTitle ? null : rng.pick(namePool.adjectives);
+    final String? title = withTitle ? rng.pick(namePool.titles) : null;
     final int spriteNumber = _resolveSpriteNumber(seed);
 
     final double speedMultiplier = _rollTrait(rng: rng, min: 0.7, max: 1.5);
