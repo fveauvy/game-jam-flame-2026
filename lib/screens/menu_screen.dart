@@ -148,9 +148,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       onPressed: () {
                         _seedController
                             .clear(); // Clears the text field visually
-                        debugPrint('Seed reset');
                         widget.onReroll();
-                        // If you need to trigger a game event, do it here!
                       },
                     ),
                   ],

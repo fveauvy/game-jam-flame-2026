@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 
 class WaterRippleComponent extends PositionComponent {
-  // On le met en PositionComponent pour qu'il soit un élément du World.
-  // Priorité entre le terrain (0) et le joueur (10).
   WaterRippleComponent({required this.player}) : super(priority: 5);
 
   final PlayerComponent player;
@@ -25,7 +23,6 @@ class WaterRippleComponent extends PositionComponent {
 
   @override
   void update(double dt) {
-    // Mise à jour de l'état depuis le joueur
     isActive = player.isInWater;
 
     for (final r in _ripples) {
@@ -53,7 +50,6 @@ class WaterRippleComponent extends PositionComponent {
     final faceY = -cos(player.angle);
     final backOffset = player.size.x * 0.6 * player.velocity.length;
 
-    // Position mondiale directe (pas besoin de conversion locale)
     final spawnPos = Vector2(
       player.position.x - faceX * backOffset,
       player.position.y - faceY * backOffset,
@@ -79,7 +75,6 @@ class WaterRippleComponent extends PositionComponent {
       paint.color =
           Color.lerp(_rippleColor, _rippleColorEnd, 1 - alpha) ?? _rippleColor;
       paint.blendMode = BlendMode.screen;
-      // On dessine directement aux coordonnées mondiales car on est un composant du World
       canvas.drawCircle(ripple.position.toOffset(), ripple.radius, paint);
     }
   }

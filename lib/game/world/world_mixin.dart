@@ -471,7 +471,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
             ThornComponent(
               position: cellOrigin.clone(),
               size: cellSizeVec.clone(),
-              drawLandBackground: false,
             ),
           );
         }
@@ -683,7 +682,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
           ThornComponent(
             position: cellOrigin.clone(),
             size: cellSizeVec.clone(),
-            drawLandBackground: false,
           ),
         );
       }
