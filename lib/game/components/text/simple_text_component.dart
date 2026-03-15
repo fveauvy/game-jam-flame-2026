@@ -9,15 +9,17 @@ class SimpleTextComponent extends TextComponent {
     required String text,
     TextStyle? style,
     int priority = 0,
+    Anchor anchor = Anchor.topLeft,
   }) : super(
-          text: text,
-          position: position,
-          priority: priority,
-          textRenderer: TextPaint(
-            style: (style ?? const TextStyle()).copyWith(
-              color: color,
-              fontSize: style?.fontSize ?? 14,
-            ),
-          ),
-        );
+         text: text,
+         position: position,
+         priority: priority,
+         anchor: anchor,
+         textRenderer: TextPaint(
+           style: (style ?? const TextStyle()).copyWith(
+             color: color,
+             fontSize: style?.fontSize ?? 14,
+           ),
+         ),
+       );
 }

@@ -11,6 +11,7 @@ import 'package:game_jam/core/config/ui_config.dart';
 import 'package:game_jam/game/character/model/character_generation_state.dart';
 import 'package:game_jam/game/character/model/character_profile.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
+import 'package:game_jam/game/components/ui/help_component.dart';
 import 'package:game_jam/game/components/ui/seed_panel_component.dart';
 import 'package:game_jam/game/my_game.dart';
 
@@ -78,6 +79,7 @@ class MenuComponent extends PositionComponent
             onReroll: onReroll,
             position: Vector2(menuSize.x / 2, menuSize.y * 0.58),
           ),
+          HelpComponent(size: Vector2(plankWidth, plankHeight)),
         ],
       ),
     );
