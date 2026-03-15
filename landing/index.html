@@ -1,154 +1,243 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gronouy: Tadpole's Big Frogger</title>
-  <meta name="description" content="Protect your frog siblings in a hostile pond. A procedural survival roguelite built for Flame Game Jam 2026.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Changa:wght@500;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <header class="site-header">
-    <div class="container header-row">
-      <a class="brand" href="./">Gronouy</a>
-      <nav class="header-nav" aria-label="Primary navigation">
-        <a class="btn btn-secondary" href="https://itch.io/jam/flame-game-jam-2026" target="_blank" rel="noopener noreferrer">Jam page</a>
-        <a class="btn btn-primary" href="play/">Play now</a>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <section class="hero section-reveal">
-      <div class="container hero-grid">
-        <div class="hero-content">
-          <p class="jam-badge">Built for Flame Game Jam 2026</p>
-          <h1>🐸 Gronouy: Tadpole's Big Frogger</h1>
-          <p class="hero-copy">Lead your giant frog family through a hostile pond. Rescue your little siblings, dodge predators, and evolve across procedural runs.</p>
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="play/">Play the game</a>
-            <a class="btn btn-secondary" href="https://itch.io/jam/flame-game-jam-2026" target="_blank" rel="noopener noreferrer">View jam page</a>
-          </div>
-          <div class="hero-meta" aria-label="Game jam choices">
-            <span>Theme: Big Brother</span>
-            <span>Constraint: Procedural Generation</span>
-          </div>
-        </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gronouy: Tadpole's Big Frogger</title>
+    <meta
+      name="description"
+      content="Protect your frog siblings in a hostile pond. A procedural survival roguelite built for Flame Game Jam 2026."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Changa:wght@500;700&family=Nunito:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-row">
+        <a class="brand" href="./">Gronouy</a>
+        <nav class="header-nav" aria-label="Primary navigation">
+          <a
+            class="btn btn-secondary"
+            href="https://itch.io/jam/flame-game-jam-2026"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Jam page</a
+          >
+          <a class="btn btn-primary" href="play/">Play now</a>
+        </nav>
       </div>
-    </section>
+    </header>
 
-    <section class="section section-reveal" aria-labelledby="screenshots-title">
-      <div class="container">
-        <div class="section-head">
-          <h2 id="screenshots-title">Screenshots</h2>
-          <p>Placeholder slots for final captures</p>
-        </div>
-        <div class="screenshots-grid">
-          <figure class="panel screenshot-card">
-            <div class="screenshot-placeholder" role="img" aria-label="Placeholder screenshot one">Screenshot 1</div>
-            <figcaption>Pond exploration at dusk</figcaption>
-          </figure>
-          <figure class="panel screenshot-card">
-            <div class="screenshot-placeholder" role="img" aria-label="Placeholder screenshot two">Screenshot 2</div>
-            <figcaption>Sibling rescue under pressure</figcaption>
-          </figure>
-          <figure class="panel screenshot-card">
-            <div class="screenshot-placeholder" role="img" aria-label="Placeholder screenshot three">Screenshot 3</div>
-            <figcaption>Predator chase and escape</figcaption>
-          </figure>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-reveal" aria-labelledby="theme-title">
-      <div class="container">
-        <h2 id="theme-title">Theme and Constraint</h2>
-        <div class="info-grid">
-          <article class="panel info-card">
-            <h3>Theme: Big Brother</h3>
-            <p>You are the protector. Every run centers on keeping younger siblings alive in an unpredictable ecosystem.</p>
-          </article>
-          <article class="panel info-card">
-            <h3>Constraint: Procedural Generation</h3>
-            <p>Each frog is generated with unique traits, identity, and run conditions, making every attempt different.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-reveal" aria-labelledby="loop-title">
-      <div class="container">
-        <h2 id="loop-title">Core Gameplay Loop</h2>
-        <div class="loop-grid">
-          <article class="panel loop-step">
-            <p class="step-label">01</p>
-            <h3>Explore</h3>
-            <p>Cross reeds, lily pads, and shallow banks while reading danger from every direction.</p>
-          </article>
-          <article class="panel loop-step">
-            <p class="step-label">02</p>
-            <h3>Rescue</h3>
-            <p>Find and gather siblings scattered around the pond before predators close the distance.</p>
-          </article>
-          <article class="panel loop-step">
-            <p class="step-label">03</p>
-            <h3>Evolve</h3>
-            <p>Survive long enough to improve your frog and push deeper into the next run.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-reveal" aria-labelledby="leaderboard-title">
-      <div class="container">
-        <div class="section-head">
-          <h2 id="leaderboard-title">Live Leaderboard</h2>
-          <p>Best rescue times from hosted runs</p>
-        </div>
-        <div class="panel leaderboard-panel">
-          <div class="leaderboard-header">
-            <p id="leaderboard-status" class="leaderboard-status" aria-live="polite">Loading latest scores...</p>
-            <button id="leaderboard-refresh" class="btn btn-secondary" type="button">Refresh</button>
-          </div>
-          <div class="leaderboard-table-wrap">
-            <table class="leaderboard-table">
-              <thead>
-                <tr>
-                  <th scope="col">Rank</th>
-                  <th scope="col">Player</th>
-                  <th scope="col">Seed</th>
-                  <th scope="col">Time</th>
-                </tr>
-              </thead>
-              <tbody id="leaderboard-rows">
-                <tr>
-                  <td colspan="4">No scores yet.</td>
-                </tr>
-              </tbody>
-            </table>
+    <main>
+      <section class="hero section-reveal">
+        <div class="container hero-grid">
+          <div class="hero-content">
+            <p class="jam-badge">Flame Game Jam 2026</p>
+            <img
+              class="hero-title-art"
+              src="images/title.png"
+              alt="Gronouy: Tadpole's Big Frogger"
+              width="2407"
+              height="825"
+            />
+            <p class="hero-copy">
+              Guide your tadpole through a dangerous pond. Dodge predators,
+              rescue siblings, and bring everyone home before it's too late.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="play/">Play now</a>
+              <a
+                class="btn btn-secondary"
+                href="https://itch.io/jam/flame-game-jam-2026"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Jam page</a
+              >
+            </div>
+            <div class="hero-meta" aria-label="Game jam choices">
+              <span>Theme: Big Brother</span>
+              <span>Constraint: Procedural Generation</span>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="section final-cta section-reveal" aria-labelledby="cta-title">
-      <div class="container cta-shell">
-        <h2 id="cta-title">Ready to protect the pond?</h2>
-        <p>Jump in instantly in your browser and save your frog siblings.</p>
-        <a class="btn btn-primary btn-large" href="play/">Play now</a>
-      </div>
-    </section>
-  </main>
+      <section
+        class="section section-reveal"
+        aria-labelledby="screenshots-title"
+      >
+        <div class="container">
+          <div class="section-head">
+            <h2 id="screenshots-title">Screenshots</h2>
+            <p>Captured from live gameplay</p>
+          </div>
+          <div class="screenshots-grid">
+            <figure class="panel screenshot-card">
+              <img
+                class="screenshot-img"
+                src="images/screenshot-2.png"
+                alt="Navigating the pond at dusk"
+                loading="lazy"
+                width="1920"
+                height="1080"
+              />
+              <figcaption>Navigating the pond</figcaption>
+            </figure>
+            <figure class="panel screenshot-card">
+              <img
+                class="screenshot-img"
+                src="images/screenshot-3.png"
+                alt="Rescuing siblings scattered around the pond"
+                loading="lazy"
+                width="1920"
+                height="1080"
+              />
+              <figcaption>Rescuing scattered siblings</figcaption>
+            </figure>
+            <figure class="panel screenshot-card">
+              <img
+                class="screenshot-img"
+                src="images/screenshot-1.png"
+                alt="Dodging a predator attack"
+                loading="lazy"
+                width="1920"
+                height="1080"
+              />
+              <figcaption>Dodging predator attacks</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
 
-  <footer class="site-footer">
-    <div class="container footer-row">
-      <p>Built with Flame Engine for Flame Game Jam 2026.</p>
-      <a href="https://itch.io/jam/flame-game-jam-2026" target="_blank" rel="noopener noreferrer">Official jam page</a>
-    </div>
-  </footer>
-  <script src="leaderboard.js" defer></script>
-</body>
+      <section class="section section-reveal" aria-labelledby="theme-title">
+        <div class="container">
+          <h2 id="theme-title">Theme &amp; Constraint</h2>
+          <div class="info-grid">
+            <article class="panel info-card">
+              <h3>Big Brother</h3>
+              <p>
+                You are the eldest. Protect your younger siblings in a hostile,
+                ever-changing pond.
+              </p>
+            </article>
+            <article class="panel info-card">
+              <h3>Procedural Generation</h3>
+              <p>
+                Every frog has unique traits, name, and stats. No two runs play
+                the same way.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-reveal" aria-labelledby="loop-title">
+        <div class="container">
+          <h2 id="loop-title">How it works</h2>
+          <div class="loop-grid">
+            <article class="panel loop-step">
+              <p class="step-label">01</p>
+              <h3>Explore</h3>
+              <p>
+                Navigate lily pads, mud banks, and shallow water while watching
+                for threats.
+              </p>
+            </article>
+            <article class="panel loop-step">
+              <p class="step-label">02</p>
+              <h3>Rescue</h3>
+              <p>
+                Collect eggs scattered across the pond and bring them home
+                before predators strike.
+              </p>
+            </article>
+            <article class="panel loop-step">
+              <p class="step-label">03</p>
+              <h3>Survive</h3>
+              <p>
+                Eat flies to heal, avoid thorns and birds, and race the clock to
+                save everyone.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="section section-reveal"
+        aria-labelledby="leaderboard-title"
+      >
+        <div class="container">
+          <div class="section-head">
+            <h2 id="leaderboard-title">Leaderboard</h2>
+            <p>Fastest rescue times</p>
+          </div>
+          <div class="panel leaderboard-panel">
+            <div class="leaderboard-header">
+              <p
+                id="leaderboard-status"
+                class="leaderboard-status"
+                aria-live="polite"
+              >
+                Loading latest scores...
+              </p>
+              <button
+                id="leaderboard-refresh"
+                class="btn btn-secondary"
+                type="button"
+              >
+                Refresh
+              </button>
+            </div>
+            <div class="leaderboard-table-wrap">
+              <table class="leaderboard-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Player</th>
+                    <th scope="col">Seed</th>
+                    <th scope="col">Time</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-rows">
+                  <tr>
+                    <td colspan="4">No scores yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="section final-cta section-reveal"
+        aria-labelledby="cta-title"
+      >
+        <div class="container cta-shell">
+          <h2 id="cta-title">Ready to jump in?</h2>
+          <p>Play instantly in your browser. No download, no install.</p>
+          <a class="btn btn-primary btn-large" href="play/">Play now</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <p>Built with Flame Engine for Flame Game Jam 2026.</p>
+        <a
+          href="https://itch.io/jam/flame-game-jam-2026"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Official jam page</a
+        >
+      </div>
+    </footer>
+    <script src="leaderboard.js" defer></script>
+  </body>
 </html>

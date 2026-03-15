@@ -89,6 +89,7 @@ class MyGame extends FlameGame<WorldRoot>
 
   final CharacterGenerator? _characterGenerator;
   final CharacterPoolsRepository _characterPoolsRepository;
+  CharacterGenerator? _resolvedCharacterGenerator;
   late final Random _random;
   late Random _randomSeeded;
 
@@ -477,15 +478,25 @@ class MyGame extends FlameGame<WorldRoot>
     required String seedCode,
   }) async {
     final int seed = SeedCode.decode(seedCode);
-    final CharacterGenerator generator;
+    final CharacterGenerator generator = await _resolveCharacterGenerator();
+    return generator.generate(seed: seed);
+  }
+
+  Future<CharacterGenerator> _resolveCharacterGenerator() async {
     final CharacterGenerator? injectedGenerator = _characterGenerator;
     if (injectedGenerator != null) {
-      generator = injectedGenerator;
-    } else {
-      final CharacterPools pools = await _characterPoolsRepository.loadPools();
-      generator = ProceduralCharacterGenerator(pools: pools);
+      return injectedGenerator;
     }
-    return generator.generate(seed: seed);
+    final CharacterGenerator? cachedGenerator = _resolvedCharacterGenerator;
+    if (cachedGenerator != null) {
+      return cachedGenerator;
+    }
+    final CharacterPools pools = await _characterPoolsRepository.loadPools();
+    final CharacterGenerator generator = ProceduralCharacterGenerator(
+      pools: pools,
+    );
+    _resolvedCharacterGenerator = generator;
+    return generator;
   }
 
   Future<void> setCharacterSeedCode(String seedCode) async {
@@ -503,7 +514,6 @@ class MyGame extends FlameGame<WorldRoot>
     characterState.value = nextState.profile;
     if (isLoaded) {
       _player.applyProfile(nextState.profile);
-      await _level.onUpdateSeed();
     }
   }
 
@@ -701,6 +711,43 @@ class MyGame extends FlameGame<WorldRoot>
     );
   }
 
+  List<EggComponent> _buildInitialEggs() {
+    final List<EggComponent> eggs = <EggComponent>[];
+    final double halfEggSize = GameplayTuning.worldPickupSize / 2;
+    final double maxX = GameConfig.worldSize.x - GameplayTuning.worldPickupSize;
+    final double maxY = GameConfig.worldSize.y - GameplayTuning.worldPickupSize;
+    final int maxAttempts =
+        GameplayTuning.eggSpawnMaxRetries * GameplayTuning.initialEggCount;
+
+    int attempts = 0;
+    while (eggs.length < GameplayTuning.initialEggCount &&
+        attempts < maxAttempts) {
+      attempts++;
+      final Vector2 position = Vector2(
+        halfEggSize + (random.nextDouble() * maxX),
+        halfEggSize + (random.nextDouble() * maxY),
+      );
+      final bool isOnWater = _level.isPositionInWater(position);
+      if (isOnWater) {
+        continue;
+      }
+      final bool isOnThorn = _level.isPositionOnThorn(position);
+      final bool isOnLeaf = _level.isPositionOnLeaf(position);
+      if (!isValidEggSpawnPosition(isOnThorn: isOnThorn, isOnLeaf: isOnLeaf)) {
+        continue;
+      }
+      eggs.add(
+        EggComponent(
+          position: position,
+          size: Vector2.all(GameplayTuning.worldPickupSize),
+          isInSafeHouse: false,
+        ),
+      );
+    }
+
+    return eggs;
+  }
+
   FrogHouseComponent _buildInitialWoodBoards() {
     return FrogHouseComponent(
       position:
@@ -718,9 +765,10 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   Future<void> _resetWorldPopulation() async {
-    final List<EggComponent> eggs = world.children
-        .whereType<EggComponent>()
-        .toList();
+    final List<EggComponent> eggs = <EggComponent>[
+      ...world.children.whereType<EggComponent>(),
+      ..._level.children.whereType<EggComponent>(),
+    ];
     final List<FlyComponent> flies = world.children
         .whereType<FlyComponent>()
         .toList();
@@ -739,8 +787,7 @@ class MyGame extends FlameGame<WorldRoot>
       egg.removeFromParent();
     }
 
-    await _level.onUpdateSeed();
-    await world.addAll([..._buildInitialFlies()]);
+    await world.addAll([..._buildInitialFlies(), ..._buildInitialEggs()]);
   }
 
   void _resetRunState() {
@@ -1004,6 +1051,7 @@ class MyGame extends FlameGame<WorldRoot>
 
     phase.value = GamePhase.menu;
     _resetMenuInputState();
+    _startBgmIfNeeded();
 
     if (isLoaded && _menu.parent == null) {
       await world.add(_menu);
