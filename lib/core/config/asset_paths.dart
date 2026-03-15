@@ -183,7 +183,7 @@ abstract final class AssetPaths {
   }
 
   static String birdFloutixMaxAnimatedSpriteCacheKey(int number) {
-    return 'birds/floutix$number.webp';
+    return 'birds/floutixmax$number.webp';
   }
 
   static String birdFloutixAnimatedSpriteCacheKey(int number) {
