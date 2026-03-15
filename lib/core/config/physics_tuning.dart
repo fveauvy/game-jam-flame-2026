@@ -13,9 +13,9 @@ abstract final class PhysicsTuning {
   static const double minJumpForwardScale = 0.5;
 
   // Random croak while moving.
-  static const double movingCroakChancePerSecond = 0.2;
-  static const double movingCroakCooldownMinSeconds = 2.8;
-  static const double movingCroakCooldownMaxSeconds = 6.0;
+  static const double movingCroakChancePerSecond = 0.12;
+  static const double movingCroakCooldownMinSeconds = 4.0;
+  static const double movingCroakCooldownMaxSeconds = 8.0;
   static const double movingCroakVolume = 0.5;
 
   // Trait multiplier clamps.
