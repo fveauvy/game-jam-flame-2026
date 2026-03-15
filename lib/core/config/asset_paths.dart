@@ -54,20 +54,14 @@ abstract final class AssetPaths {
   static const String tongue3CacheKey = 'gronouy/Langue3.png';
 
   // Mud components (tiles).
-  static const mudCornerTopLeft = 'environment/mud/mud-corner-top-left.png';
-  static const mudCornerTopRight = 'environment/mud/mud-corner-top-right.png';
-  static const mudCornerBottomLeft =
-      'environment/mud/mud-corner-bottom-left.png';
-  static const mudCornerBottomRight =
-      'environment/mud/mud-corner-bottom-right.png';
   static const mudInvertedCornerTopLeft =
-      'environment/mud/mud-inverted-top-left.png';
+      'environment/mud/mud-inverted-corner-top-left.png';
   static const mudInvertedCornerTopRight =
-      'environment/mud/mud-inverted-top-right.png';
+      'environment/mud/mud-inverted-corner-top-right.png';
   static const mudInvertedCornerBottomLeft =
-      'environment/mud/mud-inverted-bottom-left.png';
+      'environment/mud/mud-inverted-corner-bottom-left.png';
   static const mudInvertedCornerBottomRight =
-      'environment/mud/mud-inverted-bottom-right.png';
+      'environment/mud/mud-inverted-corner-bottom-right.png';
   static const mudLeft = 'environment/mud/mud-flat-left.png';
   static const mudRight = 'environment/mud/mud-flat-right.png';
   static const mudUp = 'environment/mud/mud-flat-top.png';
@@ -77,10 +71,6 @@ abstract final class AssetPaths {
   static const mudPlain3 = 'environment/mud/mud-plain3.png';
 
   static List<String> get mudTilesCacheKeys => <String>[
-    mudCornerTopLeft,
-    mudCornerTopRight,
-    mudCornerBottomLeft,
-    mudCornerBottomRight,
     mudInvertedCornerTopLeft,
     mudInvertedCornerTopRight,
     mudInvertedCornerBottomLeft,
