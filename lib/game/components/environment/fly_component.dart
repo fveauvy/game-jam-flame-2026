@@ -21,9 +21,6 @@ class FlyComponent extends SpriteAnimationComponent
   double _angle = 0;
 
   @override
-  bool get debugMode => true;
-
-  @override
   Future<void> onLoad() async {
     await super.onLoad();
     _orbitCenter = position.clone();
