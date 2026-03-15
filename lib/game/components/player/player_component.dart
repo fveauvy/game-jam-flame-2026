@@ -609,7 +609,10 @@ class PlayerComponent extends SpriteAnimationComponent
     super.update(dt);
     _outlinePulseTime += dt;
     final bool wasInWater = isInWater;
-    isInWater = game.level.isPositionInWater(absoluteCenter);
+    isInWater =
+        game.level.isPositionInWater(absoluteCenter) &&
+        (!game.level.isPositionInWaterLily(absoluteCenter) ||
+            levelPosition == PlayerVerticalPosition.underwater);
     if (isInWater && !wasInWater) {
       removeAll(children.whereType<SimpleTextComponent>());
     }
@@ -1034,6 +1037,10 @@ class PlayerComponent extends SpriteAnimationComponent
     Set<Vector2> intersectionPoints,
     PositionComponent other,
   ) {
+    if (game.phase.value != GamePhase.playing) {
+      super.onCollisionStart(intersectionPoints, other);
+      return;
+    }
     final bool centerInWater = game.level.isPositionInWater(absoluteCenter);
     if (other is WaterComponent && centerInWater) {
       _underwaterSurfaceGraceRemaining =
