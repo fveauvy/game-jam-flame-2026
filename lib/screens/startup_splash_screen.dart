@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
 
 class StartupSplashScreen extends StatelessWidget {
@@ -32,21 +36,32 @@ class StartupSplashScreen extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           Center(
-            child: Image.asset(
-              AssetPaths.splashScreen,
-              fit: BoxFit.contain,
-              width: double.infinity,
-              height: double.infinity,
-              errorBuilder: (context, error, stackTrace) {
-                return const Text(
-                  'Gronouy',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 48,
-                    fontWeight: FontWeight.w700,
-                  ),
-                );
-              },
+            child: FractionallySizedBox(
+              widthFactor: 0.9,
+              heightFactor: 0.9,
+              child: _OneShotGif(
+                assetPath: AssetPaths.startupSplashAnimation,
+                frameDurationMultiplier: 1.8,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+                fallback: Image.asset(
+                  AssetPaths.splashScreen,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Text(
+                      'Gronouy',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 48,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
           ),
           if (!isLoadingComplete)
@@ -142,4 +157,162 @@ class StartupSplashScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _OneShotGif extends StatefulWidget {
+  const _OneShotGif({
+    required this.assetPath,
+    required this.fallback,
+    this.frameDurationMultiplier = 1,
+    this.fit,
+    this.width,
+    this.height,
+  }) : assert(frameDurationMultiplier > 0);
+
+  final String assetPath;
+  final Widget fallback;
+  final double frameDurationMultiplier;
+  final BoxFit? fit;
+  final double? width;
+  final double? height;
+
+  @override
+  State<_OneShotGif> createState() => _OneShotGifState();
+}
+
+class _OneShotGifState extends State<_OneShotGif> {
+  final List<_GifFrame> _frames = <_GifFrame>[];
+  Timer? _frameTimer;
+  int _currentFrameIndex = 0;
+  bool _isLoading = true;
+  bool _loadFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFrames();
+  }
+
+  @override
+  void didUpdateWidget(covariant _OneShotGif oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.assetPath != widget.assetPath) {
+      _loadFrames();
+    }
+  }
+
+  Future<void> _loadFrames() async {
+    _frameTimer?.cancel();
+    _disposeFrames();
+    _currentFrameIndex = 0;
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _loadFailed = false;
+      });
+    }
+
+    try {
+      final data = await rootBundle.load(widget.assetPath);
+      final bytes = data.buffer.asUint8List();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final List<_GifFrame> decodedFrames = <_GifFrame>[];
+
+      for (int index = 0; index < codec.frameCount; index++) {
+        final frame = await codec.getNextFrame();
+        decodedFrames.add(
+          _GifFrame(image: frame.image, duration: frame.duration),
+        );
+      }
+      codec.dispose();
+
+      if (!mounted) {
+        for (final frame in decodedFrames) {
+          frame.image.dispose();
+        }
+        return;
+      }
+
+      _frames.addAll(decodedFrames);
+      setState(() {
+        _isLoading = false;
+        _loadFailed = _frames.isEmpty;
+      });
+      _scheduleNextFrame();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _loadFailed = true;
+      });
+    }
+  }
+
+  void _scheduleNextFrame() {
+    _frameTimer?.cancel();
+    if (_frames.isEmpty || _currentFrameIndex >= _frames.length - 1) {
+      return;
+    }
+
+    final frameDuration = _frames[_currentFrameIndex].duration;
+    final safeDuration = frameDuration > Duration.zero
+        ? frameDuration
+        : const Duration(milliseconds: 100);
+    final effectiveDuration = Duration(
+      microseconds:
+          (safeDuration.inMicroseconds * widget.frameDurationMultiplier)
+              .round(),
+    );
+
+    _frameTimer = Timer(effectiveDuration, () {
+      if (!mounted || _currentFrameIndex >= _frames.length - 1) {
+        return;
+      }
+      setState(() {
+        _currentFrameIndex += 1;
+      });
+      _scheduleNextFrame();
+    });
+  }
+
+  void _disposeFrames() {
+    for (final frame in _frames) {
+      frame.image.dispose();
+    }
+    _frames.clear();
+  }
+
+  @override
+  void dispose() {
+    _frameTimer?.cancel();
+    _disposeFrames();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const SizedBox.expand();
+    }
+    if (_loadFailed || _frames.isEmpty) {
+      return widget.fallback;
+    }
+
+    return RawImage(
+      image: _frames[_currentFrameIndex].image,
+      fit: widget.fit,
+      width: widget.width,
+      height: widget.height,
+      filterQuality: FilterQuality.high,
+    );
+  }
+}
+
+class _GifFrame {
+  const _GifFrame({required this.image, required this.duration});
+
+  final ui.Image image;
+  final Duration duration;
 }

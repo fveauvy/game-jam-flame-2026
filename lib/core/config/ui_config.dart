@@ -2,7 +2,7 @@ import 'dart:ui';
 
 abstract final class UiTiming {
   // Startup and transition durations.
-  static const Duration splashScreenDuration = Duration(milliseconds: 2500);
+  static const Duration splashScreenDuration = Duration(milliseconds: 6000);
   static const Duration frogAnimationDuration = Duration(milliseconds: 140);
 }
 

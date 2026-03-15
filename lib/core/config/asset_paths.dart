@@ -3,6 +3,7 @@ import 'package:game_jam/core/config/gameplay_tuning.dart';
 abstract final class AssetPaths {
   // World and menu sprites.
   static const String splashScreen = 'assets/images/splash_screen.png';
+  static const String startupSplashAnimation = 'assets/images/Chargement.gif';
   static const String plank = 'assets/images/plank.png';
   static const String plankLight = 'assets/images/plank_light.png';
   static const String plankDark = 'assets/images/plank_dark.png';
