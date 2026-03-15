@@ -183,7 +183,6 @@ class MyGame extends FlameGame<WorldRoot>
       ..._waterRipples,
       ..._playerList,
       ..._buildInitialFlies(),
-      ..._buildInitialEggs(),
       _buildInitialWoodBoards(),
       _birdEnemy,
     ]);
@@ -708,44 +707,11 @@ class MyGame extends FlameGame<WorldRoot>
     );
   }
 
-  List<EggComponent> _buildInitialEggs() {
-    return List<EggComponent>.generate(
-      GameplayTuning.initialEggCount,
-      (int index) => EggComponent(
-        isInSafeHouse: false,
-        position: _randomEggPosition(),
-        size: Vector2.all(GameplayTuning.worldPickupSize),
-      ),
-    );
-  }
-
   static bool isValidEggSpawnPosition({
     required bool isOnThorn,
     required bool isOnLeaf,
   }) {
     return !isOnThorn && !isOnLeaf;
-  }
-
-  Vector2 _randomEggPosition() {
-    for (int i = 0; i < GameplayTuning.eggSpawnMaxRetries; i++) {
-      final Vector2 candidate = Vector2(
-        (random.nextDouble() * GameConfig.worldSize.x).clamp(
-          PhysicsTuning.playerBaseSize,
-          GameConfig.worldSize.x - PhysicsTuning.playerBaseSize,
-        ),
-        (random.nextDouble() * GameConfig.worldSize.y).clamp(
-          PhysicsTuning.playerBaseSize,
-          GameConfig.worldSize.y - PhysicsTuning.playerBaseSize,
-        ),
-      );
-      if (isValidEggSpawnPosition(
-        isOnThorn: _level.isPositionOnThorn(candidate),
-        isOnLeaf: _level.isPositionOnLeaf(candidate),
-      )) {
-        return candidate;
-      }
-    }
-    return GameConfig.playerSpawn.clone();
   }
 
   Future<void> _resetWorldPopulation() async {
@@ -770,7 +736,8 @@ class MyGame extends FlameGame<WorldRoot>
       egg.removeFromParent();
     }
 
-    await world.addAll([..._buildInitialFlies(), ..._buildInitialEggs()]);
+    await _level.onUpdateSeed();
+    await world.addAll([..._buildInitialFlies()]);
   }
 
   void _resetRunState() {
