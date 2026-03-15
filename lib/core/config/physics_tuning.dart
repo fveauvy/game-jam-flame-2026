@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 abstract final class PhysicsTuning {
   // Base player body and movement.
   static const double playerBaseSize = 56;
@@ -69,4 +71,28 @@ abstract final class PhysicsTuning {
   /// Frog House
   static const double frogHouseSize = 200;
   static const double frogHousePositionOffset = 100;
+
+  // Splash particle effect.
+  /// Droplets that arc upward and fall with gravity.
+  static const int splashDropletCount = 10;
+  static const double splashDropletSpeedMin = 80;
+  static const double splashDropletSpeedMax = 260;
+  static const double splashDropletRadiusMin = 3;
+  static const double splashDropletRadiusMax = 7;
+  static const double splashDropletLifespanSeconds = 0.55;
+  static const double splashDropletAngleSpreadDegrees = 140;
+  static const splashDropletColorStart = Color.fromARGB(220, 180, 230, 255);
+  static const splashDropletColorEnd = Color.fromARGB(0, 100, 180, 255);
+
+  /// Gravity applied to droplets (pixels per second squared, positive = down).
+  static const double splashGravity = 480;
+
+  /// Ring of particles spreading outward at the water surface.
+  static const int splashRingCount = 8;
+  static const double splashRingSpeedMin = 40;
+  static const double splashRingSpeedMax = 100;
+  static const double splashRingParticleRadius = 4;
+  static const double splashRingLifespanSeconds = 0.35;
+  static const splashRingColorStart = Color.fromARGB(180, 200, 240, 255);
+  static const splashRingColorEnd = Color.fromARGB(0, 150, 210, 255);
 }

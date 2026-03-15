@@ -5,6 +5,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
+import 'package:game_jam/game/components/environment/splash_particle_component.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/my_game.dart';
 
@@ -155,6 +156,13 @@ class FishEnemyComponent extends SpriteAnimationComponent
     isEating = true;
     animation = _eatAnimation;
     paint.blendMode = BlendMode.srcOver;
+    game.world.add(
+      SplashParticleComponent(
+        position: position.clone(),
+        priority: priority + 1,
+        scale: 2,
+      ),
+    );
     await Future.delayed(
       Duration(milliseconds: (animationsTimeInS * 1000).toInt()),
       () {
