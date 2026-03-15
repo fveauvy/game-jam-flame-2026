@@ -184,6 +184,39 @@ float rippleStrengthAtWorld(vec2 world) {
   return ripple;
 }
 
+float edgeMudShadowAtWorld(vec2 world) {
+  int count = int(uPuddleCount);
+  float shadow = 0.0;
+
+  for (int i = 0; i < 32; i++) {
+    if (i >= count) {
+      break;
+    }
+
+    vec4 puddle = uPuddles[i];
+    float minExtent = min(puddle.z - puddle.x, puddle.w - puddle.y);
+
+    float insetDist = min(
+      min(world.x - puddle.x, puddle.z - world.x),
+      min(world.y - puddle.y, puddle.w - world.y)
+    );
+    if (insetDist < 0.0) {
+      continue;
+    }
+
+    // Very thin border shadow at puddle extremities.
+    float edgeWidth = max(1.2, minExtent * 0.06);
+    float edgeMask = 1.0 - smoothstep(0.0, edgeWidth, insetDist);
+    float breakup = 0.1 + 0.9 * valueNoise(
+      world * 0.05 + vec2(float(i) * 2.17, uTime * 0.015)
+    );
+
+    shadow = max(shadow, edgeMask * breakup);
+  }
+
+  return shadow;
+}
+
 void main() {
 	vec2 uv = FlutterFragCoord().xy;
 	vec2 world = uv + uWorldOrigin;
@@ -224,6 +257,9 @@ void main() {
   float val3 = length(0.5-fract(k.xyw*=mat3(vec3(-2.0,-1.0,0.0), vec3(3.0,-1.0,1.0), vec3(1.0,-1.0,-1.0))*0.5));
 
   vec4 color = vec4(pow(min(min(val1, val2), val3), 8.0) * 1.0) + texture_color;
+
+  float mudShadow = edgeMudShadowAtWorld(world);
+  color.rgb = mix(color.rgb, color.rgb * vec3(0.92, 0.4, 0.34), mudShadow * 0.35);
 
   float ripple = rippleStrengthAtWorld(world);
 
