@@ -55,7 +55,7 @@ abstract final class GameplayTuning {
   static const double thornPatchNoiseFrequency = 0.12;
   static const double thornPatchThresholdMin = 0.56;
   static const double thornPatchThresholdMax = 0.69;
-  static const double thornPatchSpawnChance = 0.35;
+  static const double thornPatchSpawnChance = 0.5;
 
   // Thorn animation.
   static const double thornAnimationFrameSeconds = 0.2;

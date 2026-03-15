@@ -183,6 +183,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
       gridW: gridW,
       gridH: gridH,
       cellSizeVec: cellSizeVec,
+      worldCenter: worldCenter,
       isWaterGrid: isWaterGrid,
       thornNoiseGrid: thornNoiseGrid,
       spawnedFishPositions: spawnedFishPositions,
@@ -610,6 +611,7 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     required int gridW,
     required int gridH,
     required Vector2 cellSizeVec,
+    required Vector2 worldCenter,
     required List<List<bool>> isWaterGrid,
     required List<List<double>> thornNoiseGrid,
     required List<Vector2> spawnedFishPositions,
@@ -618,6 +620,16 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
     for (int i = 1; i < gridW - 1; i++) {
       for (int j = 1; j < gridH - 1; j++) {
         if (!isWaterGrid[i][j]) continue;
+
+        // Never spawn thorns inside the center water zone (zone 1).
+        final Vector2 cellCenter =
+            Vector2(i * _cellSize, j * _cellSize) + cellSizeVec / 2;
+        final bool inCenterZone =
+            cellCenter.x >= worldCenter.x - _centerWaterZoneHalfSize &&
+            cellCenter.x <= worldCenter.x + _centerWaterZoneHalfSize &&
+            cellCenter.y >= worldCenter.y - _centerWaterZoneHalfSize &&
+            cellCenter.y <= worldCenter.y + _centerWaterZoneHalfSize;
+        if (inCenterZone) continue;
 
         final double t = thornNoiseGrid[i][j];
         if (t < GameplayTuning.thornPatchThresholdMin ||
@@ -629,7 +641,6 @@ mixin WorldMixin on HasGameReference<MyGame>, Component {
         }
 
         final Vector2 cellOrigin = Vector2(i * _cellSize, j * _cellSize);
-        final Vector2 cellCenter = cellOrigin + cellSizeVec / 2;
 
         final bool overlapsFish = spawnedFishPositions.any(
           (Vector2 p) =>
