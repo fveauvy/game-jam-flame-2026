@@ -135,8 +135,7 @@ abstract final class WinOverlayUi {
   static const String publishedLabel = 'Published';
   static const String publishAction = 'Publish Score';
   static const String restartingLabel = 'Restarting...';
-  static const String retrySeedAction = 'Retry seed';
-  static const String restartNewSeedAction = 'Restart with new seed';
+  static const String replayAction = 'Replay';
   static const String startWithSeedAction = 'Start with seed...';
 }
 
