@@ -54,7 +54,9 @@ class EggComponent extends PositionComponent with HasGameReference<MyGame> {
           ],
         ),
       );
-      add(CircleHitbox(radius: size.x / 2));
+      add(
+        CircleHitbox(radius: size.x / 2, collisionType: CollisionType.passive),
+      );
     }
   }
 
