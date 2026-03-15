@@ -3,9 +3,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:game_jam/core/entities/biome_type.dart';
-import 'package:game_jam/game/components/environment/leaf_component.dart';
 import 'package:game_jam/game/components/environment/thorn_component.dart';
-import 'package:game_jam/game/components/environment/water_component.dart';
 import 'package:game_jam/game/my_game.dart';
 import 'package:game_jam/game/world/world_mixin.dart';
 
@@ -20,9 +18,9 @@ class GeneratedLevel extends Component
 
   @override
   Future<void> onLoad() async {
-    await generateLevel();
-    _rebuildWaterBounds();
-    _rebuildLeafBounds();
+    final (List<Rect> waterBounds, List<Rect> leafBounds) = await generateLevel();
+    _waterBounds = waterBounds;
+    _leafBounds = leafBounds;
     await super.onLoad();
   }
 
@@ -30,37 +28,9 @@ class GeneratedLevel extends Component
     removeAll(children);
     _waterBounds = <Rect>[];
     _leafBounds = <Rect>[];
-    await generateLevel();
-    _rebuildWaterBounds();
-    _rebuildLeafBounds();
-  }
-
-  void _rebuildWaterBounds() {
-    _waterBounds = children
-        .whereType<WaterComponent>()
-        .map(
-          (WaterComponent water) => Rect.fromLTWH(
-            water.position.x,
-            water.position.y,
-            water.size.x,
-            water.size.y,
-          ),
-        )
-        .toList(growable: false);
-  }
-
-  void _rebuildLeafBounds() {
-    _leafBounds = children
-        .whereType<LeafComponent>()
-        .map(
-          (LeafComponent leaf) => Rect.fromLTWH(
-            leaf.position.x,
-            leaf.position.y,
-            leaf.size.x,
-            leaf.size.y,
-          ),
-        )
-        .toList(growable: false);
+    final (List<Rect> waterBounds, List<Rect> leafBounds) = await generateLevel();
+    _waterBounds = waterBounds;
+    _leafBounds = leafBounds;
   }
 
   bool isPositionOnThorn(Vector2 position) {
