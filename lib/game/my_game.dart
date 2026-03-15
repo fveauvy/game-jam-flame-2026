@@ -29,6 +29,7 @@ import 'package:game_jam/game/components/allies/egg_component.dart';
 import 'package:game_jam/game/components/enemies/bird/bird_component.dart';
 import 'package:game_jam/game/components/environment/fly_component.dart';
 import 'package:game_jam/game/components/environment/frog_house_component.dart';
+import 'package:game_jam/game/components/environment/water_shader_layer.dart';
 import 'package:game_jam/game/components/player/player_component.dart';
 import 'package:game_jam/game/components/player/water_ripple_component.dart';
 import 'package:game_jam/game/components/ui/hud_component.dart';
@@ -178,6 +179,7 @@ class MyGame extends FlameGame<WorldRoot>
 
     await world.add(_level);
     await world.addAll([
+      WaterShaderLayer(level: _level),
       ..._waterRipples,
       ..._playerList,
       SpawnSystem(),

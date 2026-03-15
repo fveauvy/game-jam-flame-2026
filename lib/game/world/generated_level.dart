@@ -1,3 +1,6 @@
+import 'dart:collection';
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 import 'package:game_jam/core/entities/biome_type.dart';
 import 'package:game_jam/game/components/environment/leaf_component.dart';
@@ -9,13 +12,15 @@ import 'package:game_jam/game/world/world_mixin.dart';
 class GeneratedLevel extends Component
     with HasGameReference<MyGame>, WorldMixin {
   late BiomeType biome;
-  List<_AxisAlignedBounds> _waterBounds = <_AxisAlignedBounds>[];
-  List<_AxisAlignedBounds> _leafBounds = <_AxisAlignedBounds>[];
+  List<Rect> _waterBounds = <Rect>[];
+  List<Rect> _leafBounds = <Rect>[];
+
+  UnmodifiableListView<Rect> get waterBounds =>
+      UnmodifiableListView<Rect>(_waterBounds);
 
   @override
   Future<void> onLoad() async {
-    biome = computeBiome();
-    await generateLevel(biome);
+    await generateLevel();
     _rebuildWaterBounds();
     _rebuildLeafBounds();
     await super.onLoad();
@@ -23,10 +28,9 @@ class GeneratedLevel extends Component
 
   Future<void> onUpdateSeed() async {
     removeAll(children);
-    _waterBounds = <_AxisAlignedBounds>[];
-    _leafBounds = <_AxisAlignedBounds>[];
-    biome = computeBiome();
-    await generateLevel(biome);
+    _waterBounds = <Rect>[];
+    _leafBounds = <Rect>[];
+    await generateLevel();
     _rebuildWaterBounds();
     _rebuildLeafBounds();
   }
@@ -35,11 +39,11 @@ class GeneratedLevel extends Component
     _waterBounds = children
         .whereType<WaterComponent>()
         .map(
-          (WaterComponent water) => _AxisAlignedBounds(
-            left: water.position.x,
-            top: water.position.y,
-            right: water.position.x + water.size.x,
-            bottom: water.position.y + water.size.y,
+          (WaterComponent water) => Rect.fromLTWH(
+            water.position.x,
+            water.position.y,
+            water.size.x,
+            water.size.y,
           ),
         )
         .toList(growable: false);
@@ -49,11 +53,11 @@ class GeneratedLevel extends Component
     _leafBounds = children
         .whereType<LeafComponent>()
         .map(
-          (LeafComponent leaf) => _AxisAlignedBounds(
-            left: leaf.position.x,
-            top: leaf.position.y,
-            right: leaf.position.x + leaf.size.x,
-            bottom: leaf.position.y + leaf.size.y,
+          (LeafComponent leaf) => Rect.fromLTWH(
+            leaf.position.x,
+            leaf.position.y,
+            leaf.size.x,
+            leaf.size.y,
           ),
         )
         .toList(growable: false);
@@ -75,8 +79,10 @@ class GeneratedLevel extends Component
   }
 
   bool isPositionInWater(Vector2 position) {
-    for (final _AxisAlignedBounds bounds in _waterBounds) {
-      if (bounds.contains(position)) {
+    final Offset point = Offset(position.x, position.y);
+
+    for (final Rect bounds in _waterBounds) {
+      if (bounds.contains(point)) {
         return true;
       }
     }
@@ -84,32 +90,13 @@ class GeneratedLevel extends Component
   }
 
   bool isPositionOnLeaf(Vector2 position) {
-    for (final _AxisAlignedBounds bounds in _leafBounds) {
-      if (bounds.contains(position)) {
+    final Offset point = Offset(position.x, position.y);
+
+    for (final Rect bounds in _leafBounds) {
+      if (bounds.contains(point)) {
         return true;
       }
     }
     return false;
-  }
-}
-
-class _AxisAlignedBounds {
-  const _AxisAlignedBounds({
-    required this.left,
-    required this.top,
-    required this.right,
-    required this.bottom,
-  });
-
-  final double left;
-  final double top;
-  final double right;
-  final double bottom;
-
-  bool contains(Vector2 point) {
-    return point.x >= left &&
-        point.x <= right &&
-        point.y >= top &&
-        point.y <= bottom;
   }
 }

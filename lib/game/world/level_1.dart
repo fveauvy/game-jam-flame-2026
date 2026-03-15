@@ -15,6 +15,7 @@ class Level1 extends Component {
       size: Vector2(GameConfig.worldSize.x, GameConfig.worldSize.y),
     );
     final WaterComponent water = WaterComponent(
+      assetPosition: WaterAssetPosition.bottom,
       position: Vector2(100, GameConfig.groundY + 48),
       size: Vector2(100, 200),
     );

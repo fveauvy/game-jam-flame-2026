@@ -8,8 +8,6 @@ abstract final class AssetPaths {
   static const String plankDark = 'assets/images/plank_dark.png';
   static const String plankPanel1CacheKey = 'planks_panel_1.png';
   static const String plankPanel2CacheKey = 'planks_panel_2.png';
-  static const String waterLily = 'assets/images/water_lily.png';
-  static const String waterLilyAlt = 'assets/images/water_lily_1.png';
   static const String fly = 'assets/images/fly.png';
   static const String eggs = 'assets/images/eggs.png';
   static const String thorns1 = 'assets/images/environment/Ronces1.png';
@@ -42,8 +40,7 @@ abstract final class AssetPaths {
   static const String plankCacheKey = 'plank.png';
   static const String plankLightCacheKey = 'plank_light.png';
   static const String plankDarkCacheKey = 'plank_dark.png';
-  static const String waterLilyCacheKey = 'water_lily.png';
-  static const String waterLilyAltCacheKey = 'water_lily_1.png';
+  static const String waterLilyCacheKey = 'environment/water-lily.webp';
   static const String flyCacheKey = 'fly.png';
   static const String eggsCacheKey = 'eggs.png';
   static const String thorns1CacheKey = 'environment/Ronces1.png';
@@ -54,6 +51,54 @@ abstract final class AssetPaths {
   static const String tongue2CacheKey = 'gronouy/Langue2.png';
   static const String tongue3CacheKey = 'gronouy/Langue3.png';
 
+  // Water components.
+  static const waterCornerTopLeft =
+      'environment/water/water-corner-top-left.png';
+  static const waterCornerTopRight =
+      'environment/water/water-corner-top-right.png';
+  static const waterCornerBottomLeft =
+      'environment/water/water-corner-bottom-left.png';
+  static const waterCornerBottomRight =
+      'environment/water/water-corner-bottom-right.png';
+  static const waterInvertedCornerTopLeft =
+      'environment/water/water-inverted-top-left.png';
+  static const waterInvertedCornerTopRight =
+      'environment/water/water-inverted-top-right.png';
+  static const waterInvertedCornerBottomLeft =
+      'environment/water/water-inverted-bottom-left.png';
+  static const waterInvertedCornerBottomRight =
+      'environment/water/water-inverted-bottom-right.png';
+  static const waterLeft = 'environment/water/water-flat-left.png';
+  static const waterRight = 'environment/water/water-flat-right.png';
+  static const waterUp = 'environment/water/water-flat-top.png';
+  static const waterDown = 'environment/water/water-flat-bottom.png';
+
+  static List<String> get waterAnimationCacheKeys => <String>[
+    waterCornerTopLeft,
+    waterCornerTopRight,
+    waterCornerBottomLeft,
+    waterCornerBottomRight,
+    waterInvertedCornerTopLeft,
+    waterInvertedCornerTopRight,
+    waterInvertedCornerBottomLeft,
+    waterInvertedCornerBottomRight,
+    waterLeft,
+    waterRight,
+    waterUp,
+    waterDown,
+  ];
+
+  // ground components.
+  static const ground = 'environment/ground/ground.webp';
+  static const ground1 = 'environment/ground/ground2.webp';
+  static const ground2 = 'environment/ground/ground3.webp';
+
+  static List<String> get groundAnimationCacheKeys => <String>[
+    ground,
+    ground1,
+    ground2,
+  ];
+
   static const int croqueAnimationFrames = 20;
   static const String croqueAnimationPrefix = "croque/croque_";
 
@@ -62,9 +107,6 @@ abstract final class AssetPaths {
     thorns2CacheKey,
     thorns3CacheKey,
   ];
-
-  //texture Assets
-  static const String waterTexture = 'water_texture.png';
 
   static String frogSpriteAssetPath(int number) {
     return 'assets/images/gronouy/frog-$number.png';
@@ -128,7 +170,6 @@ abstract final class AssetPaths {
     plankPanel1CacheKey,
     plankPanel2CacheKey,
     waterLilyCacheKey,
-    waterLilyAltCacheKey,
     flyCacheKey,
     eggsCacheKey,
     titleCacheKey,
@@ -138,6 +179,8 @@ abstract final class AssetPaths {
     tongue2CacheKey,
     tongue3CacheKey,
     uiRefreshLogoCacheKey,
+    ...waterAnimationCacheKeys,
+    ...groundAnimationCacheKeys,
     ...animatedFrogSpriteId.expand((id) => frogAnimatedSpriteCacheKey(id)),
     ...List<String>.generate(GameplayTuning.frogSpriteCount, (int index) {
       if (animatedFrogSpriteId.contains(index + 1)) {
@@ -151,7 +194,6 @@ abstract final class AssetPaths {
       (id) => birdFloutixMaxAnimatedSpriteCacheKey(id),
     ),
     ...birdFloutixSpriteId.map((id) => birdFloutixAnimatedSpriteCacheKey(id)),
-    waterTexture,
     ...List<String>.generate(croqueAnimationFrames, (index) {
       final frameNumber = index;
       return 'croque/croque_$frameNumber.png';

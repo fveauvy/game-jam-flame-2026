@@ -104,6 +104,9 @@ class GamepadInput extends Controller {
           if (event.value == GameplayTuning.gamepadButtonPressedValue) {
             moveDownLayer();
           }
+          if (event.value == GameplayTuning.gamepadButtonReleasedValue) {
+            moveUpLayer();
+          }
           break;
         case GamepadButton.dpadLeft:
           moveAxis.x = -event.value;

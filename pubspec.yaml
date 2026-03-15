@@ -73,6 +73,8 @@ flutter:
     - assets/images/gronouy/frog-14/
     - assets/images/ui/
     - assets/images/environment/
+    - assets/images/environment/water/
+    - assets/images/environment/ground/
     - assets/audio/
     - assets/audio/sound_effects/
     - assets/fonts/
@@ -80,6 +82,7 @@ flutter:
 
   shaders:
     - shaders/frog_outline.frag
+    - shaders/watah.frag
 
   # To add assets to your application, add an assets section, like this:
   # assets:
