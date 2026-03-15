@@ -158,10 +158,13 @@ jobs:
 
       - name: Build web for itch.io
         run: >-
-          flutter build web --release --pwa-strategy=none --base-href /
+          flutter build web --release --pwa-strategy=none
           --dart-define=LEADERBOARD_SUBMIT_URL=${{ secrets.LEADERBOARD_SUBMIT_URL }}
           --dart-define=LEADERBOARD_KEY_PART_A=${{ secrets.LEADERBOARD_KEY_PART_A }}
           --dart-define=LEADERBOARD_KEY_PART_B=${{ secrets.LEADERBOARD_KEY_PART_B }}
+
+      - name: Remove base href for itch.io
+        run: python -c "import re; from pathlib import Path; p=Path('build/web/index.html'); p.write_text(re.sub(r'^\s*<base\s+href=\"[^\"]*\">\s*\n?', '', p.read_text(), flags=re.MULTILINE), encoding='utf-8')"
 
       - name: Package web artifact for itch.io
         run: |
