@@ -89,7 +89,6 @@ class PlayerComponent extends SpriteAnimationComponent
   int get remainingHealth => _remainingHealth;
   bool _isDrying = false;
   bool isInWater = false;
-  int _waterContacts = 0;
   int _frogHouseContacts = 0;
   int _groundContacts = 0;
   int _lilyContacts = 0;
@@ -352,6 +351,9 @@ class PlayerComponent extends SpriteAnimationComponent
     }
 
     if (current == PlayerVerticalPosition.waterLevel) {
+      if (!isInWater && canStayOnLand) {
+        return PlayerVerticalPosition.land;
+      }
       if (divePressed && isInWater) {
         return PlayerVerticalPosition.underwater;
       }
@@ -359,6 +361,9 @@ class PlayerComponent extends SpriteAnimationComponent
     }
 
     if (!isInWater) {
+      if (canStayOnLand) {
+        return PlayerVerticalPosition.land;
+      }
       return PlayerVerticalPosition.waterLevel;
     }
 
@@ -570,6 +575,11 @@ class PlayerComponent extends SpriteAnimationComponent
   void update(double dt) {
     super.update(dt);
     _outlinePulseTime += dt;
+    final bool wasInWater = isInWater;
+    isInWater = game.level.isPositionInWater(absoluteCenter);
+    if (isInWater && !wasInWater) {
+      removeAll(children.whereType<SimpleTextComponent>());
+    }
     final Vector2 movement = normalizeMoveAxis(
       inputState.moveAxisX,
       inputState.moveAxisY,
@@ -647,23 +657,20 @@ class PlayerComponent extends SpriteAnimationComponent
     position.y = position.y.clamp(0, maxY);
     position.x = position.x.clamp(0, maxX);
 
-    bool effectiveInWater = isInWater;
-    if (!effectiveInWater &&
-        levelPosition == PlayerVerticalPosition.underwater) {
-      effectiveInWater = game.level.isPositionInWater(absoluteCenter);
-    }
-
     final PlayerVerticalPosition previousVerticalPosition = levelPosition;
+    final bool canStayOnLand =
+        (_isTouchingGround && !isInWater) ||
+        _isTouchingLily ||
+        _isTouchingFrogHouse;
     inputState.playerVerticalPosition = resolveVerticalPosition(
       current: levelPosition,
       isInWater:
-          effectiveInWater ||
+          isInWater ||
           (levelPosition == PlayerVerticalPosition.underwater &&
               _underwaterSurfaceGraceRemaining > 0),
       jumpPressed: inputState.jumpPressed,
       divePressed: inputState.divePressed,
-      canStayOnLand:
-          _isTouchingGround || _isTouchingLily || _isTouchingFrogHouse,
+      canStayOnLand: canStayOnLand,
       jumpActive: _jumpActive,
     );
     final PlayerVerticalPosition nextVerticalPosition = levelPosition;
@@ -724,7 +731,6 @@ class PlayerComponent extends SpriteAnimationComponent
     _thornKnockbackVelocity.setZero();
     _thornInvincibilityRemaining = 0;
     _thornFlickerElapsed = 0;
-    _waterContacts = 0;
     _groundContacts = 0;
     _lilyContacts = 0;
     isInWater = false;
@@ -928,8 +934,13 @@ class PlayerComponent extends SpriteAnimationComponent
       return;
     }
     if (other is GroundComponent) {
-      await onHitGround(other);
-      if (levelPosition != PlayerVerticalPosition.land && !_jumpActive) {
+      final bool centerInWater = game.level.isPositionInWater(absoluteCenter);
+      if (!centerInWater) {
+        await onHitGround(other);
+      }
+      if (!centerInWater &&
+          levelPosition != PlayerVerticalPosition.land &&
+          !_jumpActive) {
         _separateFromCollision(
           intersectionPoints: intersectionPoints,
           onlyWhenMovingInto: true,
@@ -987,16 +998,11 @@ class PlayerComponent extends SpriteAnimationComponent
     Set<Vector2> intersectionPoints,
     PositionComponent other,
   ) {
-    if (other is WaterComponent) {
-      _waterContacts++;
-      isInWater = _waterContacts > 0;
-      if (isInWater) {
-        _underwaterSurfaceGraceRemaining =
-            PhysicsTuning.underwaterSurfaceGraceSeconds;
-      }
-      if (isInWater) {
-        removeAll(children.whereType<SimpleTextComponent>());
-      }
+    final bool centerInWater = game.level.isPositionInWater(absoluteCenter);
+    if (other is WaterComponent && centerInWater) {
+      _underwaterSurfaceGraceRemaining =
+          PhysicsTuning.underwaterSurfaceGraceSeconds;
+      removeAll(children.whereType<SimpleTextComponent>());
     }
     if (other is FrogHouseComponent) {
       _frogHouseContacts++;
@@ -1010,7 +1016,7 @@ class PlayerComponent extends SpriteAnimationComponent
     }
     if (other is GroundComponent) {
       _groundContacts++;
-      if (_jumpActive) {
+      if (_jumpActive && !centerInWater) {
         _jumpActive = false;
         _jumpElapsed = 0;
         inputState.playerVerticalPosition = PlayerVerticalPosition.land;
@@ -1037,9 +1043,7 @@ class PlayerComponent extends SpriteAnimationComponent
       removeAll(children.whereType<SimpleTextComponent>());
     }
     if (other is WaterComponent) {
-      _waterContacts = (_waterContacts - 1).clamp(0, 999999);
       moistureLevel = GameplayTuning.initialMoistureLevel;
-      isInWater = _waterContacts > 0;
     }
     if (other is WaterLilyComponent) {
       _lilyContacts = (_lilyContacts - 1).clamp(0, 999999);

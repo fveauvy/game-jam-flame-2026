@@ -112,26 +112,55 @@ void main() {
     expect(jumpUp, PlayerVerticalPosition.waterLevel);
   });
 
-  test('water-level and underwater return to water-level outside water', () {
-    final fromSurface = PlayerComponent.resolveVerticalPosition(
+  test(
+    'water-level and underwater stay at water-level outside water if no land',
+    () {
+      final fromSurface = PlayerComponent.resolveVerticalPosition(
+        current: PlayerVerticalPosition.waterLevel,
+        isInWater: false,
+        jumpPressed: false,
+        divePressed: false,
+        canStayOnLand: false,
+        jumpActive: false,
+      );
+      final fromUnderwater = PlayerComponent.resolveVerticalPosition(
+        current: PlayerVerticalPosition.underwater,
+        isInWater: false,
+        jumpPressed: false,
+        divePressed: false,
+        canStayOnLand: false,
+        jumpActive: false,
+      );
+
+      expect(fromSurface, PlayerVerticalPosition.waterLevel);
+      expect(fromUnderwater, PlayerVerticalPosition.waterLevel);
+    },
+  );
+
+  test('water-level returns to land outside water when grounded', () {
+    final next = PlayerComponent.resolveVerticalPosition(
       current: PlayerVerticalPosition.waterLevel,
       isInWater: false,
       jumpPressed: false,
       divePressed: false,
-      canStayOnLand: false,
+      canStayOnLand: true,
       jumpActive: false,
     );
-    final fromUnderwater = PlayerComponent.resolveVerticalPosition(
+
+    expect(next, PlayerVerticalPosition.land);
+  });
+
+  test('underwater returns to land outside water when grounded', () {
+    final next = PlayerComponent.resolveVerticalPosition(
       current: PlayerVerticalPosition.underwater,
       isInWater: false,
       jumpPressed: false,
       divePressed: false,
-      canStayOnLand: false,
+      canStayOnLand: true,
       jumpActive: false,
     );
 
-    expect(fromSurface, PlayerVerticalPosition.waterLevel);
-    expect(fromUnderwater, PlayerVerticalPosition.waterLevel);
+    expect(next, PlayerVerticalPosition.land);
   });
 
   test('land can stay on lily even above water', () {
