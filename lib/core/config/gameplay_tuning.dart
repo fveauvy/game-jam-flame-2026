@@ -51,6 +51,7 @@ abstract final class GameplayTuning {
 
   // Fly collision.
   static const double flyHitboxRadiusFactor = 0.35;
+  static const double flySize = 42;
 
   // Thorn world generation.
   static const double thornPatchNoiseFrequency = 0.12;

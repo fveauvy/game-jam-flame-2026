@@ -4,11 +4,10 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/gameplay_tuning.dart';
-import 'package:game_jam/game/components/environment/fly_animation_definition.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class FlyComponent extends SpriteAnimationComponent
-    with HasGameReference<MyGame>, FlyAnimationDefinition, CollisionCallbacks {
+    with HasGameReference<MyGame>, CollisionCallbacks {
   FlyComponent({super.position, super.size}) : super(priority: 51);
 
   static const double _minRadius = 20;
@@ -20,6 +19,9 @@ class FlyComponent extends SpriteAnimationComponent
   late final double _radius;
   late final double _angleSpeed;
   double _angle = 0;
+
+  @override
+  bool get debugMode => true;
 
   @override
   Future<void> onLoad() async {
@@ -36,9 +38,14 @@ class FlyComponent extends SpriteAnimationComponent
       flipHorizontally();
     }
 
-    animation = SpriteAnimation.fromFrameData(
-      game.images.fromCache(AssetPaths.flyCacheKey),
-      animationData,
+    animation = SpriteAnimation.variableSpriteList(
+      AssetPaths.flyAnimationCacheKeys
+          .map(
+            (key) =>
+                Sprite(game.images.fromCache(key), srcSize: Vector2(200, 200)),
+          )
+          .toList(),
+      stepTimes: [0.1, 0.1],
     );
     await add(
       CircleHitbox(

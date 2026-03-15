@@ -5,11 +5,10 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:game_jam/core/config/asset_paths.dart';
 import 'package:game_jam/core/config/physics_tuning.dart';
-import 'package:game_jam/game/components/environment/fly_animation_definition.dart';
 import 'package:game_jam/game/my_game.dart';
 
 class BirdAnimationComponent extends SpriteAnimationComponent
-    with HasGameReference<MyGame>, FlyAnimationDefinition, CollisionCallbacks {
+    with HasGameReference<MyGame>, CollisionCallbacks {
   BirdAnimationComponent({required super.position})
     : super(priority: 130, size: _zeroSize);
 
