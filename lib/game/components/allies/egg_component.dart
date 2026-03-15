@@ -22,14 +22,15 @@ class EggComponent extends PositionComponent with HasGameReference<MyGame> {
     super.size,
     required this.isInSafeHouse,
     this.isOnBack = false,
-  }) : super(anchor: Anchor.center);
+  });
 
   @override
   Future<void> onLoad() async {
+    anchor = isInSafeHouse ? Anchor.topLeft : Anchor.center;
     final spriteChild = SpriteComponent(
       sprite: Sprite(Flame.images.fromCache('big_egg.png')),
       size: size,
-      anchor: Anchor.topLeft,
+      // anchor: Anchor.topLeft,
     );
 
     if (isOnBack) {
