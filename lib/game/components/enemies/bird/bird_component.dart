@@ -48,7 +48,7 @@ class BirdComponent extends PositionComponent
       super.update(dt);
       return;
     }
-    final player = game.world.children.whereType<PlayerComponent>().firstOrNull;
+    final PlayerComponent? player = game.world.player;
     if (player == null || game.paused) {
       super.update(dt);
       return;
@@ -144,7 +144,7 @@ class BirdComponent extends PositionComponent
   }
 
   void startAttack() {
-    final player = game.world.children.whereType<PlayerComponent>().firstOrNull;
+    final PlayerComponent? player = game.world.player;
     if (_isAttacking ||
         player == null ||
         player.levelPosition == PlayerVerticalPosition.underwater) {

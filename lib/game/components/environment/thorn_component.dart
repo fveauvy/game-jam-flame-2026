@@ -37,7 +37,7 @@ class ThornComponent extends RectangleComponent
     _thornFrames = AssetPaths.thornsAnimationCacheKeys
         .map((String key) => Flame.images.fromCache(key))
         .toList(growable: false);
-    add(RectangleHitbox(size: size));
+    add(RectangleHitbox(size: size, collisionType: CollisionType.passive));
   }
 
   @override
