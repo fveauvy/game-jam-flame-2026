@@ -33,6 +33,14 @@ abstract final class AssetPaths {
   static const String jumpSfx2 = 'sound_effects/jump2.wav';
   static const String waterSplashMidSfx = 'sound_effects/water-splash-mid.wav';
   static const String tongueLickSfx = 'sound_effects/coup-de-langue.mp3';
+  static const String frogCroakSfx = 'sound_effects/frog-croaks.mp3';
+  static const String frogMenuSfx1 = 'sound_effects/gronouy1.mp3';
+  static const String frogMenuSfx2 = 'sound_effects/gronouy2.mp3';
+  static const String frogMenuSfx3 = 'sound_effects/gronouy3.mp3';
+  static const String frogMenuSfx4 = 'sound_effects/gronouy4.mp3';
+  static const String frogMenuSfx5 = 'sound_effects/gronouy5.mp3';
+  static const String frogMenuSfx6 = 'sound_effects/gronouy6.mp3';
+  static const String frogMenuSfx7 = 'sound_effects/gronouy7.mp3';
 
   // Flame image cache keys.
   static const String titleCacheKey = 'ui/title.png';
@@ -210,6 +218,24 @@ abstract final class AssetPaths {
     jumpSfx2,
     waterSplashMidSfx,
     tongueLickSfx,
+    frogCroakSfx,
+    frogMenuSfx1,
+    frogMenuSfx2,
+    frogMenuSfx3,
+    frogMenuSfx4,
+    frogMenuSfx5,
+    frogMenuSfx6,
+    frogMenuSfx7,
+  ];
+
+  static List<String> get frogMenuVoiceSfx => <String>[
+    frogMenuSfx1,
+    frogMenuSfx2,
+    frogMenuSfx3,
+    frogMenuSfx4,
+    frogMenuSfx5,
+    frogMenuSfx6,
+    frogMenuSfx7,
   ];
 
   static List<String> get preloadBundleAssets => <String>[

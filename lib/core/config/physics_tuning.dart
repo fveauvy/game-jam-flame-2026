@@ -7,10 +7,16 @@ abstract final class PhysicsTuning {
   static const double playerRotationSpeed = 30;
 
   // Jump movement and timing.
-  static const double jumpDurationSeconds = 0.24;
-  static const double jumpForwardSpeed = 420;
-  static const double jumpForwardScaleDecay = 0.6;
-  static const double minJumpForwardScale = 0.35;
+  static const double jumpDurationSeconds = 0.34;
+  static const double jumpForwardSpeed = 620;
+  static const double jumpForwardScaleDecay = 0.5;
+  static const double minJumpForwardScale = 0.5;
+
+  // Random croak while moving.
+  static const double movingCroakChancePerSecond = 0.2;
+  static const double movingCroakCooldownMinSeconds = 2.8;
+  static const double movingCroakCooldownMaxSeconds = 6.0;
+  static const double movingCroakVolume = 0.5;
 
   // Trait multiplier clamps.
   static const double minSpeedMultiplier = 0.2;
