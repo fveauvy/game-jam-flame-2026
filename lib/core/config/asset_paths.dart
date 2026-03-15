@@ -66,9 +66,9 @@ abstract final class AssetPaths {
   static const mudRight = 'environment/mud/mud-flat-right.png';
   static const mudUp = 'environment/mud/mud-flat-top.png';
   static const mudDown = 'environment/mud/mud-flat-bottom.png';
-  static const mudPlain1 = 'environment/mud/mud-plain1.png';
-  static const mudPlain2 = 'environment/mud/mud-plain2.png';
-  static const mudPlain3 = 'environment/mud/mud-plain3.png';
+  static const mudPlain1 = 'environment/mud/mud-plain-1.png';
+  static const mudPlain2 = 'environment/mud/mud-plain-2.png';
+  static const mudPlain3 = 'environment/mud/mud-plain-3.png';
 
   static List<String> get mudTilesCacheKeys => <String>[
     mudInvertedCornerTopLeft,
