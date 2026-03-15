@@ -35,32 +35,35 @@ class StartupSplashScreen extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Center(
-            child: FractionallySizedBox(
-              widthFactor: 0.9,
-              heightFactor: 0.9,
-              child: _OneShotGif(
-                assetPath: AssetPaths.startupSplashAnimation,
-                frameDurationMultiplier: 1.8,
+          Image.asset(
+            AssetPaths.startupSplashBackground,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (context, error, stackTrace) {
+              return const SizedBox.shrink();
+            },
+          ),
+          SizedBox.expand(
+            child: _OneShotGif(
+              assetPath: AssetPaths.startupSplashAnimation,
+              frameDurationMultiplier: 1.8,
+              fit: BoxFit.contain,
+              fallback: Image.asset(
+                AssetPaths.splashScreen,
                 fit: BoxFit.contain,
                 width: double.infinity,
                 height: double.infinity,
-                fallback: Image.asset(
-                  AssetPaths.splashScreen,
-                  fit: BoxFit.contain,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Text(
-                      'Gronouy',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 48,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    );
-                  },
-                ),
+                errorBuilder: (context, error, stackTrace) {
+                  return const Text(
+                    'Gronouy',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  );
+                },
               ),
             ),
           ),
