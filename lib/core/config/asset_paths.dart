@@ -8,7 +8,6 @@ abstract final class AssetPaths {
   static const String plankDark = 'assets/images/plank_dark.png';
   static const String plankPanel1CacheKey = 'planks_panel_1.png';
   static const String plankPanel2CacheKey = 'planks_panel_2.png';
-  static const String fly = 'assets/images/fly.png';
   static const String eggs = 'assets/images/eggs.png';
   static const String bigEgg = 'assets/images/big_egg.png';
   static const String thorns1 = 'assets/images/environment/Ronces1.png';
@@ -51,7 +50,6 @@ abstract final class AssetPaths {
   static const String plankLightCacheKey = 'plank_light.png';
   static const String plankDarkCacheKey = 'plank_dark.png';
   static const String waterLilyCacheKey = 'environment/water-lily.webp';
-  static const String flyCacheKey = 'fly.png';
   static const String eggsCacheKey = 'eggs.png';
   static const String bigEggCacheKey = 'big_egg.png';
   static const String thorns1CacheKey = 'environment/Ronces1.png';
@@ -205,6 +203,14 @@ abstract final class AssetPaths {
   static List<int> birdFloutixMaxSpriteId = [1, 2];
   static List<int> birdFloutixSpriteId = [1, 2];
 
+  static const String fly1AssetCacheKey = 'fly1.webp';
+  static const String fly2AssetCacheKey = 'fly2.webp';
+
+  static List<String> get flyAnimationCacheKeys => <String>[
+    fly1AssetCacheKey,
+    fly2AssetCacheKey,
+  ];
+
   static List<String> get preloadImageCacheKeys => <String>[
     plankCacheKey,
     plankLightCacheKey,
@@ -212,7 +218,6 @@ abstract final class AssetPaths {
     plankPanel1CacheKey,
     plankPanel2CacheKey,
     waterLilyCacheKey,
-    flyCacheKey,
     eggsCacheKey,
     bigEggCacheKey,
     titleCacheKey,
@@ -222,6 +227,7 @@ abstract final class AssetPaths {
     tongue2CacheKey,
     tongue3CacheKey,
     uiRefreshLogoCacheKey,
+    ...flyAnimationCacheKeys,
     ...waterAnimationCacheKeys,
     ...mudTilesCacheKeys,
     ...groundAnimationCacheKeys,
