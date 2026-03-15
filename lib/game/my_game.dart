@@ -248,6 +248,9 @@ class MyGame extends FlameGame<WorldRoot>
   }
 
   Future<void> playSfx(String asset, {double volume = 1.0}) async {
+    if (asset == AssetPaths.frogCroakSfx && phase.value != GamePhase.playing) {
+      return;
+    }
     final double effectiveVolume =
         (audioSettings.value.effectiveSfxVolume * volume).clamp(0.0, 1.0);
     if (effectiveVolume <= 0) {
