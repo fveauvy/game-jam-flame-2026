@@ -74,6 +74,7 @@ flutter:
     - assets/images/ui/
     - assets/images/environment/
     - assets/images/environment/water/
+    - assets/images/environment/mud/
     - assets/images/environment/ground/
     - assets/audio/
     - assets/audio/sound_effects/
